@@ -6,6 +6,7 @@ import { drawWeather } from "./weather.js";
 import { SKY, R, mix } from "./palette.js";
 import { hash3 } from "../core/rng.js";
 import { manSprite } from "./people.js";
+import { dogSprite, raftSprite, gullSprite, rabbitSprite, snareSprite, scrapsSprite } from "./beasts.js";
 import { structSprite, pileSprite, drawFire, bedSprite, drawPot } from "./structs.js";
 
 const TREES = new Set(["oak", "birch", "pine", "rowan", "hazel"]), SHRUBS = new Set(["bramble", "gorse", "fern", "reeds"]);
@@ -45,13 +46,30 @@ export function createView(cv, world, terr) {
       g.fillStyle = h < .08 ? "#e8fbf6" : R.water[4]; g.fillRect(px, py, h < .08 ? 2 : 1, 1);
     }
     // things lying on the ground (branches the wind brought down)
-    for (const it of world.items) { const px = Math.round(it.x * TS) - sx, py = Math.round(it.y * TS) - sy; if (px < -30 || py < -10 || px > aw + 30 || py > ah + 10) continue; if (it.k === "branch") { const b = branch(it.len, it.id, it.moist); g.drawImage(b.img, px - (b.img.width >> 1), py - b.img.height + b.ay); } }
+    for (const it of world.items) { const px = Math.round(it.x * TS) - sx, py = Math.round(it.y * TS) - sy; if (px < -30 || py < -10 || px > aw + 30 || py > ah + 10) continue; if (it.k === "branch") { const b = branch(it.len || (it.kg > 1.2 ? 2 : 1), it.id, it.moist); g.drawImage(b.img, px - (b.img.width >> 1), py - b.img.height + b.ay); } }
     // what he has made and the man himself, merged into the back-to-front order of trees and plants
     const dyn = [], M = world.man, windX = (world.wx.windDir >= 3 && world.wx.windDir <= 5 ? -1 : world.wx.windDir === 2 || world.wx.windDir === 6 ? 0 : 1) * world.wx.wind * .35;
     for (const s of world.structs) {
-      const sp = structSprite(s); if (sp) dyn.push({ y: s.y + (s.k === "fireRing" ? -.05 : .3), f: () => g.drawImage(sp.img, Math.round(s.x * TS) - sx - sp.ox, Math.round(s.y * TS) - sy + 5 - sp.oy) });
+      const sp = s.k === "snare" ? snareSprite(s.stage > 0 ? 1 : 0, s.caught ? 1 : 0) : structSprite(s); if (sp) dyn.push({ y: s.y + (s.k === "fireRing" ? -.05 : .3), f: () => g.drawImage(sp.img, Math.round(s.x * TS) - sx - sp.ox, Math.round(s.y * TS) - sy + 5 - sp.oy) });
       let k = 0; for (const m in s.onsite || {}) if (s.onsite[m] > 0) { const pl = pileSprite(m, s.onsite[m]), ox = (k++ - .5) * 14; dyn.push({ y: s.y + .45, f: () => g.drawImage(pl.img, Math.round(s.x * TS + ox + 16) - sx - pl.ox, Math.round(s.y * TS) - sy + 6 - pl.oy) }); }
     }
+    // animals: where they were over the last minute, smoothly; the dog along the way it ran
+    const frac = Math.max(0, Math.min(1, (Date.now() - world.born) / 60000 - world.t));
+    for (const a of world.animals || []) {
+      if (a.dead || (a.sp === "rabbit" && a.under)) continue;
+      let ax = a.px + (a.x - a.px) * frac, ay = a.py + (a.y - a.py) * frac, face = a.face || 1;
+      if (a.sp === "dog" && a.trail && a.trail.length > 1) { const q = alongTrail(a.trail, frac); ax = q.x; ay = q.y; face = q.face || face; }
+      const px = Math.round(ax * TS) - sx, py = Math.round(ay * TS) - sy + 4; if (px < -30 || py < -30 || px > aw + 30 || py > ah + 30) continue;
+      let sp, lift = 0;
+      if (a.sp === "dog") sp = a.adrift ? raftSprite(now) : dogSprite(a.curled ? "sleep" : a.act === "shake" ? "stand" : a.act === "shy" ? "walk" : a.act, now);
+      else if (a.sp === "gull") { sp = gullSprite(a.act === "fly" || a.air ? "fly" : a.act, now, a.id); if (a.air) lift = 10 + Math.round(Math.sin(now / 500 + a.id) * 2); }
+      else sp = rabbitSprite(a.act, now, a.id);
+      dyn.push({ y: ay + (lift ? 3 : 0), f: () => {
+        if (lift) { g.globalAlpha = .18; g.fillStyle = "#1b120c"; g.fillRect(px - 3, py - 1, 6, 1); g.globalAlpha = 1; }
+        if (face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(sp.img, -sp.ox, py - lift - sp.oy); g.restore(); } else g.drawImage(sp.img, px - sp.ox, py - lift - sp.oy);
+      } });
+    }
+    for (const it of world.items) if (it.k === "scraps") { const sp = scrapsSprite(); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy) }); }
     for (const F of world.fires) dyn.push({ y: F.y, f: () => { const fx = Math.round(F.x * TS) - sx, fy = Math.round(F.y * TS) - sy + 3; drawFire(g, F, fx, fy, now, windX); if (M && M.boiling && world.t - M.boiling < 2) drawPot(g, fx + 5, fy + 1, now, true); } });
     // the shore at low water: beds the tide has uncovered
     for (const b of world.shore) if (world.wx.tide < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - world.wx.tide) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy); g.globalAlpha = 1; }
@@ -98,6 +116,12 @@ export function createView(cv, world, terr) {
     }
   };
   // where to draw him: along the way he walked during the last simulated minute, smoothly, in real time
+  function alongTrail(tr, frac) {
+    let L = 0; for (let k = 1; k < tr.length; k++) L += Math.hypot(tr[k][0] - tr[k - 1][0], tr[k][1] - tr[k - 1][1]);
+    let d = L * frac;
+    for (let k = 1; k < tr.length; k++) { const a = tr[k - 1], b = tr[k], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d <= l || k === tr.length - 1) { const f = l ? Math.min(1, d / l) : 1; return { x: a[0] + (b[0] - a[0]) * f, y: a[1] + (b[1] - a[1]) * f, face: b[0] > a[0] + .01 ? 1 : b[0] < a[0] - .01 ? -1 : 0 }; } d -= l; }
+    return { x: tr[tr.length - 1][0], y: tr[tr.length - 1][1], face: 0 };
+  }
   V.manPos = now => {
     const M = world.man, tr = M.trail && M.trail.length > 1 ? M.trail : null;
     if (!tr) return { x: M.x, y: M.y, face: M.face || 1 };

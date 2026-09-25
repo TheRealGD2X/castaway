@@ -43,7 +43,12 @@ export const ACTIONS = {
   eat: {
     r: ["food"], w: ["fed","food"],
     find: () => ({ x: null }), pre: S => S.food > 100, eff: S => { S.fed = 1; S.food = Math.max(0, S.food - 900); }, cost: () => 10,
-    exec: work({ here: true, mins: 10, met: MET.sit, pose: "eat", done: (W, M) => { const k = Math.min(M.inv.food || 0, Math.max(300, 1600 - M.B.glyco)); M.inv.food -= k; bodyEat(M.B, k); expose(W, M, (M.foodLoad || 0) * k, M.foodWhat || "food"); } }),
+    exec: work({ here: true, mins: 10, met: MET.sit, pose: "eat", done: (W, M) => {
+      let k = Math.min(M.inv.food || 0, Math.max(300, 1600 - M.B.glyco));
+      // the dog watching every mouthful: if it's thin or still wary, a share goes its way
+      const dog = W.animals.find(a => a.sp === "dog" && !a.adrift && !a.dead && Math.hypot(a.x - M.x, a.y - M.y) < 5);
+      if (dog && (dog.E < .35 || dog.trust < .85) && k > 200) { const share = Math.round(k * (dog.E < .2 ? .35 : .2)); k -= share; M.inv.food -= share; W.items.push({ id: W.nextId++, k: "scraps", x: M.x + (dog.x - M.x) * .5, y: M.y + (dog.y - M.y) * .5, kcal: share, from: "man" }); M.log.push([W.t, "fed dog"]); }
+      M.inv.food -= k; bodyEat(M.B, k); expose(W, M, (M.foodLoad || 0) * k, M.foodWhat || "food"); } }),
   },
   // raw shellfish or fish, eaten without cooking: only when he's desperate (he knows it's risky, and learns how much)
   eatRaw: {
@@ -65,12 +70,26 @@ export const ACTIONS = {
     pre: S => S.raw < 2000, eff: S => { S.raw += 500; }, cost: (W, M, t) => walkMin(M, t) + 10,
     exec: work({ adjacent: true, mins: 10, met: MET.gather, pose: "crouch", done: (W, M, t) => { const s = W.structs.find(q => q.id === t.sid); if (!s) return "fail"; s.checked = W.t; const n = s.fish || 0; s.fish = 0; if (!n) { M.say = "Empty. Next time."; return; } addRaw(M, n * FISH.kcal, W.water.stream * .004, "fish"); M.log.push([W.t, "fish", n]); M.say = n > 1 ? `${n} trout in the trap!` : "A trout. Supper."; } }),
   },
+  // go round the snares: a rabbit in one is meat; reset it
+  checkSnares: {
+    r: ["raw"], w: ["raw"],
+    find: (W, M) => { const s = W.structs.find(q => q.k === "snare" && q.stage >= 1 && W.t - (q.checked ?? q.started) > 600); return s ? { x: s.x, y: s.y, tile: idx(Math.floor(s.x), Math.floor(s.y)), key: "snare", sid: s.id } : null; },
+    pre: S => S.raw < 2000, eff: S => { S.raw += 300; }, cost: (W, M, t) => walkMin(M, t) + 5,
+    exec: work({ adjacent: true, mins: 5, met: MET.gather, pose: "crouch", done: (W, M, t) => { const s = W.structs.find(q => q.id === t.sid); if (!s) return "fail"; s.checked = W.t; if (!s.caught) { M.say = "Nothing. The noose is still set."; return; } s.caught = 0; addRaw(M, 1100, W.water.stream * .01, "rabbit"); M.log.push([W.t, "rabbit"]); M.say = "A rabbit in the snare. Meat."; } }),
+  },
+  // throw the dog something: food is how it learns he means it no harm
+  feedDog: {
+    r: ["food", "raw"], w: ["dogFed", "food", "raw"],
+    find: (W, M) => M.mem.dog && W.t - M.mem.dog.t < 180 ? Object.assign({ key: "dog" }, M.mem.dog) : null, pre: S => S.food >= 150 || S.raw >= 150, eff: S => { S.dogFed = 1; if (S.raw >= 150) S.raw -= 150; else S.food -= 150; },
+    cost: (W, M, t) => walkMin(M, t) + 6, exec: feedDogExec, say: "Here. Here, boy. Easy.",
+  },
   // cook on the fire: the heat kills what's growing in it, faster the hotter the fire
   cook: {
     r: ["raw", "fire"], w: ["food", "raw"],
     find: (W, M) => litFireMem(M) || camp(W, M), pre: S => S.raw > 0 && S.fire === 2, eff: S => { S.food += S.raw; S.raw = 0; }, cost: (W, M, t) => walkMin(M, t) + 15,
     exec: work({ adjacent: true, mins: 15, met: MET.sit, pose: "tend", tick: (W, M, t) => { const F = fireAt(W, t) || W.fires.find(f => f.lit); if (!F || F.heat < 300) return "fail"; M.rawLoad = (M.rawLoad || 0) * dexp(-.9 * Math.min(1, F.heat / 3000)); },
-      done: (W, M) => { const k = M.inv.raw || 0; addFood(M, k, M.rawLoad || 0, "cooked " + (M.rawWhat || "shellfish")); M.inv.raw = 0; M.rawLoad = 0; M.say = "Smells like a proper meal."; } }),
+      done: (W, M, t) => { const k = M.inv.raw || 0; addFood(M, k, M.rawLoad || 0, "cooked " + (M.rawWhat || "shellfish")); M.inv.raw = 0; M.rawLoad = 0; M.say = "Smells like a proper meal.";
+        if (M.rawWhat === "fish" || M.rawWhat === "rabbit") W.items.push({ id: W.nextId++, k: "scraps", x: M.x + .8, y: M.y + .4, kcal: k * .08, from: "man" }); } }),   // the guts and heads, left by the fire
   },
   // a pot folded from a sheet of birch bark and pinned with a split stick: it holds water, and over hot coals the
   // water in it boils before the bark can burn
@@ -252,6 +271,21 @@ function shellfishExec(W, M, t, st) {
   addRaw(M, kg * SHELL[b.k].kcalKg, W.water.sea * .03, b.k);
   if (--st.left <= 0 || b.kg < .2) { M.mem[t.key] && (M.mem[t.key].kg = b.kg); return "done"; }
   return "work";
+}
+function feedDogExec(W, M, t, st) {
+  const dog = W.animals.find(a => a.sp === "dog" && !a.adrift && !a.dead); if (!dog) return "fail";
+  if (!st.phase) { st.phase = "go"; st.left = 30; }
+  const d = Math.hypot(dog.x - M.x, dog.y - M.y);
+  if (st.phase === "go") {   // close enough to throw, not so close it bolts
+    if (d < 5) { st.phase = "toss"; st.wait = 3; }
+    else { if (--st.left <= 0) return "fail"; const i = idx(Math.floor(dog.x - (dog.x - M.x) / d * 3.5), Math.floor(dog.y - (dog.y - M.y) / d * 3.5)); if (!M.path || M.pathTo !== i) { if (!goTo(W, M, i, false)) return "fail"; M.pathTo = i; } M.pose = "walk"; M.met = MET.walk; walk(W, M); return "go"; }
+  }
+  M.pose = "crouch"; M.met = MET.sit; M.face = dog.x > M.x ? 1 : -1;
+  if (--st.wait > 0) return "work";
+  if ((M.inv.raw || 0) < 150 && (M.inv.food || 0) < 150) return "fail";
+  const fromRaw = (M.inv.raw || 0) >= 150, k = Math.min(fromRaw ? M.inv.raw : M.inv.food || 0, 150); if (fromRaw) M.inv.raw -= k; else M.inv.food -= k;   // raw fish or shellfish does a dog no harm
+  W.items.push({ id: W.nextId++, k: "scraps", x: M.x + (dog.x - M.x) * .6, y: M.y + (dog.y - M.y) * .6, kcal: k, from: "man" });
+  M.log.push([W.t, "fed dog"]); return "done";
 }
 function boilExec(W, M, t, st) {
   if (!st.phase) { st.phase = "fetch"; if (!goTo(W, M, t.water, true)) return "fail"; }

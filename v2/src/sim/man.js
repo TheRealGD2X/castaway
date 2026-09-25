@@ -38,6 +38,12 @@ export function look(W) {
   for (const k in M.mem) if (k[0] === "i" && !W.items.some(it => "i" + it.id === k)) { const m = M.mem[k]; if ((m.x - cx) ** 2 + (m.y - cy) ** 2 <= r2) delete M.mem[k]; }   // gone (he sees it isn't there)
   // the shore: beds he can see when the tide has uncovered them (and how deep they lie, so when they'll show again)
   for (const b of W.shore) if ((b.x - cx) ** 2 + (b.y - cy) ** 2 <= r2 && W.wx.tide < -b.depth) seen("s" + b.id, { k: b.k, x: b.x, y: b.y, kg: b.kg, depth: b.depth, tile: b.tile });
+  // animals: the dog (where it was, how it seemed), rabbits by their warren (so he knows where they run)
+  for (const a of W.animals) {
+    if ((a.x - cx) ** 2 + (a.y - cy) ** 2 > r2 || a.adrift || a.dead) continue;
+    if (a.sp === "dog") seen("dog", { k: "dog", x: a.x, y: a.y, trust: a.trust, name: a.name, thin: a.E < .3 ? 1 : 0 });
+    else if (a.sp === "rabbit" && !a.under) seen("warren" + a.home, { k: "warren", x: W.warrens[a.home].x, y: W.warrens[a.home].y, home: a.home });
+  }
   for (const f of W.fires) if ((f.x - cx) ** 2 + (f.y - cy) ** 2 <= r2) seen("fire" + f.id, { k: "fire", x: f.x, y: f.y, lit: f.lit, embers: f.embers, fuelKg: (f.fuel.logs[1] < .35 ? f.fuel.logs[0] : 0) + (f.fuel.kindling[1] < .35 ? f.fuel.kindling[0] : 0), tinder: f.fuel.tinder[1] < .3 ? f.fuel.tinder[0] : 0 });   // damp tinder is no tinder
 }
 // the conditions his body is in this minute (shelter he stands in, the fire beside him, the weather)
@@ -47,7 +53,9 @@ export function bodyContext(W, M, met) {
   const underTree = W.treeAt && W.treeAt[i] ? .45 : 0;
   let fireW = 0;
   for (const f of W.fires) { const d = Math.hypot(f.x - M.x, f.y - M.y) * 2; if (d < 8) fireW += radiantAt(f, d); }
-  fireW *= sh.fire * (1 + sh.reflect);                    // a debris hut shuts the fire out; a reflector wall throws it back in
+  fireW *= sh.fire * (1 + sh.reflect);
+  // a dog asleep against him is a hot-water bottle (a dog's body gives off about 50 W; he gets some of it)
+  if (M.B.asleep) for (const a of W.animals) if (a.sp === "dog" && a.curled) fireW += 22;                    // a debris hut shuts the fire out; a reflector wall throws it back in
   return { met, airT: x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: x.rain, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: x.hum, fireW, lying: M.B.asleep, bedding: sh.bed, sleepQ: 1 };
 }
 // walk along the path: real speed (about 1.2 m/s on firm grass), slower on rough ground, when tired or cold
