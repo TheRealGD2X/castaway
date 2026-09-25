@@ -788,6 +788,11 @@ function brainArbitrate(S, B) {
   // a roof before dark
   const p = nextProject();
   if (B.noShelter && p && (p.k === "leanto" || p.k === "hut")) for (const o of S) if (o[0] === "build") o[1] += 16 + (B.eveSoon ? 18 : 0);
+  // closing a real gap in his safety comes before long-term jobs (stocking up, projects, his own plans)
+  if (!B.night) for (const o of S) {
+    const gap = o[0] === "relight" || o[0] === "nightwood" || o[0] === "butcher" || (o[0] === "food" && B.foodDays < 1) || (o[0] === "build" && B.noShelter && p && (p.k === "leanto" || p.k === "hut"));
+    if (gap) o[1] = Math.max(o[1], 84);
+  }
   // his own plan pulls harder when it's about staying alive
   if (B.gaps.length) for (const o of S) if (o[0] === "plan") o[1] += 8;
   // carrying on with what he was doing is easier than switching, for a few hours; then he's had enough of it
@@ -799,6 +804,8 @@ function brainArbitrate(S, B) {
   // evenings by a lit fire, with the day's work secure, are his own
   const windDown = (B.night || B.toDusk < .5) && B.fireOK && !B.gaps.length;
   if (windDown) for (const o of S) { if (brainTier(o[0]) === 4) o[1] += 12; if (o[0] === "build" || o[0] === "explore" || o[0] === "search") o[1] -= 15; }
+  // daylight is for work: by day, pastimes only win when there's nothing useful to do, or as a short break when he's low
+  if (!B.night && B.toDusk > 1) for (const o of S) if (brainTier(o[0]) === 4 && o[0] !== "idle") o[1] = Math.min(o[1], n.mood < 25 ? 55 : 38);
   // while he isn't secure, pastimes don't occur to him (a breather only if his spirits have hit bottom)
   if (B.gaps.length && n.mood >= 15) for (let i = S.length - 1; i >= 0; i--) if (brainTier(S[i][0]) === 4 && S[i][0] !== "idle") S.splice(i, 1);
 }
@@ -820,7 +827,7 @@ const WHY = {
   explore: () => dayNo() <= 3 ? "Getting to know the island" : "Curious about ground he hasn't seen",
   search: () => W.m.searching && W.m.searching.length ? "Looking for " + W.m.searching.join(" and ") : "Searching",
   wander: () => "Restless; he wants to see somewhere new",
-  fun: B => B.gaps.length ? "A breather; his spirits are low" : "The day's work is done; time for himself",
+  fun: B => B.gaps.length || W.m.n.mood < 25 ? "A breather; his spirits are low" : !B.night && B.toDusk > 1 ? "Nothing pressing; a break" : "The day's work is done; time for himself",
   chore: () => "",
   practise: () => "Not skilled enough yet for what he wants to make",
   repair: () => "Something of his needs mending",
@@ -841,6 +848,35 @@ function brainInterrupt() {
   const k = m.pk; if (!k || brainTier(k) < 4 && k !== "practise") return;
   const B = brainBeliefs();
   if (B.gaps.length && m.n.mood >= 15) { abortPlan(); think(B.fireDead ? "The fire. I let the fire go out. What am I doing?" : B.noShelter ? "No roof and I'm messing about. Get a grip." : "This can wait. There's work to do."); }
+}
+
+// ---- dead wood: what anyone without an axe burns. Fallen sticks and dead branches under the trees he knows, a few
+// armfuls from each spot, snapped to length over his knee. A spot picked clean needs a few days to gather more deadfall.
+const DW_PER = 3, DW_BACK = 3 * DAY;
+function deadwoodOK(i) {
+  const r = G.res[i]; if (!(r === RS.OAK || r === RS.PINE) || W.amt[i] <= 0 || !(G.known && G.known[i])) return false;
+  const d = W.dw && W.dw[i]; return !d || d[0] < DW_PER || d[1] <= W.t;
+}
+function planDeadwood(want, goal) {
+  const h = here(), c = [];
+  for (let i = 0; i < N; i++) if (deadwoodOK(i)) { const d = md(i, h); if (d <= 40) c.push([d, i]); }
+  if (!c.length) return false;
+  c.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const steps = []; let left = want;
+  for (let k = 0; k < c.length && left > 0 && k < 4; k++) { const i = c[k][1], d = W.dw && W.dw[i], has = !d || d[1] <= W.t ? DW_PER : DW_PER - d[0], n = Math.min(has, left); steps.push(go(i, true), doA("deadwood", i, 0, { n })); left -= n; }
+  setPlan(goal || "Collecting dead wood", steps, RP(["No axe, no matter. There's dead wood all over the ground under these trees.", "Dry sticks snap clean. Green ones bend. Only the ones that snap.", "An armful of deadfall. Burns better than green wood anyway."]));
+  return true;
+}
+function stepDeadwood(st) {
+  const m = W.m; m.act = "gather";
+  if (!deadwoodOK(st.at)) { finishStep(); return; }
+  if (m.prog >= Math.ceil(7 / workMult("wood"))) {
+    m.prog = 0;
+    const D = W.dw || (W.dw = {}); let d = D[st.at]; if (!d || (d[0] >= DW_PER && d[1] <= W.t)) d = D[st.at] = [0, 0];
+    d[0]++; addBag("wood", 1); gainSk("gather", .01); st.n--;
+    if (d[0] >= DW_PER) d[1] = W.t + DW_BACK;
+    if (st.n <= 0 || d[0] >= DW_PER || bagUnits() >= BAGCAP()) finishStep();
+  }
 }
 
 function decide() {
@@ -1051,6 +1087,7 @@ function planGather(mat, want, goal) {
   if (planPickup(mat, n, goal)) return true;
   let types, a, thoughts;
   if (mat === "wood") {
+    if ((!W.m.tools.axe || /fire|night|freezing|cook/i.test(goal || "")) && planDeadwood(n, goal)) return true;
     if (!W.m.tools.axe) { const dw = nearestRes([RS.DRIFT], h, 30); if (dw >= 0) { setPlan(goal || "Collecting driftwood", [go(dw, true), doA("gather", dw, 10, { n })], "Driftwood. No axe needed."); return true; } }
     types = [RS.OAK, RS.PINE]; a = "chop"; thoughts = ["Wood. I always need more wood.", "One more tree.", "Timber for the next project."];
   } else if (mat === "stone") { types = [RS.BOULDER, RS.FLINT]; a = "mine"; thoughts = ["Stone's heavy, but it lasts.", "Chipping at the rocks."]; }
@@ -1351,6 +1388,7 @@ function stepDo(st) {
   const face = at => { if (at != null) { const tx = ix(at); if (tx !== m.x) m.dir = tx > m.x ? 1 : -1; } };
   face(st.at);
   switch (st.a) {
+    case "deadwood": stepDeadwood(st); return;
     case "chop": case "mine": {
       m.act = st.a;
       if (W.amt[st.at] <= 0) { finishStep(); return; }
@@ -5383,6 +5421,7 @@ const ANIM = (() => {
       case "mine": return res === RS.FLINT ? "knap" : "smash";
       case "gather": {
         if (st.a === "wild") { const id = G.flo ? G.flo[st.at] : 0, s = id && typeof SPECIES !== "undefined" ? SPECIES[id] : null; return s ? WILDP[s.k] || "crouchPick" : "crouchPick"; }
+        if (st.a === "deadwood") return (m.prog % 7) < 4 ? "crouchPick" : "snap";   // pick up a fallen branch, snap it over his knee
         if (st.a === "roots" || st.a === "harvest" || st.a === "plant") return "dig";
         if (st.a === "mushroom" || st.a === "shore") return "crouchPick";
         if (st.a === "gather") return res === RS.CLAY ? "dig" : res === RS.FIBER ? "pull" : null;
