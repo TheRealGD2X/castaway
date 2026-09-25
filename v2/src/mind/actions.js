@@ -77,6 +77,13 @@ export const ACTIONS = {
     pre: S => S.raw < 2000, eff: S => { S.raw += 300; }, cost: (W, M, t) => walkMin(M, t) + 5,
     exec: work({ adjacent: true, mins: 5, met: MET.gather, pose: "crouch", done: (W, M, t) => { const s = W.structs.find(q => q.id === t.sid); if (!s) return "fail"; s.checked = W.t; if (!s.caught) { M.say = "Nothing. The noose is still set."; return; } s.caught = 0; addRaw(M, 1100, W.water.stream * .01, "rabbit"); M.log.push([W.t, "rabbit"]); M.say = "A rabbit in the snare. Meat."; } }),
   },
+  // an hour on the highest ground he knows near the sea, looking out
+  watchSea: {
+    r: [], w: ["watched"],
+    find: (W, M) => { let best = -1, bh = -1; for (let i = MW; i < MW * (MH - 1); i++) { if (!M.known[i] || W.dsea[i] > 4 || W.dsea[i] < 1 || W.treeAt[i] || W.ter[i] === T.WOOD) continue; const h = W.h[i] - Math.hypot(i % MW - M.x, (i / MW | 0) - M.y) * .004; if (h > bh) { bh = h; best = i; } } return best < 0 ? null : { tile: best, ...tileXY(best) }; },
+    pre: S => !S.watched, eff: S => { S.watched = 1; }, cost: (W, M, t) => walkMin(M, t) + 60,
+    exec: work({ adjacent: false, mins: 60, met: MET.sit, pose: "sit", tick: (W, M) => { M.lastWatch = W.t; } }),
+  },
   // a ship! down to the shore on that side, waving, shouting, while it's in sight
   wave: {
     r: [], w: ["signalled"],

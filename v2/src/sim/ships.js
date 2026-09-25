@@ -39,7 +39,7 @@ export function shipsWatch(W) {
     const d = shipDist(W, sh, M ? M.x : W.cx, M ? M.y : W.cy); sh.dist = d;
     const sv = M && M.B.alive && !M.B.asleep ? seaView(W, M, sh.side) : 0;
     if (sv && d < vis) {
-      const p = clamp(.12 * sv * (1 - d / vis) * (M.act && M.act.a === "sleep" ? 0 : 1), .002, .25);                               // a speck on the horizon, or plain
+      const p = clamp(.12 * sv * (1 - d / vis) * (M.act && M.act.a === "watchSea" ? 4 : 1), .002, .5);   // looking out for them, he sees them                               // a speck on the horizon, or plain
       if (W.rng.f() < p) { if (!sh.seenBy) { M.log.push([W.t, "ship", sh.k]); } sh.seenBy = W.t; M.mem.ship = { k: "ship", id: sh.id, side: sh.side, kind: sh.k, t: W.t }; }
     }
     // smoke: a lookout sees a column of smoke against the land at a range set by the visibility and how thick it is
