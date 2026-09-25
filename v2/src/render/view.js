@@ -1,14 +1,15 @@
 // The camera and the frame: terrain, then everything standing on it sorted by depth, then the light of the hour.
 // Integer zoom (device pixels per art pixel) keeps every pixel crisp; the crown of each tree sways by whole pixels.
 import { TS } from "./terrain.js";
-import { tree, shrub, rock, shadow } from "./sprites.js";
+import { tree, shrub, rock, shadow, branch } from "./sprites.js";
+import { drawWeather } from "./weather.js";
 import { SKY, R, mix } from "./palette.js";
 import { hash3 } from "../core/rng.js";
 
 const TREES = new Set(["oak", "birch", "pine", "rowan", "hazel"]), SHRUBS = new Set(["bramble", "gorse", "fern", "reeds"]);
 export function createView(cv, world, terr) {
   const g = cv.getContext("2d", { alpha: false });
-  const V = { cam: { x: world.cx * TS, y: world.cy * TS }, k: 0, aw: 0, ah: 0, hour: 12, season: { autumn: 0, fall: 0 } };
+  const V = { cam: { x: world.cx * TS, y: world.cy * TS }, k: 0, aw: 0, ah: 0 };
   V.resize = () => {
     const dpr = window.devicePixelRatio || 1;
     if (!V.k) V.k = Math.max(2, Math.round(dpr * 2));
@@ -41,18 +42,20 @@ export function createView(cv, world, terr) {
       const px = tx * TS + ((hash3(tx, ty, fr + 1) * 13) | 0) - sx, py = ty * TS + ((hash3(tx, ty, fr + 2) * 13) | 0) - sy;
       g.fillStyle = h < .08 ? "#e8fbf6" : R.water[4]; g.fillRect(px, py, h < .08 ? 2 : 1, 1);
     }
+    // things lying on the ground (branches the wind brought down)
+    for (const it of world.items) { const px = Math.round(it.x * TS) - sx, py = Math.round(it.y * TS) - sy; if (px < -30 || py < -10 || px > aw + 30 || py > ah + 10) continue; if (it.k === "branch") { const b = branch(it.len, it.id, it.moist); g.drawImage(b.img, px - (b.img.width >> 1), py - b.img.height + b.ay); } }
     // things on the ground, back to front
-    const wind = Math.sin(now / 1700) + Math.sin(now / 610) * .4;
+    const wk = Math.min(2.2, .35 + world.wx.wind / 7), wind = (Math.sin(now / (1900 - world.wx.wind * 60)) + Math.sin(now / 610) * .4) * wk;
     for (let i = firstRow(sy / TS - 1); i < ents.length; i++) {
       const e = ents[i]; if (e.y * TS - 60 > sy + ah) break;
       const px = Math.round(e.x * TS) - sx, py = Math.round(e.y * TS) - sy; if (px < -40 || px > aw + 40) continue;
       if (TREES.has(e.k)) {
-        const s = tree(e.k, e.size, e.id, V.season), sh = shadow(s.shadowW * 2, 7);
+        const s = tree(e.k, e.size, e.id, { autumn: e.aut || 0, fall: e.fall || 0 }), sh = shadow(s.shadowW * 2, 7);
         g.globalAlpha = .32; g.drawImage(sh, px - (sh.width >> 1), py - 4); g.globalAlpha = 1;
         g.drawImage(s.trunk, px - Math.round(s.cx), py - s.trunk.height + 1);
         if (s.crown) { const sway = Math.round((wind + hash3(e.id, 0, 9) * 2 - 1) * .55 * (e.k === "pine" ? .6 : 1)); g.drawImage(s.crown, px - Math.round(s.cx) + sway, py - s.trunk.height - s.crown.height + 6); }
       } else if (SHRUBS.has(e.k)) {
-        const s = shrub(e.k, e.size, e.id, V.season);
+        const s = shrub(e.k, e.size, e.id, { autumn: e.aut || 0, fruit: e.fruit || 0, flower: V.flower });
         if (e.k !== "fern" && e.k !== "reeds") { const sh = shadow(s.img.width * .9, 5); g.globalAlpha = .28; g.drawImage(sh, px - (sh.width >> 1), py - 3); g.globalAlpha = 1; }
         g.drawImage(s.img, px - (s.img.width >> 1), py - s.img.height + s.ay);
       } else {
@@ -61,11 +64,7 @@ export function createView(cv, world, terr) {
         g.drawImage(s.img, px - (s.img.width >> 1), py - s.img.height + s.ay);
       }
     }
-    // the light of the hour
-    const h = V.hour; let a = SKY[0], b = SKY[1];
-    for (let k = 0; k < SKY.length - 1; k++) if (h >= SKY[k][0] && h <= SKY[k + 1][0]) { a = SKY[k]; b = SKY[k + 1]; break; }
-    const tint = mix(a[1], b[1], (h - a[0]) / Math.max(.001, b[0] - a[0]));
-    if (tint !== "#ffffff") { g.globalCompositeOperation = "multiply"; g.fillStyle = tint; g.fillRect(0, 0, aw, ah); g.globalCompositeOperation = "source-over"; }
+    drawWeather(g, V, world, now, sx, sy);
   };
   V.resize();
   return V;

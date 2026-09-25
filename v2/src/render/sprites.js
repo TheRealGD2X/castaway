@@ -148,3 +148,15 @@ export function shadow(w, h) {
   w = Math.max(4, Math.round(w)); h = Math.max(2, Math.round(h));
   return memo(`sh:${w}:${h}`, () => sprite(w, h, P => { for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const dx = (x + .5 - w / 2) / (w / 2), dy = (y + .5 - h / 2) / (h / 2); if (dx * dx + dy * dy <= 1) P.set(x, y, "#1d2a14"); } }, { outline: false }));
 }
+// a fallen branch: a crooked limb with a few twigs; darker when soaked
+export function branch(len, v, wet) {
+  const w8 = wet > .35 ? 1 : 0;
+  return memo(`b:${len}:${v & 3}:${w8}`, () => {
+    const L = len > 1 ? 24 : 15, bark = w8 ? R.bark.map(c => mix(c, "#1e1410", .3)) : R.bark;
+    return { img: sprite(L + 4, 8, P => {
+      let y = 4 + (v & 1);
+      for (let x = 1; x < L + 2; x++) { if (hash3(x, v, 81) < .18) y += hash3(x, v, 82) < .5 ? -1 : 1; y = Math.max(2, Math.min(6, y)); P.set(x, y, bark[3]); P.set(x, y + 1, bark[1]); if (x < L * .5) P.set(x, y - 1, bark[2]); }
+      for (let k = 0; k < 3; k++) { const x0 = 4 + ((hash3(k, v, 83) * (L - 6)) | 0); for (let s = 1; s < 4; s++) P.set(x0 + s, 3 - s + (k & 1 ? 5 : 0) + (k & 1 ? s * 2 - 2 : 0), bark[2]); }
+    }), ay: 2 };
+  });
+}
