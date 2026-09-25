@@ -13,8 +13,11 @@ html,body{margin:0;height:100%;background:#174b66;overflow:hidden;touch-action:n
 #why{display:none;margin-top:5px;font-weight:500;font-size:12.5px;color:#e8d6aa;white-space:pre-line;line-height:1.35}
 #follow{display:none;position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:40px;height:40px;border-radius:20px;background:rgba(43,29,22,.74);border:2px solid #2b1d16;color:#f6e4b0;font:700 18px system-ui;cursor:pointer}
 #snd{position:fixed;right:10px;top:calc(10px + env(safe-area-inset-top,0px));width:38px;height:38px;border-radius:19px;background:rgba(43,29,22,.72);border:2px solid #2b1d16;color:#f6e4b0;font:700 17px system-ui;opacity:.6;cursor:pointer}
+#jbtn{position:fixed;right:54px;top:calc(10px + env(safe-area-inset-top,0px));width:38px;height:38px;border-radius:19px;background:rgba(43,29,22,.72);border:2px solid #2b1d16;color:#f6e4b0;font:700 17px system-ui;cursor:pointer}
+#journal{display:none;position:fixed;left:12px;right:12px;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(70px + env(safe-area-inset-bottom,0px));overflow:auto;padding:14px 16px;border-radius:14px;background:rgba(246,228,176,.96);color:#2b1d16;font:15px/1.5 Georgia,serif;border:2px solid #2b1d16;-webkit-overflow-scrolling:touch}
+#journal h3{margin:0 0 8px;font:700 16px ui-rounded,system-ui}#journal p{margin:0 0 12px}
 </style></head>
 <body><canvas id="c"></canvas><div id="hud"><span id="clk">…</span></div>
-<div id="act"><span>…</span><div id="why"></div></div><button id="follow" aria-label="Find Tomas">◎</button><button id="snd" aria-label="Sound">♪̸</button>
+<div id="act"><span>…</span><div id="why"></div></div><button id="follow" aria-label="Find Tomas">◎</button><button id="snd" aria-label="Sound">♪̸</button><button id="jbtn" aria-label="Journal">✎</button><div id="journal"></div>
 <script type="module" src="src/main.js"></script>
 </body></html>

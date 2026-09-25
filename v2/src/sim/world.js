@@ -14,6 +14,7 @@ import { waterInit, waterTen, healthStep, growthPerMin } from "./health.js";
 import { fishInit, fishTen } from "./fish.js";
 import { animalsInit, animalsStep, animalsDay, theDog } from "./animals.js";
 import { shipsInit, shipsStep, shipsWatch } from "./ships.js";
+import { thoughtsFrom, applyThoughts } from "./mindlink.js";
 import { MW, MH, SP } from "../world/gen.js";
 
 export function createWorld(seed, born, opt) {
@@ -27,6 +28,7 @@ export function createWorld(seed, born, opt) {
   for (const e of W.ents) { const i = Math.floor(e.y) * MW + Math.floor(e.x); W.grid[i].push(e); if (SP[e.k] && SP[e.k].kind === "tree") W.treeAt[i] = 1; }
   W.near = (cx, cy, r) => { const out = []; for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(MH - 1, Math.ceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(MW - 1, Math.ceil(cx + r)); x++) for (const e of W.grid[y * MW + x]) if ((e.x - cx) ** 2 + (e.y - cy) ** 2 <= r * r) out.push(e); return out; };
   animalsInit(W); shipsInit(W);
+  W.thoughtQ = thoughtsFrom(opt && opt.thoughts, 0);
   if (!opt || opt.man !== false) arrive(W);
   return W;
 }
@@ -42,6 +44,7 @@ export function step(W) {
   const M = W.man;
   if (M && M.B.alive) {
     look(W);
+    applyThoughts(W);
     think(W);
     healthStep(W, M);
     // food he's carrying: bacteria multiply with the warmth
@@ -57,8 +60,9 @@ export function save(W) {
     ents: W.ents.map(e => DYN.map(k => e[k] ?? null)), litter: Array.from(W.litter), litterWet: W.litterWet, items: W.items, fires: W.fires, structs: W.structs, camp: W.camp, shore: W.shore.map(b => b.kg), water: W.water, fish: W.fish, animals: W.animals, warrens: W.warrens, runs: W.runs || {}, events: W.events || [], ships: W.ships, nextShip: W.nextShip,
     man: W.man ? Object.assign({}, W.man, { known: Array.from(W.man.known).join("") }) : null });
 }
-export function load(s) {
+export function load(s, thoughts) {
   const o = JSON.parse(s), W = createWorld(o.seed, o.born, { man: false });
+  W.thoughtQ = thoughtsFrom(thoughts, o.t);
   W.t = o.t; W.rng.load(o.rng); W.wx = o.wx; W.nextId = o.nextId; W.litterWet = o.litterWet; W.items = o.items;
   o.ents.forEach((v, i) => DYN.forEach((k, j) => { if (v[j] != null) W.ents[i][k] = v[j]; }));
   W.litter = Float32Array.from(o.litter); W.fires = o.fires; W.structs = o.structs; W.camp = o.camp; o.shore.forEach((kg, i) => { W.shore[i].kg = kg; }); W.water = o.water; W.fish = o.fish; W.animals = o.animals; W.warrens = o.warrens; W.runs = o.runs; W.events = o.events; W.ships = o.ships; W.nextShip = o.nextShip;

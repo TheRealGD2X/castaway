@@ -13,6 +13,7 @@ import { climateAt } from "../sim/env.js";
 import { cal } from "../core/time.js";
 import { here, walk, goTo } from "../sim/man.js";
 import { MW, MH, idx } from "../world/gen.js";
+import { intent } from "../sim/mindlink.js";
 import { clamp } from "../core/dmath.js";
 
 // what he believes his situation to be, simplified for planning
@@ -41,7 +42,7 @@ export function predictNight(W, M, withFire, sh) {
 }
 // what he could build next, and how much each would be worth to him: the designer proposes, prediction weighs
 function projects(W, M, toDusk) {
-  const sig = W.structs.map(q => q.k + q.stage).join();
+  const sig = W.structs.map(q => q.k + q.stage).join() + "|" + (M.intents || []).filter(q => q.until > W.t).map(q => q.k + q.w).join();
   if (M.projCache && W.t - M.projCache.t < 60 && M.projCache.sig === sig) return M.projCache.list;
   const b = brief(W, M), campT = camp(W, M).tile, list = [], base = predictNight(W, M, false), baseF = predictNight(W, M, true);
   const hasFire = W.fires.length > 0 || W.camp != null;
@@ -61,7 +62,7 @@ function projects(W, M, toDusk) {
     return 0;
   };
   // carry on with what's half built
-  for (const s of W.structs) if (!finished(s)) { const st = s.stages[s.stage]; if (feasible(b, st)) list.push({ s, v: worth(s.k, s) + 4 }); }
+  for (const s of W.structs) if (!finished(s)) { const st = s.stages[s.stage]; if (feasible(b, st)) list.push({ s, v: worth(s.k, s) + 4 + intent(W, M, "build:" + s.k) }); }
   // or start something new he's able to make and has reason for (one of each, and a better shelter than he has)
   for (const fam in FAMILIES) {
     const F = FAMILIES[fam]; if (M.skill.build < F.minSkill || W.structs.filter(s => s.k === fam).length >= (fam === "snare" ? 3 : 1)) continue;
@@ -70,6 +71,7 @@ function projects(W, M, toDusk) {
     // a new shelter is weighed by what the whole usable shell would do
     let v; if (F.shelter) { const full = Object.assign({}, d, { stage: d.stages.findIndex(q => q.name === "bed") > 0 ? d.stages.findIndex(q => q.name === "bed") - 1 : d.stages.length - 1 }); v = worth(fam, full) - d.stages.reduce((a, q) => a + q.mins, 0) / 120; }
     else v = worth(fam, d);
+    v += intent(W, M, "build:" + fam) + (fam === "signal" ? intent(W, M, "signal") : 0);   // his deeper mind's wishes
     if (v > 10) list.push({ d, v });
   }
   M.projCache = { t: W.t, sig, list }; return list;
@@ -86,38 +88,39 @@ function goals(W, M) {
   const f = feel(M.B), S = situation(W, M), G = [], x = W.wx, C = cal(W.born, W.t);
   const toDusk = x.elev > -.05 ? minutesToDusk(W) : 0;
   if (f.thirst > .3) G.push({ k: "water", vars: ["watered"], want: S => S.watered, v: 50 + f.thirst * 70, why: f.thirst > .7 ? "Parched" : "Thirsty" });
-  if (f.hunger > .5 && (S.food > 100 || knowsFood(M))) G.push({ k: "food", vars: ["fed"], want: S => S.fed, v: 30 + f.hunger * 55, why: f.hunger > .85 ? "Weak with hunger" : "Hungry" });
+  if (f.hunger > .5 && (S.food > 100 || knowsFood(M))) G.push({ k: "food", vars: ["fed"], want: S => S.fed, v: 30 + f.hunger * 55 + intent(W, M, "food"), why: f.hunger > .85 ? "Weak with hunger" : "Hungry" });
   if ((M.B.core < 36.4 || (M.B.wet > .5 && x.temp < 12)) && S.fire === 2) G.push({ k: "warm", vars: ["warm"], want: S => S.warm, v: 60 + f.cold * 60, why: M.B.wet > .5 ? "Soaked and cold; he needs to dry out by the fire" : "Cold to the bone" });
   // tonight: would a night without fire chill him dangerously? then a lit fire with fuel for the night, by dusk
   const needFuel = 6;
   if (!(S.fire === 2 && S.fireFuel >= needFuel)) {
     const pmin = M.predCache && W.t - M.predCache[0] < 60 ? M.predCache[1] : (M.predCache = [W.t, predictNight(W, M, false)])[1];
-    if (pmin < 36.1) G.push({ k: "fire", vars: ["fire", "fireFuel"], want: S => S.fire === 2 && S.fireFuel >= needFuel, v: 45 + (36.3 - pmin) * 25 + (toDusk < 180 ? 25 : 0), why: `A night without a fire would chill him to ${pmin.toFixed(1)}°C` });
+    if (pmin < 36.1) G.push({ k: "fire", vars: ["fire", "fireFuel"], want: S => S.fire === 2 && S.fireFuel >= needFuel, v: 45 + (36.3 - pmin) * 25 + (toDusk < 180 ? 25 : 0) + intent(W, M, "fire"), why: `A night without a fire would chill him to ${pmin.toFixed(1)}°C` });
   }
   // an evening fire: warmth, dry clothes, light, and the comfort of it. Wanted every evening he has none going
   if (S.fire !== 2 && !S.night && toDusk < 300 && !G.some(g => g.k === "fire")) {
     const eg = M.eveCache && W.t - M.eveCache[0] < 60 ? M.eveCache[1] : (M.eveCache = [W.t, predictNight(W, M, true) - predictNight(W, M, false)])[1];
-    G.push({ k: "fire", vars: ["fire", "fireFuel"], want: S => S.fire === 2 && S.fireFuel >= 4, v: 30 + Math.min(20, eg * 20) + M.B.wet * 10, why: M.B.wet > .4 ? "Wet through: he wants a fire to dry out by tonight" : "A fire for the evening, before the light goes" });
+    G.push({ k: "fire", vars: ["fire", "fireFuel"], want: S => S.fire === 2 && S.fireFuel >= 4, v: 30 + Math.min(20, eg * 20) + M.B.wet * 10 + intent(W, M, "fire"), why: M.B.wet > .4 ? "Wet through: he wants a fire to dry out by tonight" : "A fire for the evening, before the light goes" });
   }
   // clean water: once he's come to distrust the water here, a pot to boil it in, and boiled water kept by him
   const wRisk = Math.max(0, ...Object.entries(M.belief || {}).filter(([k]) => k.startsWith("water:")).map(([, v]) => v));
   if (wRisk > .3 && !S.night) {
     if (!S.pot) G.push({ k: "pot", vars: ["pot"], want: S => S.pot, v: 20 + wRisk * 20, why: "The water made him ill. He wants a pot to boil it in" });
-    else if (S.clean < 1 && S.fire === 2) G.push({ k: "boil", vars: ["clean"], want: S => S.clean >= 1.5, v: 16 + wRisk * 30, why: "Boiling water to keep by him" });
+    else if (S.clean < 1 && S.fire === 2) G.push({ k: "boil", vars: ["clean"], want: S => S.clean >= 1.5, v: 16 + wRisk * 30 + intent(W, M, "boil"), why: "Boiling water to keep by him" });
   }
   // a ship: nothing else matters while it's in sight
   if (M.mem.ship && W.t - M.mem.ship.t < 20 && W.ships.some(q => q.id === M.mem.ship.id)) G.push({ k: "ship:" + M.mem.ship.id, vars: ["signalled"], want: S => S.signalled, v: 200, why: `A ship! A ${M.mem.ship.kind}, out past the reefs` });
   // the dog: he wants it to trust him, all the more the lonelier he is; food is the way
   const dg = M.mem.dog;
   if (dg && W.t - dg.t < 180 && ((dg.trust ?? 0) < .85 || dg.thin) && !S.night && (S.food >= 150 || S.raw >= 150) && f.hunger < .45)
-    G.push({ k: "dog", vars: ["dogFed"], want: S => S.dogFed, v: 16 + (M.lonely || 0) * 25, why: dg.thin && (dg.trust ?? 0) >= .85 ? `${dg.name} is all ribs. He shares what he has` : (dg.trust ?? 0) < .3 ? `The ship's dog, ${dg.name}. Thin and wary. He wants it to trust him` : `${dg.name} is coming round. A bit of food, and a quiet word` });
+    G.push({ k: "dog", vars: ["dogFed"], want: S => S.dogFed, v: 16 + (M.lonely || 0) * 25 + intent(W, M, "dog"), why: dg.thin && (dg.trust ?? 0) >= .85 ? `${dg.name} is all ribs. He shares what he has` : (dg.trust ?? 0) < .3 ? `The ship's dog, ${dg.name}. Thin and wary. He wants it to trust him` : `${dg.name} is coming round. A bit of food, and a quiet word` });
   const roof = shelterAt(W, M.x, M.y).rain;
   if (x.rain > .8 && roof < .5 && M.B.wet > .4) G.push({ k: "dry", vars: ["dry"], want: S => S.dry, v: 45 + x.rain * 8, why: "Getting out of the rain" });
-  if (f.weary > .75 && !S.night) G.push({ k: "rest", vars: ["rest"], want: S => S.rest, v: 20 + f.weary * 40, why: "Worn out; he has to sit a while" });
+  if ((f.weary > .75 || intent(W, M, "rest") > 0) && !S.night) G.push({ k: "rest", vars: ["rest"], want: S => S.rest, v: (f.weary > .75 ? 20 + f.weary * 40 : 8) + intent(W, M, "rest"), why: f.weary > .75 ? "Worn out; he has to sit a while" : "Taking his time. Sitting with his thoughts" });
+  if (intent(W, M, "explore") > 0 && !S.night && !G.some(g => g.explore)) G.push({ k: "explore", explore: true, v: 10 + intent(W, M, "explore"), why: "He wants to see the rest of the island" });
   // building: whatever the designer thinks worth doing, in daylight (or a shelter he urgently needs, any time)
   for (const p of projects(W, M, toDusk)) if ((!p.s || !finished(p.s)) && (!S.night || p.v > 40)) G.push(buildGoal(W, M, p));
   // wood for tomorrow: keep the woodpile stocked when there's nothing more pressing
-  const wp = woodpile(W); if (wp && (wp.kg || 0) < 25 && !S.night) G.push({ k: "stock", vars: ["stacked"], exclude: ["takeWood"], want: S => S.stacked, v: 14 + (W.litterWet < .3 ? 4 : 0), why: "Laying in firewood while it's dry" });
+  const wp = woodpile(W); if (wp && (wp.kg || 0) < 25 && !S.night) G.push({ k: "stock", vars: ["stacked"], exclude: ["takeWood"], want: S => S.stacked, v: 14 + (W.litterWet < .3 ? 4 : 0) + intent(W, M, "stock"), why: "Laying in firewood while it's dry" });
   if (S.night && f.tired > .35) G.push({ k: "sleep", vars: ["rested"], want: S => S.rested, v: 40 + f.tired * 60, why: "Worn out; time to sleep" });
   // exploring serves whatever need he can't meet from what he knows: it is as urgent as that need
   const kw = knowsWater(W, M), kf = knowsFood(M), kfl = Object.values(M.mem).some(m => m.k === "flint");

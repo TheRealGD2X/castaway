@@ -1,15 +1,31 @@
 // v2 preview: the island and Tomas, simulated in real time (UK clock). ?ff=<minutes> fast-forwards (testing only).
-import { createWorld, step } from "./sim/world.js";
+import { createWorld, step, load } from "./sim/world.js";
+import { SEED, BORN } from "./config.js";
 import { paintTerrain } from "./render/terrain.js";
 import { createView } from "./render/view.js";
 import { cal } from "./core/time.js";
 import { audioStart, audioStop, audioUpdate } from "./audio.js";
 
-const qs = new URLSearchParams(location.search), seed = +(qs.get("seed") || 1404719350);
-// the island was born this morning (preview): catch up to now, then one step per real minute
-const BORN = Date.UTC(2026, 8, 25, 5, 0), world = createWorld(seed, BORN);
-const due = () => Math.floor((Date.now() - BORN) / 60000);
+const qs = new URLSearchParams(location.search), test = qs.has("seed") || qs.has("t");
+// the island starts from the latest checkpoint the routine saved (so every device sees the same life), plus his
+// thoughts; then catches up to this minute and runs on, one step per real minute
+const DATA = new URL("../../data/v2/", import.meta.url);
+const getJSON = async f => { try { const r = await fetch(new URL(f, DATA), { cache: "no-cache" }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
+let thoughts = test ? [] : (await getJSON("mind.json")) || [];
+const cp = test ? null : await getJSON("checkpoint.json");
+let world = cp ? load(cp.blob, thoughts) : createWorld(test ? +(qs.get("seed") || SEED) : SEED, BORN, { thoughts });
+const BORN0 = world.born;
+const due = () => Math.floor((Date.now() - BORN0) / 60000);
 for (let n = qs.get("t") ? +qs.get("t") : due() + (+qs.get("ff") || 0); world.t < n;) step(world);
+// every quarter of an hour: has his deeper mind had new thoughts? if one should already have happened, start again
+// from the newest checkpoint so this screen stays true to everyone else's
+if (!test) setInterval(async () => {
+  const nt = await getJSON("mind.json"); if (!nt || nt.length === thoughts.length) return;
+  thoughts = nt; const c2 = await getJSON("checkpoint.json");
+  const W2 = c2 && c2.t > world.t - 5000 ? load(c2.blob, thoughts) : null; if (!W2) return;
+  for (let n = due(); W2.t < n;) step(W2);
+  world = W2; V.world(world); window.__v2.world = world;
+}, 15 * 60000);
 function seasonOf(doy) {                                  // leaf colour and leaf fall by the real calendar
   const autumn = doy < 250 ? 0 : doy < 300 ? (doy - 250) / 50 : 1, fall = doy >= 290 ? Math.min(1, (doy - 290) / 35) : doy < 100 ? 1 : doy < 125 ? 1 - (doy - 100) / 25 : 0;
   const leafAut = doy < 100 || doy > 330 ? 1 : autumn;
@@ -47,6 +63,15 @@ const pref = (() => { try { return localStorage.getItem("cw2-sound") === "1"; } 
 function setSound(on) { soundOn = on; sb.textContent = on ? "♪" : "♪̸"; sb.style.opacity = on ? 1 : .6; if (on) audioStart(); else audioStop(); try { localStorage.setItem("cw2-sound", on ? "1" : "0"); } catch (e) {} }
 sb.addEventListener("click", () => setSound(!soundOn));
 if (pref) addEventListener("pointerdown", () => { if (!soundOn) setSound(true); }, { once: true });
+// his journal: what his deeper mind has written, newest first
+const jb = document.getElementById("jbtn"), jp = document.getElementById("journal");
+jb.addEventListener("click", () => {
+  if (jp.style.display === "block") { jp.style.display = "none"; return; }
+  const J = (world.man.journal || []).slice().reverse();
+  jp.innerHTML = "<h3>Tomas's journal</h3>" + (J.length ? J.map(j => { const c = cal(world.born, j.t); return `<p><b>Day ${Math.floor(j.t / 1440) + 1}, ${String(c.h).padStart(2, "0")}:${String(c.mi).padStart(2, "0")}</b><br>${j.text.replace(/[<&]/g, ch => ch === "<" ? "&lt;" : "&amp;")}</p>`; }).join("") : "<p><i>Nothing written yet.</i></p>");
+  jp.style.display = "block";
+});
+jp.addEventListener("click", () => { jp.style.display = "none"; });
 const clk = document.getElementById("clk");
 function frame(now) {
   const c = cal(world.born, world.t), x = world.wx, M = world.man;
@@ -56,7 +81,7 @@ function frame(now) {
   if (M) {
     const doing = M.B.alive ? (M.act ? M.doing : M.pose === "sleep" ? "Sleeping" : "Resting") : "Tomas is gone";
     if (act.firstChild.textContent !== doing) act.firstChild.textContent = doing;
-    const w = (M.why || "") + (M.say && world.t - (M.sayT || 0) < 45 ? `\n“${M.say}”` : "") + (M.B.ill > .1 ? "\n(He's ill.)" : "") + (M.B.hurt && M.B.hurt.length ? "\n(A cut on his hand is healing.)" : ""); if (why.textContent !== w) why.textContent = w;
+    const w = (M.why || "") + (M.thought && world.t - (M.thoughtT || 0) < 360 ? `\n\n${M.thought}` : "") + (M.say && world.t - (M.sayT || 0) < 45 ? `\n“${M.say}”` : "") + (M.B.ill > .1 ? "\n(He's ill.)" : "") + (M.B.hurt && M.B.hurt.length ? "\n(A cut on his hand is healing.)" : ""); if (why.textContent !== w) why.textContent = w;
   }
   const wxs = x.fog > .4 ? "Fog" : x.rain > 1.5 ? "Heavy rain" : x.rain > 0 ? "Rain" : x.cloud > .75 ? "Overcast" : x.cloud > .4 ? "Cloudy" : x.elev > 0 ? "Sunny" : "Clear";
   clk.textContent = `${String(c.h).padStart(2, "0")}:${String(c.mi).padStart(2, "0")} · ${wxs} · ${Math.round(x.temp)}°C · wind ${Math.round(x.wind * 2.237)} mph`;

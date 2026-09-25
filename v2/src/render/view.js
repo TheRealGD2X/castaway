@@ -40,7 +40,8 @@ export function createView(cv, world, terr) {
     V.k = lv[ni]; V.resize();
     V.cam.x = ax - (fx * dpr / V.k - V.aw / 2); V.cam.y = ay - (fy * dpr / V.k - V.ah / 2);
   };
-  const ents = world.ents;                             // sorted by y
+  let ents = world.ents;                               // sorted by y
+  V.world = w => { world = w; ents = w.ents; };        // a fresh copy of the island (resynced from a checkpoint)
   const firstRow = y => { let lo = 0, hi = ents.length; while (lo < hi) { const m = (lo + hi) >> 1; if (ents[m].y < y) lo = m + 1; else hi = m; } return lo; };
   V.draw = (now) => {
     const { aw, ah } = V, sx = Math.round(V.cam.x - aw / 2), sy = Math.round(V.cam.y - ah / 2);
