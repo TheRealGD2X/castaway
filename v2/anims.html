@@ -1,0 +1,10 @@
+<!-- every animation, frame by frame: open /castaway/v2/anims.html -->
+<!doctype html><body style="background:#6a9a4a;margin:0"><canvas id="c" width="1500" height="1100" style="image-rendering:pixelated"></canvas>
+<script type="module">
+import { manSprite, ANIM } from "./src/render/people.js";
+const poses = Object.keys(ANIM);
+const g = document.getElementById("c").getContext("2d"); g.imageSmoothingEnabled = false; g.font = "13px sans-serif";
+poses.forEach((p, r) => { const col = r >= 11 ? 750 : 0, row = r % 11; const per = ANIM[p].period || 1000, n = ANIM[p].frames || 1;
+  for (let f = 0; f < Math.min(n, 8); f++) { const s = manSprite(p, f * per / n + 1); g.drawImage(s.img, 0, 0, 26, 28, col + 80 + f * 80, row * 100 + 4, 78, 84); }
+  g.fillStyle = "#000"; g.fillText(p, col + 6, row * 100 + 50); });
+</script>
