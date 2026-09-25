@@ -22,3 +22,10 @@ export function dexp(x) {
 }
 // exponential approach: how far a quantity relaxes toward a target in dt with time constant tau
 export const relax = (x, target, dt, tau) => target + (x - target) * dexp(-dt / tau);
+// cube root by Newton's method (deterministic; x >= 0)
+export function dcbrt(x) {
+  if (x <= 0) return 0;
+  let y = x > 1 ? x / 3 : Math.sqrt(x);
+  for (let i = 0; i < 40; i++) { const n = (2 * y + x / (y * y)) / 3; if (Math.abs(n - y) < 1e-12 * y) { y = n; break; } y = n; }
+  return y;
+}
