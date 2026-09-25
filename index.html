@@ -4186,7 +4186,8 @@ function drawHim(T, mx, my, moving) {
   if (!moving && st.at != null && st.at >= 0) { const dx = ix(st.at) - m.x; if (dx) dir = dx > 0 ? 1 : -1; at = st.at; }
   // step up to the job: stand where his hands and tools really meet the target
   let wantX = mx, wantY = my;
-  if (!moving && at != null && REACH[pose] != null && st.a !== "shore") { wantX = ix(at) * TS - REACH[pose] * dir; wantY = iy(at) * TS + (pose === "kneel" ? -1.5 : .6); }
+  const reach = pose === "chop" ? (m.tools && m.tools.axe ? CHOPREACH.axe : CHOPREACH.hand) : REACH[pose];
+  if (!moving && at != null && reach != null && st.a !== "shore") { wantX = ix(at) * TS - reach * dir; wantY = iy(at) * TS + (pose === "kneel" ? -1.5 : .6); }
   if (!AN.dp || moving || Math.hypot(AN.dp[0] - wantX, AN.dp[1] - wantY) > 40) AN.dp = [wantX, wantY];
   else { const k = Math.min(1, (now - (AN.dpT || now)) / 220); AN.dp[0] += (wantX - AN.dp[0]) * k; AN.dp[1] += (wantY - AN.dp[1]) * k; }
   AN.dpT = now; mx = AN.dp[0]; my = AN.dp[1]; AN.drawn = [mx, my];
@@ -4750,8 +4751,8 @@ function drawRes(c, r, amt, x, y, s, snow, i, T) {
     if (amt < RMAX[r]) {   // axe notches in the trunk
       const cut = (RMAX[r] - amt) / RMAX[r];
       const sd = W.m.x * TS < x ? -1 : 1, ex = x + 8 + sd * 1.3;
-      c.fillStyle = "#f4d8a4"; c.beginPath(); c.moveTo(ex, y + 8.4 - cut * 1.2); c.lineTo(ex - sd * (.6 + cut * 1.6), y + 9); c.lineTo(ex, y + 9.6 + cut * .6); c.closePath(); c.fill();
-      c.fillStyle = "rgba(90,50,20,.5)"; c.fillRect(ex - sd * (.6 + cut * 1.6) - .2, y + 8.8, .4, .5);
+      c.fillStyle = "#f4d8a4"; c.beginPath(); c.moveTo(ex, y + 6.9 - cut * 1.2); c.lineTo(ex - sd * (.6 + cut * 1.6), y + 7.5); c.lineTo(ex, y + 8.1 + cut * .6); c.closePath(); c.fill();
+      c.fillStyle = "rgba(90,50,20,.5)"; c.fillRect(ex - sd * (.6 + cut * 1.6) - .2, y + 7.3, .4, .5);
       for (let q = 0; q < (RMAX[r] - amt) * 3; q++) { const a0 = h32(i, q, 17) * 6.28, d0 = 2.4 + h32(q, i, 18) * 3.2; c.fillStyle = q % 3 ? "#e8c690" : "#b88a52"; c.fillRect(x + 8 + sd * Math.abs(Math.cos(a0)) * d0, y + 13.6 + Math.sin(a0) * 1.1, .9, .5); }
     }
   } else if (r === RS.BUSH) {
@@ -5376,6 +5377,9 @@ function ik(ax, ay, bx, by, l1, l2, side) {
   return [ax + Math.cos(ang) * l1, ay + Math.sin(ang) * l1, ax + Math.cos(a) * d, ay + Math.sin(a) * d];
 }
 const LEG1 = 4.1, LEG2 = 4.0, ARM1 = 3.2, ARM2 = 3.0;
+// where he stands from a tree he is felling (trunk centre, world px = rig units): a hafted axe needs a haft's length
+// of room; a hand-axe means stepping right up to the bark
+const CHOPREACH = { axe: 12.2, hand: 9.4 };
 // one foot through a walk cycle (q 0..1): planted and sliding back under him for 60%, then lifting and swinging through
 function footCycle(q, S, lift) {
   if (q < .6) { const s = q / .6; return [S * (.5 - s), 0, s < .15 ? -.28 * (1 - s / .15) : s > .8 ? .35 * (s - .8) / .2 : 0]; }
@@ -5459,7 +5463,69 @@ function rig(pose, T, o) {
       if (hit("kn", cyc, 1200)) ripple(at[0], at[1], 6);
       break;
     }
-    case "chop": case "mine": case "hammer": {
+    case "chop": {
+      // Felling, the way a man really does it. The trunk stands where drawHim puts it (CHOPREACH: its near face and
+      // the notch height match the tree painter's notch), and every blow lands in that notch.
+      // Hafted stone axe: wind up over the back shoulder (front hand slides up the haft), drive down and through with the
+      // hips (hands slide together), the flint bites and sticks, a wiggle, pull it free, reset.
+      // No axe yet: a knapped flint hand-axe in his fist, stepped in close, one hand braced on the bark, short hard
+      // strokes alternating from above and below to open a V.
+      const hasAxe = !(o.tools && !o.tools.axe), R = hasAxe ? CHOPREACH.axe : CHOPREACH.hand;
+      const C = [R - 1.3, -8];                                          // the notch on the trunk's near face, at his waist
+      const key = (u, ks) => { let i = 0; while (i < ks.length - 2 && u >= ks[i + 1][0]) i++; const a = ks[i], b = ks[i + 1], f = clamp((u - a[0]) / Math.max(1e-6, b[0] - a[0]), 0, 1), e = b[2] === "in" ? f * f * f : b[2] === "lin" ? f : smooth(f); return a[1] + (b[1] - a[1]) * e; };
+      if (hasAxe) {
+        const per = 1650, u = (T % per) / per, IMP = .6;
+        const L = 7.2, HEAD = 1.75;                                      // haft length, eye-to-edge
+        const aImp = -.32;                                               // haft angle at the bite (rising gently to the head)
+        const ang = key(u, [[0, .35], [.12, .2], [.44, -2.55], [.5, -2.62], [IMP, aImp, "in"], [.68, aImp + .015], [.72, aImp - .05, "lin"], [.76, aImp + .05, "lin"], [.8, aImp], [.9, .4], [1, .35]]);
+        const lean = key(u, [[0, .1], [.44, -.55], [.5, -.6], [IMP, 1, "in"], [.7, .95], [.84, .3], [1, .1]]);
+        const gap = key(u, [[0, 1.4], [.44, 3.4], [.5, 3.5], [IMP, .55, "in"], [.8, .6], [1, 1.4]]);
+        const dir = [Math.cos(ang), Math.sin(ang)], v = [-dir[1], dir[0]];   // blade leads the swing: perpendicular to the haft
+        // at the bite the edge sits exactly in the notch; elsewhere the hands follow a comfortable arc around the shoulder
+        const eyeImp = [C[0] - v[0] * HEAD, C[1] - v[1] * HEAD];
+        const bi = Math.max(0, 1 - Math.abs(u - (IMP + .09)) / .16);     // how much the bite owns the pose (stuck in the wood)
+        J.fb = [-2.6, 0]; J.ff = [2.4, 0]; J.pb = .4;
+        J.hip = [lean * .45, -7.4 + Math.max(0, lean) * .9]; J.chest = [.5 + lean * 1.7, -13.4 + Math.max(0, lean) * 1.4]; J.head = [1.1 + lean * 2, -16.5 + Math.max(0, lean) * 1.6];
+        const sh = [J.chest[0] + .5, J.chest[1] + 1.1], arc = 4.6;
+        let hb = [sh[0] + Math.cos(ang + .5) * arc, sh[1] + Math.sin(ang + .5) * arc];
+        if (bi > 0) { const hImp = [eyeImp[0] - dir[0] * L, eyeImp[1] - dir[1] * L]; hb = [hb[0] + (hImp[0] - hb[0]) * smooth(bi), hb[1] + (hImp[1] - hb[1]) * smooth(bi)]; }
+        let eye = [hb[0] + dir[0] * L, hb[1] + dir[1] * L];
+        // the axe never passes through the tree: whatever part of the head is furthest forward stops at the bark
+        const front = Math.max(eye[0] + v[0] * HEAD, eye[0] - v[0] * .4, eye[0] + dir[0] * .45) - C[0];
+        if (front > 0) { hb = [hb[0] - front, hb[1]]; eye = [eye[0] - front, eye[1]]; }
+        J.hb = hb; J.hf = [hb[0] + dir[0] * gap, hb[1] + dir[1] * gap];
+        J.tool = { k: "axe", a: [hb[0] - dir[0] * .5, hb[1] - dir[1] * .5], b: [eye[0] + dir[0] * .45, eye[1] + dir[1] * .45], eye, v, ang, head: HEAD };
+        J.eyes = lean > .5 ? "squint" : null; J.mouth = lean > .6 ? "grit" : u > .4 && u < .52 ? "o" : "rest";
+        if (hit("chop", u, IMP)) {
+          burst(C[0], C[1], 6, ["#f4d8a4", "#b88a52", "#e8c690"], 46, 34, 90, 800);   // pale chips from the fresh cut
+          burst(C[0], C[1] + .6, 2, ["#6a4a2c", "#8a6a44"], 30, 20, 60, 600);          // and dark bark
+          AN.shakeT = performance.now(); if (AN.shakeI >= 0) PHYS.impulse("r" + AN.shakeI, .85 * (AN.dir || 1));
+          if (window.SFX) SFX.hit("chop");
+        }
+      } else {
+        const per = 950, n = Math.floor(T / per), u = (T % per) / per, IMP = .58, low = n % 2;   // strokes alternate: down, then up
+        const hi = [1.6, -14.4], lo = [2.4, -3.2], rest = low ? lo : hi;
+        const tipV = low ? [.55, -.84] : [.62, .78];                    // the direction the point travels into the notch
+        const hand = [C[0] - tipV[0] * 2.1, C[1] - tipV[1] * 2.1];      // fist short of the bark; the flint's point reaches in
+        const k = key(u, [[0, 0], [.4, 1], [.48, 1], [IMP, 0, "in"], [.72, 0], [1, 0]]);   // 1 = cocked back, 0 = in the notch
+        const back = [hand[0] + (rest[0] - hand[0]) * k, hand[1] + (rest[1] - hand[1]) * k];
+        const lunge = 1 - k;
+        J.fb = [-2.4, 0]; J.ff = [2.6, 0]; J.pb = .6;
+        J.hip = [.3 + lunge * .5, -6.6 + lunge * .35]; J.chest = [1 + lunge * .9, -12.4 + lunge * .6]; J.head = [1.6 + lunge * 1, -15.4 + lunge * .7];
+        J.hb = [C[0] - .2, -11.6];                                       // the other hand steadies himself on the trunk
+        J.hf = back;
+        const a = k > .5 ? Math.atan2(back[1] - J.chest[1], back[0] - J.chest[0]) : Math.atan2(tipV[1], tipV[0]);
+        J.tool = { k: "handaxe", at: back, ang: a };
+        J.eyes = "squint"; J.mouth = lunge > .7 ? "grit" : "rest";
+        if (hit("chop", u, IMP)) {
+          burst(C[0], C[1], 4, ["#f4d8a4", "#b88a52", "#e8c690"], 34, 24, 70, 650);
+          AN.shakeT = performance.now(); if (AN.shakeI >= 0) PHYS.impulse("r" + AN.shakeI, .45 * (AN.dir || 1));
+          if (window.SFX) SFX.hit("chop");
+        }
+      }
+      break;
+    }
+    case "mine": case "hammer": {
       const per = pose === "hammer" ? 650 : 1150, p = (T % per) / per, strike = .62;
       const up = pose === "mine" ? -2.5 : pose === "hammer" ? -1.5 : -2.25, down = pose === "mine" ? .95 : pose === "hammer" ? .45 : .2;
       const ang = p < strike ? down + (up - down) * smooth(Math.min(1, p / .5)) : p < strike + .1 ? up + (down - up) * Math.pow((p - strike) / .1, 1.6) : down;
@@ -5469,13 +5535,11 @@ function rig(pose, T, o) {
       const gx = sx + Math.cos(ang) * reach, gy = sy + Math.sin(ang) * reach;
       J.hf = [gx, gy]; J.hb = [gx - Math.cos(ang) * 1.2, gy - Math.sin(ang) * 1.2];
       const len = pose === "hammer" ? 4.5 : 8.5;
-      J.tool = { k: pose === "chop" ? "axe" : pose === "mine" ? "pick" : "hammer", a: [gx - Math.cos(ang) * 1.6, gy - Math.sin(ang) * 1.6], b: [gx + Math.cos(ang) * len, gy + Math.sin(ang) * len], ang };
-      if (pose === "chop" && o.tools && !o.tools.axe) { J.tool = null; J.stone = { at: [gx + Math.cos(ang) * 1.1, gy + Math.sin(ang) * 1.1], r: .9, col: ["#9aa0b8", "#4a4e62", "#262836"] }; J.tool = { k: "handaxe", b: [gx + Math.cos(ang) * 1.6, gy + Math.sin(ang) * 1.6] }; }
+      J.tool = { k: pose === "mine" ? "pick" : "hammer", a: [gx - Math.cos(ang) * 1.6, gy - Math.sin(ang) * 1.6], b: [gx + Math.cos(ang) * len, gy + Math.sin(ang) * len], ang };
       if (lean > .3) J.eyes = "squint"; J.mouth = lean > .3 ? "grit" : "rest";
       if (hit(pose, p, strike + .1)) {
         const tb = J.tool.b;
-        if (pose === "chop") { burst(tb[0], tb[1], J.stone ? 3 : 6, ["#f4d8a4", "#b88a52", "#e8c690"], 40, 30, 90, 700); AN.shakeT = performance.now(); if (AN.shakeI >= 0) PHYS.impulse("r" + AN.shakeI, .85 * (AN.dir || 1)); }
-        else if (pose === "mine") { burst(tb[0], tb[1], 5, ["#b4b0a6", "#8a8680"], 36, 26, 90, 600); burst(tb[0], tb[1], 3, "#ffe08a", 30, 20, 40, 250); AN.shakeT = performance.now(); }
+        if (pose === "mine") { burst(tb[0], tb[1], 5, ["#b4b0a6", "#8a8680"], 36, 26, 90, 600); burst(tb[0], tb[1], 3, "#ffe08a", 30, 20, 40, 250); AN.shakeT = performance.now(); }
         else burst(tb[0], tb[1], 3, "rgba(220,210,190,.8)", 20, 8, 20, 500);
         if (window.SFX) SFX.hit(pose);
       }
@@ -6300,13 +6364,28 @@ void main(){
     const t = J.tool, tz = zs * .95 + .1;
     if (t) {
       const A = t.a ? [t.a[0], -t.a[1], tz] : null, B = t.b ? [t.b[0], -t.b[1], tz] : null;
-      if (t.k === "axe" || t.k === "pick" || t.k === "hammer") {
+      if (t.k === "axe" && t.eye) {
+        // his stone axe: a straight ash haft, a knapped flint head seated in a split at the top, bound with rawhide.
+        // The edge leads the swing (t.v), so at the bite it sits in the notch.
+        const E = [t.eye[0], -t.eye[1], tz], v = [t.v[0], -t.v[1]], d = [Math.cos(t.ang), -Math.sin(t.ang)];
+        const H = t.head || 1.75, rollV = Math.atan2(v[1], v[0]);
+        S.cap(A, B, .3, .27, MAT.wood, 0);                                                            // haft, a little knob at the butt
+        S.ell([A[0] + d[0] * .2, A[1] + d[1] * .2, tz], [.42, .36, .36], MAT.wood, 0, 4);
+        S.ell([E[0] + v[0] * H * .55, E[1] + v[1] * H * .55, tz], [H * .62, .78, .2], MAT.metal, rollV, 8);   // the flint blade, flat and broad
+        S.cap([E[0] + v[0] * H * .2, E[1] + v[1] * H * .2, tz], [E[0] + v[0] * H * 1.02, E[1] + v[1] * H * 1.02, tz], .5, .1, MAT.metal, 0, 0);   // tapering to the edge
+        S.ell([E[0] - v[0] * .35, E[1] - v[1] * .35, tz], [.42, .5, .32], MAT.metal, rollV, 4);     // the butt of the head behind the haft
+        S.cap([E[0] - d[0] * .55 - v[0] * .1, E[1] - d[1] * .55 - v[1] * .1, tz], [E[0] + d[0] * .55 - v[0] * .1, E[1] + d[1] * .55 - v[1] * .1, tz], .4, .4, MAT.belt, .05);   // rawhide binding
+      } else if (t.k === "handaxe") {
+        // a knapped flint hand-axe: a thick teardrop, butt in the palm, the point and edges doing the work
+        const P = [t.at[0], -t.at[1], tz + .15], a = -(t.ang || 0), d = [Math.cos(a), Math.sin(a)];
+        S.ell([P[0] + d[0] * .95, P[1] + d[1] * .95, tz + .15], [1.35, .78, .42], MAT.metal, a, 8);
+        S.cap([P[0] + d[0] * .9, P[1] + d[1] * .9, tz + .15], [P[0] + d[0] * 2.25, P[1] + d[1] * 2.25, tz + .15], .55, .08, MAT.metal, 0);
+      } else if (t.k === "axe" || t.k === "pick" || t.k === "hammer") {
         S.cap(A, B, .34, .3, MAT.wood, 0);
         const ang = -(t.ang || 0);
         const perp = [Math.sin(ang), Math.cos(ang)];
         const dirv = [Math.cos(ang), -Math.sin(ang)];
-        if (t.k === "axe") S.ell([B[0] - dirv[0] * .1 - perp[0] * 1.1, B[1] - dirv[1] * .1 - perp[1] * 1.1, tz], [1.5, .75, .22], MAT.metal, Math.atan2(-perp[1], -perp[0]), 4);
-        else if (t.k === "pick") S.cap([B[0] + perp[0] * 2.6, B[1] + perp[1] * 2.6 - .8, tz], [B[0] - perp[0] * 2.6, B[1] - perp[1] * 2.6 - .8, tz], .22, .3, MAT.metal, .3);
+        if (t.k === "pick") S.cap([B[0] + perp[0] * 2.6, B[1] + perp[1] * 2.6 - .8, tz], [B[0] - perp[0] * 2.6, B[1] - perp[1] * 2.6 - .8, tz], .22, .3, MAT.metal, .3);
         else S.ell(B, [.9, 1.3, .8], MAT.metal, Math.atan2(dirv[1], dirv[0]), 4);
       } else if (t.k === "spear") { S.cap(A, B, .28, .26, MAT.wood, 0); const dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy); S.cap(B, [B[0] + dx / l * 2.3, B[1] + dy / l * 2.3, tz], .5, .04, MAT.metal, 0); }
       else if (t.k === "rod") { const c1 = [A[0] + 5, A[1] + 9, tz]; for (let k = 0; k < 3; k++) { const q0 = k / 3, q1 = (k + 1) / 3; const bz = q => [(1 - q) * (1 - q) * A[0] + 2 * (1 - q) * q * c1[0] + q * q * B[0], (1 - q) * (1 - q) * A[1] + 2 * (1 - q) * q * c1[1] + q * q * B[1], tz]; S.cap(bz(q0), bz(q1), .26 - k * .06, .2 - k * .06, MAT.wood, 0); } }
@@ -6358,7 +6437,7 @@ void main(){
     const blanket = lk.lie ? (o.bed ? "#d8563a" : o.cloak ? "#a8703e" : "#bca97e") : "#e8dec6";
     const pillow = lk.lie ? "#f6eedc" : lk.poultice ? "#6e8a3a" : "#8a6a48";   // patches; or the green of a herb poultice through his dressing
     const cloak = o.cloak ? "#8a5430" : mixHex(skin, "#e0584e", .55);
-    return [skin, hair, shirt, pants, o.tools && o.tools.boots ? "#7a5030" : "#6a4428", "#6a4226", "#241610", "#5a1c12", "#9a6a3c", "#b8bec6", cloak, blanket, pillow, extra, "#f4ece0", "#3a261a"].map(hex);
+    return [skin, hair, shirt, pants, o.tools && o.tools.boots ? "#7a5030" : "#6a4428", "#6a4226", "#241610", "#5a1c12", "#9a6a3c", "#5d6068", cloak, blanket, pillow, extra, "#f4ece0", "#3a261a"].map(hex);
   };
   // render and composite him. c: the world canvas (already transformed to world units); fx, fy: his feet in world units
   // render a built scene into the GL canvas. box (optional) = [x0, x1, y0, y1] in screen-plane world units (y up)
