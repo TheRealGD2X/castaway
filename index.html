@@ -99,29 +99,85 @@ body.panelOpen .mini{display:none}
   .mini{display:none}
   .tr .zoom{display:none}
 }
+
+/* ---- calm HUD */
+.top{position:absolute;z-index:6;top:calc(10px + env(safe-area-inset-top,0px));left:10px;max-width:calc(100% - 70px);transition:opacity .5s}
+.pill{display:flex;align-items:center;gap:9px;height:38px;padding:0 13px;border-radius:19px;background:rgba(14,18,24,.52);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--text);font:600 14px var(--body);cursor:pointer;white-space:nowrap}
+.pill:focus-visible,.rb:focus-visible,.mi:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+#clk{display:flex;gap:6px;align-items:baseline;font-variant-numeric:tabular-nums lining-nums}
+#clk b{font-size:16px;font-weight:700;color:var(--ember)}
+.pill #clk span{display:none}
+#wx2{color:var(--soft);font-weight:500}
+.live{padding:0;gap:6px;font-size:12px}
+.live:not(.off) #liveTxt{display:none}
+.meter{display:flex;gap:3px;align-items:flex-end;height:18px}
+.meter i{display:block;width:5px;height:18px;border-radius:3px;background:rgba(255,255,255,.13);position:relative;overflow:hidden}
+.meter i b{position:absolute;left:0;right:0;bottom:0;transition:height .6s}
+.meter i.low{animation:lowp 1.6s infinite}
+@keyframes lowp{50%{box-shadow:0 0 0 2px rgba(255,107,91,.6)}}
+.drop{margin-top:6px;width:250px;padding:11px 13px;border-radius:14px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.drop .nm{font-family:var(--px);font-size:19px;font-weight:700;line-height:1}
+.drop .nm small{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px;letter-spacing:.06em}
+.drop .dd{font-size:13px;color:var(--text);margin-top:6px;font-weight:600}
+.drop .wx{font-size:12.5px;color:var(--soft);margin:2px 0 8px}
+.tr2{position:absolute;z-index:7;top:calc(10px + env(safe-area-inset-top,0px));right:10px;display:flex;gap:8px;transition:opacity .5s}
+.rb{width:38px;height:38px;border-radius:50%;background:rgba(14,18,24,.52);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--text);font:600 16px var(--body);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.rb.on{background:var(--ember);color:#2a1a08;border-color:var(--ember)}
+.menu{position:absolute;top:46px;right:0;width:210px;padding:6px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:1px}
+.mi{display:flex;justify-content:space-between;align-items:center;background:none;border:0;color:var(--text);font:600 14px var(--body);padding:11px 10px;border-radius:9px;cursor:pointer;text-align:left}
+.mi:hover{background:rgba(255,255,255,.06)}
+.mi.tg::after{content:"";width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.18)}
+.mi.tg.on::after{background:var(--ember);box-shadow:0 0 6px var(--ember)}
+.zrow{display:flex;gap:6px;padding:4px 6px 6px}
+.zrow .ib{flex:1}
+.say{position:absolute;z-index:5;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:max-content;max-width:min(560px,92vw);padding:12px 30px;text-align:center;pointer-events:none;background:radial-gradient(ellipse at center,rgba(8,10,14,.5),rgba(8,10,14,0) 72%);transition:opacity .9s}
+.say .act{font:600 12.5px var(--body);letter-spacing:.02em;color:rgba(255,255,255,.82);text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.say .th{font-family:var(--hand);font-size:16px;color:var(--ember);margin-top:2px;line-height:1.35;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+.say .th.mind::before{content:"💭 ";font-style:normal}
+.say.quiet{opacity:0}
+#caps{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.mini{width:150px;height:107px;opacity:.92}
+body.mapOff .mini{display:none!important}
+.pclose{flex:0 0 38px;background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer;border-radius:9px}
+body.calm .top,body.calm .tr2,body.calm .say,body.calm .mini{opacity:0;pointer-events:none}
+@media (max-width:820px){
+  body:not(.mapOff) .mini{display:block;top:calc(56px + env(safe-area-inset-top,0px));right:10px;bottom:auto;width:118px;height:84px}
+  .pill{gap:7px;padding:0 11px;font-size:13px}
+}
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 
 <div id="app">
   <div id="world"><canvas id="wv" aria-hidden="true"></canvas>
   <canvas id="cv" aria-label="The island, live"></canvas></div>
-  <div class="hud tl" aria-live="polite">
-    <div class="nm" id="nm">…</div>
-    <div class="clk" id="clk">Day 1 · 06:00</div>
-    <div class="wx" id="wx">Spring · Clear · 14°C</div>
+  <div class="top" id="top">
+    <button class="pill" id="pill" aria-expanded="false" aria-controls="drop" aria-label="Time, weather and how he's doing">
+      <span class="live off" id="live"><i></i><span id="liveTxt">Connecting</span></span>
+      <span id="clk"><b>06:00</b><span></span></span>
+      <span id="wx2"></span>
+      <span class="meter" id="meter" aria-hidden="true"></span>
+    </button>
+    <div class="drop" id="drop" hidden>
+      <div class="nm" id="nm">…</div>
+      <div class="dd" id="dd"></div>
+      <div class="wx" id="wx"></div>
+      <div id="needs"></div>
+    </div>
   </div>
-  <div class="hud tr">
-    <div class="live off" id="live"><i></i><span id="liveTxt">Connecting</span></div>
-    <button class="ib zoom" id="zOut" aria-label="Zoom out">−</button>
-    <button class="ib zoom" id="zIn" aria-label="Zoom in">+</button>
-    <button class="ib on" id="follow" aria-pressed="true">Follow</button>
-    <button class="ib" id="snd" aria-pressed="false" title="Island sounds">Sound</button>
-    <button class="ib on" id="cc" aria-pressed="true" title="Sound captions">CC</button>
-    <button class="ib" id="pbtn" aria-expanded="false">Journal</button>
+  <div class="tr2">
+    <button class="rb" id="recentre" hidden aria-label="Back to him" title="Back to him">◎</button>
+    <button class="rb" id="menuBtn" aria-expanded="false" aria-controls="menu" aria-label="Menu">☰</button>
+    <div class="menu" id="menu" hidden>
+      <button class="mi tg on" id="follow" aria-pressed="true">Follow him</button>
+      <button class="mi" id="pbtn" aria-expanded="false">Journal</button>
+      <button class="mi tg" id="snd" aria-pressed="false">Island sounds</button>
+      <button class="mi tg on" id="cc" aria-pressed="true">Sound captions</button>
+      <button class="mi tg" id="mapBtn" aria-pressed="false">Map</button>
+      <div class="zrow"><button class="ib" id="zOut" aria-label="Zoom out">−</button><button class="ib" id="zIn" aria-label="Zoom in">+</button></div>
+    </div>
   </div>
-  <div class="hud bl" id="needs"></div>
   <div id="caps" hidden aria-live="polite"></div>
-  <div class="hud bc"><div class="act" id="act">Waking up</div><div class="th" id="th"></div></div>
+  <div class="say" id="say"><div class="act" id="act">Waking up</div><div class="th" id="th"></div></div>
   <canvas class="mini" id="mini" width="168" height="120" aria-hidden="true"></canvas>
   <aside id="panel" class="closed" aria-label="Journal">
     <div class="tabs" role="tablist">
@@ -10146,7 +10202,7 @@ function render(T) {
   }
 }
 function renderMini() {
-  if (!W || !G) return;
+  if (!W || !G || document.body.classList.contains("mapOff")) return;
   const sx = mini.width / MW, sy = mini.height / MH;
   if (!renderMini.base || renderMini.key !== terrainKey) {
     const b = document.createElement("canvas"); b.width = mini.width; b.height = mini.height; const c = b.getContext("2d");
@@ -10187,6 +10243,7 @@ function updateHud() {
   const mindNow = W.mind && W.mind.hold > W.t;
   $("th").classList.toggle("mind", !!mindNow);
   $("th").textContent = !m.alive ? `He survived ${dayAt(m.diedT)} days.` : m.act === "sleep" && !mindNow ? dreamLine(m) : "“" + m.th + "”";
+  if (window.uiTick) uiTick();
 }
 let tab = "diary";
 function renderPanel() {
@@ -10263,6 +10320,51 @@ $("snd").onclick = () => { const on = SFX.toggle(); $("snd").classList.toggle("o
 $("cc").onclick = () => { CAPTIONS = !CAPTIONS; $("cc").classList.toggle("on", CAPTIONS); $("cc").setAttribute("aria-pressed", String(CAPTIONS)); };
 setInterval(() => { try { SFX.update(); } catch (e) {} }, 120);
 $("zOut").onclick = () => cam.z = Math.max(1, cam.z - .5);
+
+// ---- calm HUD: pill + details, menu, fading words, optional map, tap the island to hide everything
+(function () {
+  const store = (() => { try { return JSON.parse(localStorage.getItem("castaway-ui") || "{}"); } catch (e) { return {}; } })();
+  const keep = () => { try { localStorage.setItem("castaway-ui", JSON.stringify(store)); } catch (e) {} };
+  $("meter").innerHTML = NEEDS.map(([k, , lb, col]) => `<i id="mm_${k}" title="${lb}"><b style="background:${col};height:50%"></b></i>`).join("");
+  const setMap = on => { document.body.classList.toggle("mapOff", !on); $("mapBtn").classList.toggle("on", on); $("mapBtn").setAttribute("aria-pressed", String(on)); };
+  setMap(store.map != null ? store.map : innerWidth > 820);
+  $("mapBtn").onclick = () => { store.map = document.body.classList.contains("mapOff"); setMap(store.map); keep(); };
+  const openMenu = o => { $("menu").hidden = !o; $("menuBtn").classList.toggle("on", o); $("menuBtn").setAttribute("aria-expanded", String(o)); };
+  const openDrop = o => { $("drop").hidden = !o; $("pill").setAttribute("aria-expanded", String(o)); };
+  $("menuBtn").onclick = () => { openDrop(false); openMenu($("menu").hidden); };
+  $("pill").onclick = () => { openMenu(false); openDrop($("drop").hidden); };
+  const pb = $("pbtn").onclick; $("pbtn").onclick = () => { openMenu(false); pb(); };
+  const x = document.createElement("button"); x.className = "pclose"; x.textContent = "✕"; x.setAttribute("aria-label", "Close journal");
+  x.onclick = () => { if (!$("panel").classList.contains("closed")) pb(); }; document.querySelector("#panel .tabs").appendChild(x);
+  $("recentre").onclick = () => { if (!cam.follow) $("follow").onclick(); };
+  setInterval(() => { $("recentre").hidden = !!cam.follow; }, 300);
+  // his words fade after a while; they come back when he does or thinks something new
+  let sayKey = "", sayT = 0;
+  const wake = () => { sayT = performance.now(); $("say").classList.remove("quiet"); };
+  const WXI = { clear: "☀️", cloudy: "☁️", rain: "🌧️", storm: "⛈️", fog: "🌫️", snow: "❄️" };
+  window.uiTick = () => {
+    const m = W.m, c0 = calAt(W.t), h = Math.floor(c0.mod / 60);
+    $("wx2").textContent = `Day ${dayNo()} · ${W.w.k === "clear" && (h < 6 || h >= 20) ? "🌙" : WXI[W.w.k] || ""} ${Math.round(temperature())}°`;
+    $("dd").textContent = `${c0.wd} ${c0.d} ${MONTHS[c0.mo]}`;
+    for (const [k] of NEEDS) { const v = clamp(m.n[k], 0, 100), el = $("mm_" + k); el.firstChild.style.height = v + "%"; el.classList.toggle("low", m.alive && v < 25); }
+    const key = m.act + "|" + m.goal + "|" + $("th").textContent;
+    if (key !== sayKey) { sayKey = key; wake(); }
+    else if (performance.now() - sayT > 20000) $("say").classList.add("quiet");
+  };
+  // a tap on the island (not a drag or pinch) closes menus, brings his words back, or hides everything for a clear view
+  let d = null;
+  cv.addEventListener("pointerdown", e => { d = e.isPrimary ? [e.clientX, e.clientY, performance.now()] : null; });
+  cv.addEventListener("pointerup", e => {
+    if (!d || !e.isPrimary) return; const moved = Math.abs(e.clientX - d[0]) + Math.abs(e.clientY - d[1]), dt = performance.now() - d[2]; d = null;
+    if (moved > 8 || dt > 500) return;
+    if (!$("menu").hidden || !$("drop").hidden) { openMenu(false); openDrop(false); return; }
+    const b = document.body.classList;
+    if (b.contains("calm")) { b.remove("calm"); wake(); return; }
+    if ($("say").classList.contains("quiet")) { wake(); return; }
+    b.add("calm");
+    if (!store.calmTold) { store.calmTold = 1; keep(); toast("Tap the island again to bring the controls back"); }
+  });
+})();
 let toastT;
 function toast(s) { const t = $("toast"); t.textContent = s; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 4200); }
 
