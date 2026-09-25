@@ -1,7 +1,7 @@
 {
  "day": 1,
- "t": 697,
- "when": "Fri 25/9 17:37 (UK time)",
+ "t": 703,
+ "when": "Fri 25/9 17:43 (UK time)",
  "alive": true,
  "weather": {
   "temp": 15,
@@ -20,14 +20,13 @@
   "wet": "not",
   "ill": "no",
   "hurt": "a cut, healing",
-  "coreC": 37.6,
+  "coreC": 37.7,
   "lonely": "not"
  },
- "doing": "Feeding the fire",
+ "doing": "Making fire with the hand drill",
  "why": "A fire for the evening, before the light goes",
  "said": "Ah. Cut myself. Stupid.",
  "has": {
-  "fuel": 1.7,
   "poles": 5,
   "stones": 2,
   "bracken": 9,
