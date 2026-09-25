@@ -1,1 +1,25 @@
-[]
+[
+ {
+  "applyAt": 753,
+  "thought": "Fire's caught proper now, and there's a roof half over my head. First day nearly done and I'm still breathing — that'll do for a start.",
+  "diary": "First proper day ashore, and I'm writing this by firelight with bracken up to my knees. Got the frame of a lean-to up and a ring of stones round the fire, and tonight, God willing, I won't freeze for it. Cut my hand on something in the wreckage this morning — nothing that won't mend. Tired in a way I don't think sleep alone will fix, but the fire's caught and holding, and that's the whole of my luck today and I'll take it. Tomorrow: the roof, before the weather remembers where it left off.",
+  "intents": [
+   {
+    "k": "build:leanto",
+    "w": 25,
+    "hours": 48
+   },
+   {
+    "k": "fire",
+    "w": 15,
+    "hours": 96
+   },
+   {
+    "k": "explore",
+    "w": 8,
+    "hours": 120
+   }
+  ],
+  "id": "m753"
+ }
+]

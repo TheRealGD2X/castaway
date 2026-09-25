@@ -1,7 +1,7 @@
 {
  "day": 1,
- "t": 715,
- "when": "Fri 25/9 17:55 (UK time)",
+ "t": 752,
+ "when": "Fri 25/9 18:32 (UK time)",
  "alive": true,
  "weather": {
   "temp": 15,
@@ -20,21 +20,21 @@
   "wet": "not",
   "ill": "no",
   "hurt": "a cut, healing",
-  "coreC": 37.8,
+  "coreC": 37.4,
   "lonely": "not"
  },
- "doing": "Making fire with the hand drill",
- "why": "A fire for the evening, before the light goes",
- "said": "Ah. Cut myself. Stupid.",
+ "doing": "Cutting bracken",
+ "why": "Working on the lean-to: the roof",
+ "said": "It's caught.",
  "has": {
   "poles": 5,
   "stones": 2,
-  "bracken": 9,
+  "bracken": 12,
   "flake": 1,
   "drill": 1
  },
  "skills": {
-  "drill": 0.24,
+  "drill": 0.32,
   "knap": 0.1,
   "build": 0.11,
   "forage": 0
@@ -97,7 +97,7 @@
   }
  ],
  "fire": [
-  "cold"
+  "burning"
  ],
  "beliefs": {},
  "dog": "no dog (yet)",
@@ -105,11 +105,11 @@
   "places": {
    "oak": 95,
    "hazel": 77,
-   "pine": 44,
+   "pine": 46,
    "birch": 20,
    "flint": 10,
    "rowan": 22,
-   "fern": 32,
+   "fern": 33,
    "bramble": 10,
    "boulder": 22,
    "warren": 1,
@@ -137,6 +137,11 @@
    "day": 1,
    "time": "15:16",
    "what": "cut"
+  },
+  {
+   "day": 1,
+   "time": "18:00",
+   "what": "fire 2"
   }
  ],
  "intentions": [],
