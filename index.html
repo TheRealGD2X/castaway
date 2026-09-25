@@ -132,6 +132,8 @@ body.panelOpen .mini{display:none}
 .zrow .ib{flex:1}
 .say{position:absolute;z-index:5;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:max-content;max-width:min(560px,92vw);padding:12px 30px;text-align:center;pointer-events:none;background:radial-gradient(ellipse at center,rgba(8,10,14,.5),rgba(8,10,14,0) 72%);transition:opacity .9s}
 .say .act{font:600 12.5px var(--body);letter-spacing:.02em;color:rgba(255,255,255,.82);text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.say .why{font:500 12px var(--body);color:rgba(255,255,255,.68);margin-top:1px;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.say .why:empty{display:none}
 .say .th{font-family:var(--hand);font-size:16px;color:var(--ember);margin-top:2px;line-height:1.35;text-shadow:0 1px 4px rgba(0,0,0,.9)}
 .say .th.mind::before{content:"💭 ";font-style:normal}
 .say.quiet{opacity:0}
@@ -177,7 +179,7 @@ body.calm .top,body.calm .tr2,body.calm .say,body.calm .mini{opacity:0;pointer-e
     </div>
   </div>
   <div id="caps" hidden aria-live="polite"></div>
-  <div class="say" id="say"><div class="act" id="act">Waking up</div><div class="th" id="th"></div></div>
+  <div class="say" id="say"><div class="act" id="act">Waking up</div><div class="why" id="why"></div><div class="th" id="th"></div></div>
   <canvas class="mini" id="mini" width="168" height="120" aria-hidden="true"></canvas>
   <aside id="panel" class="closed" aria-label="Journal">
     <div class="tabs" role="tablist">
@@ -655,7 +657,7 @@ function projOK(p) {
 }
 function nextProject() {
   let first = null;
-  for (const p of projects()) if (projOK(p)) { first = p; break; }
+  for (const p of projects()) if (projOK(p) && !(W.m.stuckP && W.m.stuckP[p.k] > W.t)) { first = p; break; }
   // survival first: only once the essentials (and a warm hearth before winter) are handled does he follow his heart
   const fav = W.mind && W.mind.fx && W.mind.fx.fav;
   if (!first || !fav || !fav.length || ESSENTIAL.includes(first.k) || (season() >= 2 && ["hearth", "cloak"].includes(first.k))) return first;
@@ -727,17 +729,132 @@ function setPlan(goal, steps, thought) {
 const go = (to, adj) => ({ s: "go", to, adj: !!adj });
 const doA = (a, at, dur, extra) => Object.assign({ s: "do", a, at, dur }, extra || {});
 
+// =====================================================================
+// HIS BRAIN: wants -> goals -> the means to reach them.
+// What he does comes from what he wants and what he believes about his world, not from a list of pastimes.
+//  * Security before comfort: while the fire is dead, he has no roof, food is short or the night's wood isn't in,
+//    pastimes simply don't occur to him (unless his spirits hit rock bottom and he needs a breather).
+//    Survival work absorbs him, so boredom builds only slowly while it lasts.
+//  * Beliefs, not omniscience: he knows the fire's state only when he can see it, or by reckoning how long it has
+//    been since he last saw it and how much wood was on it.
+//  * Means-ends: each goal is worked back through what it needs (fire -> wood -> a tree he knows of; a project ->
+//    its missing materials), and he takes the first step. That chain is his reason, shown under what he's doing.
+//  * He sticks with what he's doing (a small preference for carrying on), and a dead fire interrupts pastimes.
+// Deterministic: plain arithmetic on the sim state; no new random numbers except the planners' own.
+// =====================================================================
+function brainBeliefs() {
+  const m = W.m, n = m.n, night = isNight(), s = sunNow(), mt = mod();
+  const f = findSt("fire"), hearth = findSt("hearth");
+  const B = { night, m };
+  // the fire as he believes it to be
+  B.fire = f && f.done ? f : null;
+  if (B.fire) {
+    if (md(B.fire.i, here()) <= 8) { m.fireSeen = [W.t, B.fire.d.fuel || 0]; }
+    const seen = m.fireSeen || [W.t, B.fire.d.fuel || 0], est = seen[1] - (W.t - seen[0]);
+    B.fireDead = est <= 0 && !(hearth && hearth.done && (hearth.d.fuel || 0) > 0 && md(hearth.i, here()) <= 8);
+  } else B.fireDead = false;
+  B.fireOK = !!B.fire && !B.fireDead;
+  B.shelter = W.done.hut ? 2 : W.done.leanto ? 1 : 0;
+  B.noShelter = B.shelter === 0 && W.t > 360;
+  B.wood = have("wood");
+  B.foodDays = foodValueAll() / 110;
+  B.toDusk = (s[1] - mt) / 60;                       // hours of daylight left (negative after sunset)
+  B.eveSoon = !night && B.toDusk < 3;
+  B.cold = n.warmth < 55 || temperature() < 6;
+  B.raw = have("rawMeat") + have("rawFish") > 0;
+  B.gaps = [];
+  if (B.fireDead) B.gaps.push("fire");
+  if (B.noShelter) B.gaps.push("shelter");
+  if (B.foodDays < 1 && !night) B.gaps.push("food");
+  if (B.fireOK && B.wood < 4 && B.toDusk < 4 && !night) B.gaps.push("wood");
+  if (m.carry) B.gaps.push("carcass");
+  m.insecure = B.gaps.length ? 1 : 0;
+  return B;
+}
+const LEISURE_CHORES = ["exercise", "draw", "groom", "tidy", "weave"];
+function brainTier(k) {
+  if (k === "fun" || k === "wander" || k === "idle") return 4;
+  if (k === "chore") return LEISURE_CHORES.includes(choreNext()) ? 4 : 3;
+  return 3;
+}
+// reshape his options: what matters now, what can wait, what doesn't occur to him at all
+function brainArbitrate(S, B) {
+  if (!PLANNERS.relight) { PLANNERS.relight = planFuel; PLANNERS.wander = planExplore; PLANNERS.nightwood = () => planGather("wood", Math.min(BAGCAP(), 8), "Laying in firewood for the night"); PLANNERS.build = brainBuild; }
+  const m = W.m, n = m.n, add = (k, v) => { if (v > 0) S.push([k, v]); };
+  // a dead fire is a job: relight it (more urgently as dark, cold or raw meat approach)
+  if (B.fireDead) add("relight", (B.night ? (B.cold ? 70 : 0) : 62) + (B.eveSoon || B.cold || B.raw ? 25 : 0));
+  // wood for the night, laid in during the afternoon
+  if (B.gaps.includes("wood")) add("nightwood", 52 + (4 - B.wood) * 4 + (B.toDusk < 2 ? 12 : 0));
+  // a roof before dark
+  const p = nextProject();
+  if (B.noShelter && p && (p.k === "leanto" || p.k === "hut")) for (const o of S) if (o[0] === "build") o[1] += 16 + (B.eveSoon ? 18 : 0);
+  // his own plan pulls harder when it's about staying alive
+  if (B.gaps.length) for (const o of S) if (o[0] === "plan") o[1] += 8;
+  // carrying on with what he was doing is easier than switching, for a few hours; then he's had enough of it
+  const spell = W.t - (m.goalSince || W.t);
+  for (const o of S) if (o[0] === m.lastGoal && brainTier(o[0]) === 3) o[1] += spell < 180 ? 10 : -8;
+  // a goal he has chased all day without getting anywhere loses its pull (the means aren't working)
+  const tried = m.tried || {}, day = dayNo();
+  for (const o of S) { const t = tried[o[0]]; if (t && t.d === day && t.min > 240 && !(o[0] === "food" && B.foodDays < 1)) o[1] -= 20; }
+  // evenings by a lit fire, with the day's work secure, are his own
+  const windDown = (B.night || B.toDusk < .5) && B.fireOK && !B.gaps.length;
+  if (windDown) for (const o of S) { if (brainTier(o[0]) === 4) o[1] += 12; if (o[0] === "build" || o[0] === "explore" || o[0] === "search") o[1] -= 15; }
+  // while he isn't secure, pastimes don't occur to him (a breather only if his spirits have hit bottom)
+  if (B.gaps.length && n.mood >= 15) for (let i = S.length - 1; i >= 0; i--) if (brainTier(S[i][0]) === 4 && S[i][0] !== "idle") S.splice(i, 1);
+}
+const WHY = {
+  relight: B => "The fire's gone out" + (have("wood") < 1 ? ", and he needs wood to light it again" : ""),
+  nightwood: () => "Wood for tonight, so the fire lasts till morning",
+  fuel: B => B.cold ? "He's cold; the fire needs feeding" : "Keeping the fire going",
+  build: B => { const p = nextProject(); if (!p) return ""; const mi = missing(p.cost); return (B.noShelter && (p.k === "leanto" || p.k === "hut") ? "He needs somewhere dry to sleep: " : "Next on his list: ") + p.lbl + (mi ? ` (still needs ${mi[1]} ${mi[0]})` : ""); },
+  craftAtNight: () => { const p = nextProject(); return p ? "Making " + p.lbl + " by the fire" : ""; },
+  plan: () => W.mind && W.mind.plan ? "His plan: " + W.mind.plan.name.toLowerCase() : "",
+  food: B => B.foodDays < 1 ? "Less than a day's food put by" : season() >= 2 ? "Putting food by before winter" : "Putting food by",
+  cook: () => "Raw meat won't keep; it needs cooking",
+  butcher: () => "Meat to deal with before it spoils",
+  eat: () => W.m.n.food < 50 ? "Hungry" : "Mealtime",
+  drink: () => "Thirsty",
+  warm: () => "Cold",
+  sleep: () => W.m.n.energy < 30 ? "Exhausted" : "Bedtime",
+  stretch: () => "Just woken up",
+  explore: () => dayNo() <= 3 ? "Getting to know the island" : "Curious about ground he hasn't seen",
+  search: () => W.m.searching && W.m.searching.length ? "Looking for " + W.m.searching.join(" and ") : "Searching",
+  wander: () => "Restless; he wants to see somewhere new",
+  fun: B => B.gaps.length ? "A breather; his spirits are low" : "The day's work is done; time for himself",
+  chore: () => "",
+  practise: () => "Not skilled enough yet for what he wants to make",
+  repair: () => "Something of his needs mending",
+  deposit: () => "His bag's full",
+  tame: () => "Trying to win the dog's trust",
+  water: () => "Clean water to drink",
+  idle: () => "",
+};
+const WHYNEED = { water: "Parched", food: "Starving", warmth: "Freezing" };
+function brainChose(k, B) { const m = W.m; if (k !== m.lastGoal) m.goalSince = W.t; m.lastGoal = k; const w = WHY[k]; m.why = w ? w(B) : ""; }
+// minutes spent today pursuing each kind of goal (so he notices when something isn't working)
+function brainTally() { const m = W.m, k = m.lastGoal; if (!k || m.act === "sleep") return; const T = m.tried || (m.tried = {}), d = dayNo(); const e = T[k] && T[k].d === d ? T[k] : (T[k] = { d, min: 0 }); e.min += 5; }
+// a project he can't get the materials for is set aside for a day, so the next one can go ahead
+function brainBuild() { const p = nextProject(); const ok = planBuild(); if (!ok && p) (W.m.stuckP || (W.m.stuckP = {}))[p.k] = W.t + DAY; return ok; }
+// every few minutes: is what he's doing still the right thing? (a dead fire interrupts pastimes and odd jobs)
+function brainInterrupt() {
+  const m = W.m; if (!m.plan.length || m.plan[0].flee || m.plan[0].s === "sleep") return;
+  const k = m.pk; if (!k || brainTier(k) < 4 && k !== "practise") return;
+  const B = brainBeliefs();
+  if (B.gaps.length && m.n.mood >= 15) { abortPlan(); think(B.fireDead ? "The fire. I let the fire go out. What am I doing?" : B.noShelter ? "No roof and I'm messing about. Get a grip." : "This can wait. There's work to do."); }
+}
+
 function decide() {
   const m = W.m, n = m.n, night = isNight();
+  m.why = "";
   if (!m.settled) { m.settled = true; setPlan("Exploring the island", [go(G.L.fire)], "I need fresh water, shelter and fire. Let's look around."); return; }
   // Critical needs first, worst first
   const crit = [["water", n.water, 22, planDrink], ["food", n.food, 22, () => planEat(true)], ["warmth", n.warmth, 25, planWarm]]
     .filter(c => c[1] < c[2]).sort((a, b) => a[1] - b[1]);
-  for (const [k, , , fn] of crit) { if (m.block[k] > W.t) continue; if (fn()) { m.need = k; return; } m.block[k] = W.t + 45; }
+  for (const [k, , , fn] of crit) { if (m.block[k] > W.t) continue; if (fn()) { m.need = k; m.why = WHYNEED[k] || ""; return; } m.block[k] = W.t + 45; }
   if (n.energy < 10) { planSleep(); return; }
   if (planCare()) return;
   if ((m.sick > 0 || n.hp < 35 || (m.inj || []).some(w => w.inf > .3)) && planRest()) return;
-  const S = [];
+  const S = [], BR = brainBeliefs();
   const add = (k, v) => { if (v > 0) S.push([k, v + R() * 6 + fxw(k)]); };
   add("drink", n.water < 72 ? (100 - n.water) * 1.1 : 0);
   add("eat", n.food < 70 ? (100 - n.food) * 1.05 : 0);
@@ -765,13 +882,14 @@ function decide() {
   add("butcher", m.carry ? 75 : 0);
   add("practise", !night && practiseTarget() ? 30 + fxw("build") : 0);
   add("plan", planScore());
-  add("explore", noveltyScore());
+  add("wander", noveltyScore());
   add("search", searchScore());
   if (m.carry && W.t - m.carry.t > DAY) { ev("spoiled", `${m.name}'s ${m.carry.k} spoiled before he could butcher it.`, `The ${m.carry.k} went bad before I got to it. A waste of a life.`); m.carry = null; }
   if ((W.w.k === "rain" || W.w.k === "storm") && W.done.hut) for (const o of S) if (["build", "explore", "repair"].includes(o[0]) || (o[0] === "food" && fd >= target)) o[1] -= 18;
+  brainArbitrate(S, BR);
   add("idle", 4);
   S.sort((a, b) => b[1] - a[1]);
-  for (const [k] of S) if (PLANNERS[k] && !(m.block[k] > W.t) && PLANNERS[k]()) { m.pk = k; m.need = k === "drink" ? "water" : k === "eat" ? "food" : k === "warm" ? "warmth" : ""; return; }
+  for (const [k] of S) if (PLANNERS[k] && !(m.block[k] > W.t) && PLANNERS[k]()) { m.pk = k; brainChose(k, BR); m.need = k === "drink" ? "water" : k === "eat" ? "food" : k === "warm" ? "warmth" : ""; return; }
   planIdle();
 }
 // Bedtime is his own call each night: his nature, the sky, his mood, how tired he is, and what his mind wants.
@@ -2167,7 +2285,7 @@ function needsTick() {
   n.food -= sleeping ? .035 : .05;
   n.water -= sleeping ? .045 : .068;
   if (!sleeping) n.energy -= (m.act === "chop" || m.act === "mine" || m.act === "build" ? .09 : .055) * (m.sick > 0 ? 1.4 : 1);
-  n.fun -= sleeping ? .006 : .03;
+  n.fun -= sleeping ? .006 : .03 * (W.m.insecure ? .35 : 1);   // survival work absorbs him
   psyTick();
   if (!sleeping && m.cloth != null) m.cloth = Math.max(0, m.cloth - (m.act === "chop" || m.act === "mine" || m.act === "build" || m.act === "gather" || m.act === "hunt" ? .006 : .0015));
   // warmth
@@ -2465,7 +2583,7 @@ function brief() {
   const all = projects();
   return {
     t: W.t, savedAt: Date.now(), name: m.name, alive: m.alive, cause: m.cause || "", day: dayNo(), when: clockStr(W.t),
-    season: SEASONS[season()], weather: W.w.k, tempC: r(temperature()), doing: m.goal, lastThought: m.th,
+    season: SEASONS[season()], weather: W.w.k, tempC: r(temperature()), doing: m.goal, why: m.why || "", worries: brainBeliefs().gaps, lastThought: m.th,
     needs: { food: r(n.food), water: r(n.water), energy: r(n.energy), warmth: r(n.warmth), fun: r(n.fun), mood: r(n.mood), health: r(n.hp) },
     sick: m.sick > 0, hurt: m.hurt > 0,
     nature: Object.entries(m.trait).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(", "),
@@ -3779,6 +3897,7 @@ function step() {
   if (W.t % 5 === 0) checkBeliefs();
   if (W.t % 3 === 0 && m.alive) lookAround();
   if (W.t % 10 === 0) planTick();
+  if (W.t % 5 === 0 && m.alive) { brainTally(); brainInterrupt(); }
   cureTick();
   selfPlan();
   if (m.alive) {
@@ -8392,11 +8511,16 @@ const S3D = (() => {
       G.put([0, .3, 2.4], [2.6, .3, 2], s.d.fuel > 0 ? M.a : M.b, 0, 0);
     },
     leanto(G, st) {
-      log(G, [-7, 0, 5.5], [-6, 11, -3], .6); log(G, [7, 0, 5.5], [6, 11, -3], .6);
-      log(G, [-7.6, 10.6, -3], [7.6, 10.6, -3], .65);
-      log(G, [-6.5, 0, -6.5], [-6, 10.6, -3.2], .45); log(G, [6.5, 0, -6.5], [6, 10.6, -3.2], .45);
-      for (let q = 0; q < 8; q++) { const x = -6.8 + q * 1.95; G.cap([x, 11, -3], [x * 1.05, .6, 6.5], 1.25, 1.05, q % 2 ? M.a : M.b, .5, 5); }
-      if (st.snow) for (let q = 0; q < 4; q++) G.put([-5 + q * 3.3, 7.8 - (q % 2), 1.4], [2.4, .8, 3], M.snow, -.2, 0);
+      // open side to the front (towards the viewer, and his fire): two forked uprights, a ridge pole, a steep roof of
+      // boughs pitched down to the ground at the back, a bed of bracken in the shade beneath it
+      G.ell([0, .1, .6], [7.2, .3, 4.4], M.dark, 0, 6, true);                              // trodden, shaded ground
+      for (let q = 0; q < 5; q++) G.put([-4.8 + q * 2.4, .7, 1.4 - (q % 2) * .8], [1.7, .55, 2.6], M.b, .15 * (q % 3 - 1), 1);   // bracken bed
+      log(G, [-6.6, 0, 4.6], [-6.3, 10.4, 4.3], .55); log(G, [6.6, 0, 4.6], [6.3, 10.4, 4.3], .55);   // forked uprights
+      log(G, [-6.1, 9.6, 4.9], [-6.9, 11.2, 4.6], .3); log(G, [6.1, 9.6, 4.9], [6.9, 11.2, 4.6], .3);  // the forks
+      log(G, [-7.8, 10, 4.4], [7.8, 10, 4.4], .6);                                                     // ridge pole
+      for (let q = 0; q < 5; q++) { const x = -6 + q * 3; log(G, [x, 10, 4.3], [x * 1.04, .2, -3.4], .38); }   // rafters to the ground
+      for (let q = 0; q < 8; q++) { const x = -6.8 + q * 1.95; G.cap([x, 10.5, 4], [x * 1.05, .6, -3.8], 1.2, 1, q % 2 ? M.a : M.b, .5, 5); }   // boughs laid over
+      if (st.snow) for (let q = 0; q < 4; q++) G.put([-5 + q * 3.3, 6.2 - (q % 2), .2], [2.4, .8, 3], M.snow, .5, 0);
     },
     pile(G, st, s) {
       const u = Math.min(6, Math.ceil((typeof storeUnits === "function" ? storeUnits() : 8) / 8));
@@ -10452,10 +10576,34 @@ $("zOut").onclick = () => cam.z = Math.max(1, cam.z - .5);
     $("wx2").textContent = `Day ${dayNo()} · ${W.w.k === "clear" && (h < 6 || h >= 20) ? "🌙" : WXI[W.w.k] || ""} ${Math.round(temperature())}°`;
     $("dd").textContent = `${c0.wd} ${c0.d} ${MONTHS[c0.mo]}`;
     for (const [k] of NEEDS) { const v = clamp(m.n[k], 0, 100), el = $("mm_" + k); el.firstChild.style.height = v + "%"; el.classList.toggle("low", m.alive && v < 25); }
-    const key = m.act + "|" + m.goal + "|" + $("th").textContent;
+    $("why").textContent = m.alive && m.why ? m.why : "";
+    const key = m.act + "|" + m.goal + "|" + $("why").textContent + "|" + $("th").textContent;
     if (key !== sayKey) { sayKey = key; wake(); }
     else if (performance.now() - sayT > 20000) $("say").classList.add("quiet");
   };
+  // what is this? a tap on something he built, an animal, or him, names it (display only; reads the world, never writes)
+  const RSN = { 1: "an oak", 2: "a pine", 3: "a bramble bush", 4: "a boulder", 5: "flint nodules", 7: "a clay bank", 8: "driftwood" };
+  const ANN = { rabbit: "a rabbit", deer: "a red deer", boar: "a wild boar", wolf: "a wolf" };
+  function whatIsAt(wx, wy) {
+    if (!W || !G) return null;
+    const tx = Math.floor(wx / TS), ty = Math.floor(wy / TS), m = W.m;
+    const near = (x, y, up) => Math.abs(x - tx) <= 0 && ty >= y - (up || 0) && ty <= y;   // tall things stand above their tile
+    if (Math.abs(m.x - tx) <= 0 && ty >= m.y - 1 && ty <= m.y) return m.alive ? `${m.name}: ${m.goal.toLowerCase()}` : `${m.name}'s grave`;
+    for (const a of W.an) if (!a.dead && near(a.x, a.y, a.k === "deer" ? 1 : 0)) {
+      if (a.k === "dog") return a.tame >= 5 || W.stats.dogKnown ? `${a.name}, the ship's dog` + (a.tame >= 5 ? "" : " (still wary of him)") : "A stray dog, keeping its distance";
+      return (ANN[a.k] || a.k)[0].toUpperCase() + (ANN[a.k] || a.k).slice(1) + (a.young ? " (young)" : "");
+    }
+    for (const s of W.st) if (near(ix(s.i), iy(s.i), 1)) {
+      const p = projects().find(q => q.k === s.k), nm = (s.d && s.d.name) || (p && p.lbl) || s.k;
+      let t = nm[0].toUpperCase() + nm.slice(1);
+      if (!s.done) t += " (half-built)";
+      else if (s.k === "fire" || s.k === "hearth") t += (s.d.fuel || 0) > 0 ? " · burning" : " · gone out";
+      else if (s.hp < 45) t += " · needs repair";
+      return t;
+    }
+    const i = idx(tx, ty); if (i >= 0 && i < N && G.res[i] && W.amt[i] > 0 && RSN[G.res[i]]) { const t = RSN[G.res[i]]; return t[0].toUpperCase() + t.slice(1); }
+    return null;
+  }
   // a tap on the island (not a drag or pinch) closes menus, or hides / shows everything for a clear view
   let d = null;
   cv.addEventListener("pointerdown", e => { d = e.isPrimary ? [e.clientX, e.clientY, performance.now()] : null; });
@@ -10463,6 +10611,8 @@ $("zOut").onclick = () => cam.z = Math.max(1, cam.z - .5);
     if (!d || !e.isPrimary) return; const moved = Math.abs(e.clientX - d[0]) + Math.abs(e.clientY - d[1]), dt = performance.now() - d[2]; d = null;
     if (moved > 8 || dt > 500) return;
     if (!$("menu").hidden || !$("drop").hidden) { openMenu(false); openDrop(false); return; }
+    const what = whatIsAt(cam.x + (e.clientX - innerWidth / 2) / cam.z, cam.y + (e.clientY - innerHeight / 2) / cam.z);
+    if (what) { toast(what); return; }
     const b = document.body.classList;
     if (b.contains("calm")) { b.remove("calm"); wake(); return; }
     b.add("calm");
