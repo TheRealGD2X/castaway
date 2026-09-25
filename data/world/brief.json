@@ -1,23 +1,23 @@
 {
- "t": 1209,
- "savedAt": 1790331121181,
+ "t": 1348,
+ "savedAt": 1790339500731,
  "name": "Tomas",
  "alive": true,
  "cause": "",
  "day": 2,
- "when": "Fri 25 Sep · 11:12",
+ "when": "Fri 25 Sep · 13:31",
  "season": "Autumn",
  "weather": "fog",
- "tempC": 8,
- "doing": "Walking to the lake for water",
- "lastThought": "So thirsty. The lake isn't far.",
+ "tempC": 10,
+ "doing": "Gathering bramble",
+ "lastThought": "Blackberries, fat and black. My fingers are purple already.",
  "needs": {
-  "food": 63,
-  "water": 51,
-  "energy": 80,
-  "warmth": 68,
-  "fun": 37,
-  "mood": 50,
+  "food": 56,
+  "water": 53,
+  "energy": 69,
+  "warmth": 66,
+  "fun": 33,
+  "mood": 49,
   "health": 100
  },
  "sick": false,
@@ -25,7 +25,7 @@
  "nature": "tidy 0.79, brave 0.77, musical 0.67, romantic 0.54, curious 0.32",
  "skills": {
   "wood": 0,
-  "gather": 0.2,
+  "gather": 0.3,
   "hunt": 0,
   "fish": 0,
   "cook": 0,
@@ -89,7 +89,7 @@
    "kind": "fire",
    "burning": false,
    "minutesOfFuelLeft": 0,
-   "tilesAway": 8
+   "tilesAway": 13
   }
  ],
  "dog": {
@@ -229,7 +229,7 @@
  "repertoire": [],
  "hisDesigns": [],
  "materialsOnHand": {
-  "wood": 1,
+  "wood": 5,
   "stone": 2,
   "flint": 1,
   "fiber": 2,
@@ -245,23 +245,23 @@
   "day 1: Some days this island feels like it's trying to kill me. Fire's holding. Get the lean-to walls up before dark takes the warmth with it — one task, then the next, same as before. One more night exposed like this could cost me the fire and the warmth both. Shelter comes before anything clever. Fire held all night. First night done, first fear survived. Tomorrow the walls go up before anything else can go wrong. Fog rolled in off the sea. Tomorrow: a lean-to shelter."
  ],
  "condition": {
-  "clothes": 97,
+  "clothes": 96,
   "bodyWeight": "healthy",
   "tools": {}
  },
  "facts": {
   "fire": "not in sight (last seen: out)",
-  "shelter": "leanto",
+  "shelter": "not in sight (last seen: none)",
   "food": "not in sight",
   "wolves": "far",
   "dog": "wild",
   "weather": "fog",
-  "fireDetail": "8 tiles away, out of sight: he can't know if it's still burning",
-  "minutesToSunset": 453,
+  "fireDetail": "13 tiles away, out of sight: he can't know if it's still burning",
+  "minutesToSunset": 314,
   "isNight": false,
   "hasSeen": {
    "fire": false,
-   "shelter": true,
+   "shelter": false,
    "food": false,
    "wolves": true,
    "dog": true,
@@ -380,8 +380,8 @@
  "wild": [
   "wildflowers x45",
   "bracken x27",
-  "bramble (berries ready) x21",
   "gorse (wood ready) x21",
+  "bramble (berries ready) x20",
   "nettles (fiber ready) x18",
   "blackthorn x14",
   "heather (in flower) x10",
@@ -404,10 +404,10 @@
   "firstAid": 0
  },
  "psyche": {
-  "novelty": 75,
-  "mastery": 39,
+  "novelty": 73,
+  "mastery": 38,
   "purpose": 68,
-  "connection": 53,
+  "connection": 52,
   "spirits": "steady",
   "staleFromRepetition": []
  },
@@ -476,64 +476,64 @@
  ],
  "relevantMemories": [
   {
-   "day": 2,
-   "felt": "unease",
-   "what": "Thorns ripped my hands to bits. Gloved in a scrap of cloth now, and I lift the canes with a stick.",
-   "why": 1.79
-  },
-  {
-   "day": 2,
-   "felt": "warmth",
-   "what": "Saw a dog today! Skinny, scruffy, watching me from the trees. How did it get here?",
-   "why": 1.79
-  },
-  {
    "day": 1,
    "felt": "joy",
    "what": "Fire! I got a real fire going. I sat and watched it for an hour.",
-   "why": 1.7
-  },
-  {
-   "day": 2,
-   "felt": "warmth",
-   "what": "Cockles under the sand, mussels on the rocks. The sea pays rent twice a day.",
-   "why": 1.68
-  },
-  {
-   "day": 2,
-   "felt": "unease",
-   "what": "Walked back and the fire was out. Cold ashes. I'd been telling myself it was still burning.",
-   "why": 1.66
-  },
-  {
-   "day": 1,
-   "felt": "warmth",
-   "what": "One more night exposed like this could cost me the fire and the warmth both. Shelter comes before anything clever.",
-   "why": 1.61
-  },
-  {
-   "day": 2,
-   "felt": "warmth",
-   "what": "Saw tiny rabbits by the meadow today. Spring's here.",
-   "why": 1.58
+   "why": 2.69
   },
   {
    "day": 2,
    "felt": "joy",
    "what": "Built a lean-to out of branches and grass. It leaks a little, but it's mine.",
-   "why": 1.55
+   "why": 2.54
+  },
+  {
+   "day": 2,
+   "felt": "unease",
+   "what": "Thorns ripped my hands to bits. Gloved in a scrap of cloth now, and I lift the canes with a stick.",
+   "why": 1.78
+  },
+  {
+   "day": 2,
+   "felt": "warmth",
+   "what": "Saw a dog today! Skinny, scruffy, watching me from the trees. How did it get here?",
+   "why": 1.78
+  },
+  {
+   "day": 2,
+   "felt": "warmth",
+   "what": "Cockles under the sand, mussels on the rocks. The sea pays rent twice a day.",
+   "why": 1.67
+  },
+  {
+   "day": 2,
+   "felt": "unease",
+   "what": "Walked back and the fire was out. Cold ashes. I'd been telling myself it was still burning.",
+   "why": 1.65
+  },
+  {
+   "day": 1,
+   "felt": "warmth",
+   "what": "One more night exposed like this could cost me the fire and the warmth both. Shelter comes before anything clever.",
+   "why": 1.59
+  },
+  {
+   "day": 2,
+   "felt": "warmth",
+   "what": "Saw tiny rabbits by the meadow today. Spring's here.",
+   "why": 1.57
   },
   {
    "day": 1,
    "felt": "mixed",
    "what": "Fire's holding. Get the lean-to walls up before dark takes the warmth with it — one task, then the next, same as before.",
-   "why": 1.51
+   "why": 1.5
   },
   {
    "day": 2,
    "felt": "warmth",
    "what": "Fire's out and I wasted half the morning. Shelter and heat before the fog turns to rain.",
-   "why": 1.49
+   "why": 1.48
   }
  ],
  "homeLife": {
