@@ -37,7 +37,7 @@ export const ACTIONS = {
     r: ["food"], w: ["food"],
     find: (W, M) => nearestMem(M, m => FRUIT[m.k] && FRUIT[m.k].kcal > 0 && m.fruit > .15),
     pre: S => S.food < 1500, eff: S => { S.food += 700; }, cost: (W, M, t) => walkMin(M, t) + 25,
-    exec: work({ adjacent: true, mins: 25, met: MET.gather, pose: "pick", tick: (W, M, t) => { const e = W.ents.find(q => q.id === +t.key.slice(1)); if (!e || e.fruit <= .01) return "fail"; const F = FRUIT[e.k], take = Math.min(e.fruit, .02); e.fruit -= take; addFood(M, F.kcal * take, .0005, "berries"); } }),
+    exec: work({ adjacent: true, mins: 25, met: MET.gather, pose: "pick", tick: (W, M, t) => { const e = W.ents.find(q => q.id === +t.key.slice(1)); if (!e || e.fruit <= .01) { if (M.mem[t.key]) M.mem[t.key].fruit = 0; return (M.inv.food || 0) > 150 ? "done" : "fail"; } const F = FRUIT[e.k], take = Math.min(e.fruit, .02); e.fruit -= take; addFood(M, F.kcal * take, .0005, "berries"); } }),
     say: "Something to eat, at least.",
   },
   eat: {
@@ -47,7 +47,7 @@ export const ACTIONS = {
       let k = Math.min(M.inv.food || 0, Math.max(300, 1600 - M.B.glyco));
       // the dog watching every mouthful: if it's thin or still wary, a share goes its way
       const dog = W.animals.find(a => a.sp === "dog" && !a.adrift && !a.dead && Math.hypot(a.x - M.x, a.y - M.y) < 5);
-      if (dog && (dog.E < .35 || dog.trust < .85) && k > 200) { const share = Math.round(k * (dog.E < .2 ? .35 : .2)); k -= share; M.inv.food -= share; W.items.push({ id: W.nextId++, k: "scraps", x: M.x + (dog.x - M.x) * .5, y: M.y + (dog.y - M.y) * .5, kcal: share, from: "man" }); M.log.push([W.t, "fed dog"]); }
+      if (dog && (dog.E < .35 || dog.trust < .85) && k > 200) { const share = Math.round(k * (dog.E < .2 ? .35 : .2)); k -= share; M.inv.food -= share; W.items.push({ id: W.nextId++, k: "scraps", t: W.t, x: M.x + (dog.x - M.x) * .5, y: M.y + (dog.y - M.y) * .5, kcal: share, from: "man" }); M.log.push([W.t, "fed dog"]); }
       M.inv.food -= k; bodyEat(M.B, k); expose(W, M, (M.foodLoad || 0) * k, M.foodWhat || "food"); } }),
   },
   // raw shellfish or fish, eaten without cooking: only when he's desperate (he knows it's risky, and learns how much)
@@ -119,7 +119,7 @@ export const ACTIONS = {
     find: (W, M) => litFireMem(M) || camp(W, M), pre: S => S.raw > 0 && S.fire === 2, eff: S => { S.food += S.raw; S.raw = 0; }, cost: (W, M, t) => walkMin(M, t) + 15,
     exec: work({ adjacent: true, mins: 15, met: MET.sit, pose: "tend", tick: (W, M, t) => { const F = fireAt(W, t) || W.fires.find(f => f.lit); if (!F || F.heat < 300) return "fail"; M.rawLoad = (M.rawLoad || 0) * dexp(-.9 * Math.min(1, F.heat / 3000)); },
       done: (W, M, t) => { const k = M.inv.raw || 0; addFood(M, k, M.rawLoad || 0, "cooked " + (M.rawWhat || "shellfish")); M.inv.raw = 0; M.rawLoad = 0; M.say = "Smells like a proper meal.";
-        if (M.rawWhat === "fish" || M.rawWhat === "rabbit") W.items.push({ id: W.nextId++, k: "scraps", x: M.x + .8, y: M.y + .4, kcal: k * .08, from: "man" }); } }),   // the guts and heads, left by the fire
+        if (M.rawWhat === "fish" || M.rawWhat === "rabbit") W.items.push({ id: W.nextId++, k: "scraps", t: W.t, x: M.x + .8, y: M.y + .4, kcal: k * .08, from: "man" }); } }),   // the guts and heads, left by the fire
   },
   // a pot folded from a sheet of birch bark and pinned with a split stick: it holds water, and over hot coals the
   // water in it boils before the bark can burn
@@ -314,7 +314,7 @@ function feedDogExec(W, M, t, st) {
   if (--st.wait > 0) return "work";
   if ((M.inv.raw || 0) < 150 && (M.inv.food || 0) < 150) return "fail";
   const fromRaw = (M.inv.raw || 0) >= 150, k = Math.min(fromRaw ? M.inv.raw : M.inv.food || 0, 150); if (fromRaw) M.inv.raw -= k; else M.inv.food -= k;   // raw fish or shellfish does a dog no harm
-  W.items.push({ id: W.nextId++, k: "scraps", x: M.x + (dog.x - M.x) * .6, y: M.y + (dog.y - M.y) * .6, kcal: k, from: "man" });
+  W.items.push({ id: W.nextId++, k: "scraps", t: W.t, x: M.x + (dog.x - M.x) * .6, y: M.y + (dog.y - M.y) * .6, kcal: k, from: "man" });
   M.log.push([W.t, "fed dog"]); return "done";
 }
 function boilExec(W, M, t, st) {

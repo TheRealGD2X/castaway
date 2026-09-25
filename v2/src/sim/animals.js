@@ -43,6 +43,7 @@ function mk(W, sp, x, y, o) { return Object.assign({ id: W.nextId++, sp, x, y, p
 // ------------------------------------------------------------ one minute
 export function animalsStep(W) {
   const M = W.man, x = W.wx, night = x.elev < -.05, dusk = x.elev > -.12 && x.elev < .18;
+  if (W.t % 60 === 0) W.items = W.items.filter(it => it.k !== "scraps" || W.t - (it.t ?? 0) < 1440 && it.kcal > 1);   // gulls and rot take what's left
   for (const a of W.animals) { a.px = a.x; a.py = a.y; a.trail = null; if (a.sp === "gull") gull(W, a, M, night); else if (a.sp === "rabbit") rabbit(W, a, M, night, dusk); else if (a.sp === "dog") dog(W, a, M, night); }
 }
 // move toward (tx,ty) at speed (tiles/min) over any ground the species can cross

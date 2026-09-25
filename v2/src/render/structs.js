@@ -83,10 +83,16 @@ function fireRing(s) {
   return memo(`fr:${n}`, () => ({ img: sprite(18, 10, P => { for (let k = 0; k < n; k++) { const a = k / 10 * 6.283, x = Math.round(9 + Math.cos(a) * 7), y = Math.round(5 + Math.sin(a) * 3.4); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) P.set(x - 1 + i, y + j, R.rock[j ? 1 : 2 + (i === 0 ? 1 : 0)]); } }), ox: 9, oy: 6 }));
 }
 function reflector(s) {
+  // green logs laid one on another between pairs of stakes, the wall facing the fire and the shelter
   const n = Math.round(done(s, 0) * 5), across = s.dir === 1 || s.dir === 3;
   return memo(`rf:${n}:${across}`, () => ({ img: sprite(22, 16, P => {
-    if (across) { line(P, 3, 2, 3, 13, R.bark[3]); line(P, 18, 2, 18, 13, R.bark[3]); for (let k = 0; k < n; k++) { const y = 13 - k * 2; line(P, 2, y, 19, y, R.bark[3 + (k & 1)], R.bark[1]); } }
-    else { line(P, 11, 1, 11, 14, R.bark[3]); for (let k = 0; k < n; k++) { const y = 14 - k * 2; line(P, 8, y, 14, y - 3, R.bark[3 + (k & 1)], R.bark[1]); } }
+    if (across) {
+      for (const x of [2, 19]) { line(P, x, 3, x, 14, R.bark[2]); P.set(x, 2, R.bark[3]); }
+      for (let k = 0; k < n; k++) { const y = 13 - k * 2; for (let x = 3; x <= 18; x++) { P.set(x, y, R.bark[k & 1 ? 3 : 2]); P.set(x, y + 1, R.bark[1]); } P.set(3, y, R.dirt[4]); P.set(18, y, R.dirt[4]); }
+    } else {
+      for (const y of [4, 13]) line(P, 10, y - 2, 10, y + 1, R.bark[2]);
+      for (let k = 0; k < n; k++) { const x0 = 8 + k * 0, y = 13 - k * 2; for (let i = 0; i <= 8; i++) { P.set(x0 + (i >> 2), y - i, R.bark[k & 1 ? 3 : 2]); P.set(x0 + 1 + (i >> 2), y - i, R.bark[1]); } }
+    }
   }), ox: 11, oy: 14 }));
 }
 function woodpile(s) {

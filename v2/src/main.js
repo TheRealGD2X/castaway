@@ -32,7 +32,7 @@ function seasonOf(doy) {                                  // leaf colour and lea
   return { autumn: fall >= 1 ? 1 : leafAut, fall, fruit: doy > 225 && doy < 290 ? 1 : 0, flower: doy > 150 && doy < 200 };
 }
 const now0 = Date.now(), c0 = cal(now0, 0), qd = qs.get("doy"), doy = qd ? +qd : c0.doy;
-const terr = paintTerrain(world, { autumn: seasonOf(doy).autumn });
+let terr = paintTerrain(world, { autumn: seasonOf(doy).autumn });
 setInterval(() => { for (let n = due(); world.t < n;) step(world); }, 1000);
 const cv = document.getElementById("c"), V = createView(cv, world, terr);
 V.flower = seasonOf(doy).flower;
@@ -79,13 +79,14 @@ function frame(now) {
   V.draw(now);
   if (soundOn) audioUpdate(world, V, now);
   if (M) {
-    const doing = M.B.alive ? (M.act ? M.doing : M.pose === "sleep" ? "Sleeping" : "Resting") : "Tomas is gone";
+    const doing = M.B.alive ? (M.act || (M.goal && M.plan && M.plan.length) ? M.doing : M.pose === "sleep" ? "Sleeping" : "Resting") : "Tomas is gone";
     if (act.firstChild.textContent !== doing) act.firstChild.textContent = doing;
     const w = (M.why || "") + (M.thought && world.t - (M.thoughtT || 0) < 360 ? `\n\n${M.thought}` : "") + (M.say && world.t - (M.sayT || 0) < 45 ? `\n“${M.say}”` : "") + (M.B.ill > .1 ? "\n(He's ill.)" : "") + (M.B.hurt && M.B.hurt.length ? "\n(A cut on his hand is healing.)" : ""); if (why.textContent !== w) why.textContent = w;
   }
   const wxs = x.fog > .4 ? "Fog" : x.rain > 1.5 ? "Heavy rain" : x.rain > 0 ? "Rain" : x.cloud > .75 ? "Overcast" : x.cloud > .4 ? "Cloudy" : x.elev > 0 ? "Sunny" : "Clear";
-  clk.textContent = `${String(c.h).padStart(2, "0")}:${String(c.mi).padStart(2, "0")} · ${wxs} · ${Math.round(x.temp)}°C · wind ${Math.round(x.wind * 2.237)} mph`;
+  clk.textContent = `Day ${Math.floor(world.t / 1440) + 1} · ${String(c.h).padStart(2, "0")}:${String(c.mi).padStart(2, "0")} · ${wxs} ${Math.round(x.temp)}°`;
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+document.getElementById("load")?.remove();
 window.__v2 = { world, V, terr };

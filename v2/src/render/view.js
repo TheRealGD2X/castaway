@@ -89,10 +89,15 @@ export function createView(cv, world, terr) {
       const inside = world.structs.find(q => (q.k === "leanto" || q.k === "debrisHut" || q.k === "roundhouse") && q.stage > 0 && Math.abs(q.x - p.x) < .6 && Math.abs(q.y - p.y) < .6);
       const px = Math.round(p.x * TS) - sx, py = Math.round(p.y * TS) - sy + (inside ? 5 : 4);
       const drawMan = () => { if (p.face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(ms.img, -ms.ox, py - ms.oy); g.restore(); } else g.drawImage(ms.img, px - ms.ox, py - ms.oy); };
-      dyn.push({ y: inside ? inside.y + .35 : p.y + .02, f: () => { const sh = shadow(12, 4); g.globalAlpha = .3; g.drawImage(sh, px - 6, py - 2); g.globalAlpha = 1; drawMan(); } });
-      V.xray = () => { g.globalAlpha = .38; drawMan(); g.globalAlpha = 1; };      // a ghost of him through whatever stands in front
+      const hidden = inside && inside.k !== "leanto" && inside.stage >= 3;          // inside the hut: out of sight
+      const zzz = () => { if (M.pose !== "sleep") return; for (let k = 0; k < 3; k++) { const l = ((now / 1600 + k / 3) % 1); g.globalAlpha = 1 - l; g.fillStyle = "#f6e4b0"; const zx = px + 4 + Math.round(l * 6 + Math.sin(now / 500 + k) * 1.5), zy = py - 16 - Math.round(l * 14); g.fillRect(zx, zy, 3, 1); g.fillRect(zx + 1, zy + 1, 1, 1); g.fillRect(zx, zy + 2, 3, 1); } g.globalAlpha = 1; };
+      dyn.push({ y: inside ? inside.y + .35 : p.y + .02, f: () => { if (!hidden) { const sh = shadow(12, 4); g.globalAlpha = .3; g.drawImage(sh, px - 6, py - 2); g.globalAlpha = 1; drawMan(); } } });
+      V.xray = () => { if (!hidden) { g.globalAlpha = .38; drawMan(); g.globalAlpha = 1; } zzz(); };      // a ghost of him through whatever stands in front
     } else V.xray = null;
     dyn.sort((a, b) => a.y - b.y); let di = 0;
+    const focus = [];                                    // who we must be able to see: Tomas and the dog
+    if (M) { const p = V.manPos(now); focus.push({ y: p.y, sx: Math.round(p.x * TS) - sx, sy: Math.round(p.y * TS) - sy }); }
+    for (const a of world.animals || []) if (a.sp === "dog" && !a.adrift && !a.dead) focus.push({ y: a.y, sx: Math.round(a.x * TS) - sx, sy: Math.round(a.y * TS) - sy });
     // things on the ground, back to front
     const wk = Math.min(2.2, .35 + world.wx.wind / 7), wind = (Math.sin(now / (1900 - world.wx.wind * 60)) + Math.sin(now / 610) * .4) * wk;
     for (let i = firstRow(sy / TS - 1); i < ents.length; i++) {
@@ -103,7 +108,12 @@ export function createView(cv, world, terr) {
         const s = tree(e.k, e.size, e.id, { autumn: e.aut || 0, fall: e.fall || 0 }), sh = shadow(s.shadowW * 2, 7);
         g.globalAlpha = .32; g.drawImage(sh, px - (sh.width >> 1), py - 4); g.globalAlpha = 1;
         g.drawImage(s.trunk, px - Math.round(s.cx), py - s.trunk.height + 1);
-        if (s.crown) { const sway = Math.round((wind + hash3(e.id, 0, 9) * 2 - 1) * .55 * (e.k === "pine" ? .6 : 1)); g.drawImage(s.crown, px - Math.round(s.cx) + sway, py - s.trunk.height - s.crown.height + 6); }
+        if (s.crown) {
+          const sway = Math.round((wind + hash3(e.id, 0, 9) * 2 - 1) * .55 * (e.k === "pine" ? .6 : 1)), cx0 = px - Math.round(s.cx) + sway, cy0 = py - s.trunk.height - s.crown.height + 6;
+          // a crown standing in front of Tomas (or the dog) turns see-through, so you never lose him in the woods
+          const hide = focus.some(q => q.y < e.y && q.sx > cx0 - 2 && q.sx < cx0 + s.crown.width + 2 && q.sy > cy0 - 2 && q.sy - 14 < cy0 + s.crown.height);
+          if (hide) g.globalAlpha = .42; g.drawImage(s.crown, cx0, cy0); g.globalAlpha = 1;
+        }
       } else if (SHRUBS.has(e.k)) {
         const s = shrub(e.k, e.size, e.id, { autumn: e.aut || 0, fruit: e.fruit || 0, flower: V.flower });
         if (e.k !== "fern" && e.k !== "reeds") { const sh = shadow(s.img.width * .9, 5); g.globalAlpha = .28; g.drawImage(sh, px - (sh.width >> 1), py - 3); g.globalAlpha = 1; }
