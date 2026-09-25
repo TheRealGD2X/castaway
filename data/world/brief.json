@@ -1,0 +1,558 @@
+{
+  "alive": true,
+  "beliefs": [
+    {
+      "about": "wrong_fire",
+      "belief": "I shouldn't assume the fire is burning; go and look",
+      "confidence": 0.7,
+      "from": "correction"
+    },
+    {
+      "about": "wrong_shelter",
+      "belief": "I shouldn't assume the shelter is leanto; go and look",
+      "confidence": 0.7,
+      "from": "correction"
+    }
+  ],
+  "body": {
+    "firstAid": 0,
+    "scurvy": 0,
+    "soaked": 0,
+    "wounds": []
+  },
+  "built": [
+    "fire"
+  ],
+  "cause": "",
+  "condition": {
+    "bodyWeight": "healthy",
+    "clothes": 97,
+    "tools": {}
+  },
+  "day": 2,
+  "dog": {
+    "name": "Juno",
+    "tamed": false
+  },
+  "doing": "Building a lean-to shelter",
+  "facts": {
+    "dog": "wild",
+    "fire": "out",
+    "fireDetail": "not burning, 5 tiles away",
+    "food": "not in sight",
+    "hasSeen": {
+      "dog": true,
+      "fire": true,
+      "food": false,
+      "shelter": true,
+      "weather": true,
+      "wolves": true
+    },
+    "isNight": false,
+    "minutesToSunset": 478,
+    "shelter": "none",
+    "weather": "fog",
+    "wolves": "far"
+  },
+  "fires": [
+    {
+      "burning": false,
+      "kind": "fire",
+      "minutesOfFuelLeft": 0,
+      "tilesAway": 5
+    }
+  ],
+  "hisDesigns": [],
+  "hisGoals": [
+    "Keep the fire alive, always (since day 1)",
+    "Get walls and a roof over my head (since day 1)",
+    "Find that lake and fresh water (since day 1)",
+    "Learn what this island can give me (since day 1)"
+  ],
+  "hisIdeas": [],
+  "hisNotes": [
+    "day 1: The fire took most of the evening and nearly didn't catch — don't let it go out if you can help it. Walk to that lake once there's a roof over your head.",
+    "day 1: Day one: fire's alive, I'm alive. Feed it before you sleep, not after you wake up scared. Walls next, then the lake.",
+    "day 2: The fire held the whole night. That dog is still out there watching. Don't let the tide turn you lazy—work while the rocks are bare.",
+    "day 2: Tide's turned — no more shellfish till it's out again. Today's work: feed the fire, haul wood, get the first walls up before the weather turns.",
+    "day 2: You told yourself the fire was still burning. It wasn't. Stop assuming. Go and look. Walls and roof before nightfall, or you're spending another night in the damp cold."
+  ],
+  "homeLife": {
+    "daysOnTally": 0,
+    "mats": 0,
+    "wallDrawings": []
+  },
+  "hurt": false,
+  "island": "",
+  "known": {
+    "island": 0.61,
+    "searchingFor": []
+  },
+  "lastBeliefChecks": [
+    {
+      "about": "fire",
+      "actually": "out",
+      "heThought": "out",
+      "right": true
+    },
+    {
+      "about": "shelter",
+      "actually": "none",
+      "heThought": "none",
+      "right": true
+    },
+    {
+      "about": "wolves",
+      "actually": "far",
+      "heThought": "far",
+      "right": true
+    },
+    {
+      "about": "dog",
+      "actually": "wild",
+      "heThought": "wild",
+      "right": true
+    },
+    {
+      "about": "weather",
+      "actually": "fog",
+      "heThought": "fog",
+      "right": true
+    }
+  ],
+  "lastThought": "Fog's thick but the fire's five tiles back—cold ashes by now. Wood first, then I rebuild it before dark steals what warmth I have left.",
+  "materialsOnHand": {
+    "bone": 0,
+    "clay": 0,
+    "fiber": 6,
+    "flint": 1,
+    "hide": 0,
+    "stone": 2,
+    "wood": 7
+  },
+  "memories": [
+    {
+      "day": 2,
+      "felt": "warmth",
+      "strength": 0.81,
+      "what": "Saw a dog today! Skinny, scruffy, watching me from the trees. How did it get here?",
+      "where": "Dog's Clearing"
+    },
+    {
+      "day": 2,
+      "felt": "unease",
+      "strength": 0.81,
+      "what": "Thorns ripped my hands to bits. Gloved in a scrap of cloth now, and I lift the canes with a stick.",
+      "where": ""
+    },
+    {
+      "day": 1,
+      "felt": "joy",
+      "strength": 0.78,
+      "what": "Fire! I got a real fire going. I sat and watched it for an hour.",
+      "where": "First Camp"
+    },
+    {
+      "day": 2,
+      "felt": "warmth",
+      "strength": 0.7,
+      "what": "Cockles under the sand, mussels on the rocks. The sea pays rent twice a day.",
+      "where": ""
+    },
+    {
+      "day": 2,
+      "felt": "unease",
+      "strength": 0.68,
+      "what": "Walked back and the fire was out. Cold ashes. I'd been telling myself it was still burning.",
+      "where": "Dog's Clearing"
+    },
+    {
+      "day": 1,
+      "felt": "warmth",
+      "strength": 0.66,
+      "what": "One more night exposed like this could cost me the fire and the warmth both. Shelter comes before anything clever.",
+      "where": "Dog's Clearing"
+    },
+    {
+      "day": 2,
+      "felt": "warmth",
+      "strength": 0.61,
+      "what": "Saw tiny rabbits by the meadow today. Spring's here.",
+      "where": "Dog's Clearing"
+    },
+    {
+      "day": 1,
+      "felt": "mixed",
+      "strength": 0.59,
+      "what": "Fire's holding. Get the lean-to walls up before dark takes the warmth with it — one task, then the next, same as before.",
+      "where": ""
+    },
+    {
+      "day": 2,
+      "felt": "unease",
+      "strength": 0.5,
+      "what": "No roof over my head yet. I have to stop pretending and build one.",
+      "where": "Dog's Clearing"
+    },
+    {
+      "day": 2,
+      "felt": "warmth",
+      "strength": 0.5,
+      "what": "Fire's out and I wasted half the morning. Shelter and heat before the fog turns to rain.",
+      "where": "First Camp"
+    }
+  ],
+  "name": "Tomas",
+  "nature": "tidy 0.79, brave 0.77, musical 0.67, romantic 0.54, curious 0.32",
+  "needs": {
+    "energy": 83,
+    "food": 65,
+    "fun": 38,
+    "health": 100,
+    "mood": 42,
+    "warmth": 69,
+    "water": 41
+  },
+  "nextProject": "leanto",
+  "pastPlans": [
+    "Roof before the rain: replaced (day 2)"
+  ],
+  "places": [
+    {
+      "feeling": "warmth",
+      "id": "home",
+      "memories": 2,
+      "name": "First Camp"
+    },
+    {
+      "feeling": "mixed",
+      "id": "p8_4",
+      "memories": 5,
+      "name": "Dog's Clearing"
+    }
+  ],
+  "plan": {
+    "daysOn": 0,
+    "name": "Rebuild the fire and finish the lean-to",
+    "steps": [
+      "[now] gather wood 8",
+      "build fire",
+      "gather wood 6",
+      "build leanto"
+    ],
+    "why": "Fire's out and I wasted half the morning. Shelter and heat before the fog turns to rain."
+  },
+  "psyche": {
+    "connection": 53,
+    "mastery": 33,
+    "novelty": 75,
+    "purpose": 54,
+    "spirits": "steady",
+    "staleFromRepetition": []
+  },
+  "recent": [
+    "Thu 24 Sep · 15:27: Tomas stopped and thought: “Nobody's coming. Say it out loud, Tomas. Water, fire, shelter before dark. Then you can fall apart.”",
+    "Thu 24 Sep · 18:19: Tomas finished a campfire.",
+    "Thu 24 Sep · 18:39: Tomas stopped and thought: “Fire's holding. Get the lean-to walls up before dark takes the warmth with it — one task, then the next, same as before.”",
+    "Thu 24 Sep · 23:12: Tomas set himself a plan: roof before the rain.",
+    "Thu 24 Sep · 23:12: Tomas stopped and thought: “Fire held all night. First night done, first fear survived. Tomorrow the walls go up before anything else can go wrong.”",
+    "Fri 25 Sep · 05:30: Baby rabbits appeared near the meadow.",
+    "Fri 25 Sep · 06:36: A scruffy stray dog appeared at the edge of the forest.",
+    "Fri 25 Sep · 06:57: Tomas learned something. He's learned to handle thorny plants.",
+    "Fri 25 Sep · 07:44: Tomas stopped and thought: “Cockles under the sand, mussels on the rocks. The sea pays rent twice a day.”",
+    "Fri 25 Sep · 07:59: Tomas stopped and thought: “Tide's turning, pockets full. Time to feed the fire and start hauling wood — the walls won't build themselves before the rain does.”",
+    "Fri 25 Sep · 08:03: He found the fire had gone out.",
+    "Fri 25 Sep · 08:03: He has no shelter yet, whatever he tells himself.",
+    "Fri 25 Sep · 09:58: Tomas set himself a plan: rebuild the fire and finish the lean-to.",
+    "Fri 25 Sep · 09:58: Tomas stopped and thought: “Fog's thick but the fire's five tiles back—cold ashes by now. Wood first, then I rebuild it before dark steals what warmth I have left.”"
+  ],
+  "recentDiary": [
+    "day 1: Some days this island feels like it's trying to kill me. Fire's holding. Get the lean-to walls up before dark takes the warmth with it — one task, then the next, same as before. One more night exposed like this could cost me the fire and the warmth both. Shelter comes before anything clever. Fire held all night. First night done, first fear survived. Tomorrow the walls go up before anything else can go wrong. Fog rolled in off the sea. Tomorrow: a lean-to shelter."
+  ],
+  "recentThoughts": [
+    "Thu 24 Sep · 23:12: Fire held all night. First night done, first fear survived. Tomorrow the walls go up before anything else can go wrong.",
+    "Fri 25 Sep · 07:44: Cockles under the sand, mussels on the rocks. The sea pays rent twice a day.",
+    "Fri 25 Sep · 07:59: Tide's turning, pockets full. Time to feed the fire and start hauling wood — the walls won't build themselves before the rain does.",
+    "Fri 25 Sep · 09:58: Fog's thick but the fire's five tiles back—cold ashes by now. Wood first, then I rebuild it before dark steals what warmth I have left."
+  ],
+  "reflections": [
+    "day 2: What stays with me: Fire! I got a real fire going / One more night exposed like this could cost me the fire and the warmth both / Fire's holding."
+  ],
+  "relevantMemories": [
+    {
+      "day": 1,
+      "felt": "joy",
+      "what": "Fire! I got a real fire going. I sat and watched it for an hour.",
+      "why": 2.7
+    },
+    {
+      "day": 2,
+      "felt": "warmth",
+      "what": "Fire's out and I wasted half the morning. Shelter and heat before the fog turns to rain.",
+      "why": 2.1
+    },
+    {
+      "day": 2,
+      "felt": "unease",
+      "what": "Thorns ripped my hands to bits. Gloved in a scrap of cloth now, and I lift the canes with a stick.",
+      "why": 1.79
+    },
+    {
+      "day": 2,
+      "felt": "warmth",
+      "what": "Saw a dog today! Skinny, scruffy, watching me from the trees. How did it get here?",
+      "why": 1.79
+    },
+    {
+      "day": 2,
+      "felt": "warmth",
+      "what": "Cockles under the sand, mussels on the rocks. The sea pays rent twice a day.",
+      "why": 1.68
+    },
+    {
+      "day": 2,
+      "felt": "unease",
+      "what": "Walked back and the fire was out. Cold ashes. I'd been telling myself it was still burning.",
+      "why": 1.66
+    },
+    {
+      "day": 1,
+      "felt": "warmth",
+      "what": "One more night exposed like this could cost me the fire and the warmth both. Shelter comes before anything clever.",
+      "why": 1.61
+    },
+    {
+      "day": 2,
+      "felt": "warmth",
+      "what": "Saw tiny rabbits by the meadow today. Spring's here.",
+      "why": 1.58
+    },
+    {
+      "day": 1,
+      "felt": "mixed",
+      "what": "Fire's holding. Get the lean-to walls up before dark takes the warmth with it — one task, then the next, same as before.",
+      "why": 1.51
+    },
+    {
+      "day": 2,
+      "felt": "unease",
+      "what": "No roof over my head yet. I have to stop pretending and build one.",
+      "why": 1.49
+    }
+  ],
+  "repertoire": [],
+  "savedAt": 1790329627599,
+  "science": {
+    "curing": [],
+    "madeMaterials": [],
+    "materials": {
+      "bone": {
+        "flex": 0.1,
+        "fuel": 0.1,
+        "hard": 0.65,
+        "heat": 0.3,
+        "ins": 0.2,
+        "rot": 0.1,
+        "sharp": 0.65,
+        "str": 0.55,
+        "tight": 0.5
+      },
+      "clay": {
+        "flex": 0.1,
+        "hard": 0.1,
+        "heat": 0.6,
+        "ins": 0.3,
+        "plastic": 1,
+        "str": 0.1,
+        "tight": 0.45
+      },
+      "fiber": {
+        "fibre": 1,
+        "flex": 0.9,
+        "fuel": 0.5,
+        "hard": 0.05,
+        "ins": 0.35,
+        "rot": 0.6,
+        "str": 0.2
+      },
+      "flint": {
+        "hard": 1,
+        "heat": 0.6,
+        "ins": 0.1,
+        "sharp": 1,
+        "str": 0.5,
+        "tight": 0.9
+      },
+      "hide": {
+        "fibre": 0.2,
+        "flex": 0.8,
+        "fuel": 0.2,
+        "hard": 0.1,
+        "heat": 0.1,
+        "ins": 0.65,
+        "rot": 0.9,
+        "str": 0.45,
+        "tight": 0.55
+      },
+      "stone": {
+        "hard": 0.9,
+        "heat": 0.95,
+        "ins": 0.15,
+        "sharp": 0.25,
+        "str": 0.75,
+        "tight": 0.95
+      },
+      "wood": {
+        "flex": 0.35,
+        "fuel": 0.8,
+        "hard": 0.4,
+        "heat": 0.1,
+        "ins": 0.4,
+        "rot": 0.35,
+        "sharp": 0.3,
+        "str": 0.6,
+        "tight": 0.2
+      }
+    },
+    "processes": {
+      "braid": "60 min",
+      "carve": "needs knife, 60 min",
+      "char": "needs fire, 240 min",
+      "cure": "needs fire, 2 days",
+      "dry": "3 days (dry weather)",
+      "ferment": "needs vessel, 5 days",
+      "fire": "needs fire, 90 min",
+      "grind": "needs stone, 60 min",
+      "mix": "20 min",
+      "polish": "needs stone, 40 min",
+      "season": "20 days (dry weather)",
+      "smoke": "needs fire, 1 days",
+      "soak": "needs water, 1 days",
+      "spin": "40 min",
+      "split": "needs axe, 30 min",
+      "tan": "needs water, 6 days",
+      "weave": "90 min"
+    },
+    "shapes": [
+      "vessel",
+      "blade",
+      "rod",
+      "sheet",
+      "cord",
+      "net",
+      "frame",
+      "dome",
+      "block",
+      "tube",
+      "handle",
+      "point",
+      "lid",
+      "wheel",
+      "mat"
+    ]
+  },
+  "season": "Autumn",
+  "sick": false,
+  "skills": {
+    "aid": 0,
+    "build": 0,
+    "cook": 0,
+    "craft": 0,
+    "fish": 0,
+    "gather": 0.2,
+    "hunt": 0,
+    "wood": 0
+  },
+  "stats": {
+    "beliefs": {
+      "right": 9,
+      "wrong": 2
+    },
+    "born_rabbit": 1,
+    "built": 1,
+    "crafted": 0,
+    "dogSeen": 1,
+    "figurines": 0,
+    "fish": 0,
+    "hunts": 0,
+    "meals": 3,
+    "sick": 0,
+    "songs": 0,
+    "sunsets": 0,
+    "wild": {
+      "bramble": 959
+    },
+    "wolves": 0
+  },
+  "stillToBuild": [
+    "leanto: a lean-to shelter",
+    "knife: a flint knife",
+    "pile: a storage pile",
+    "axe: a stone axe",
+    "spear: a hunting spear",
+    "hut: a wooden hut",
+    "bed: a proper bed",
+    "rod: a fishing rod",
+    "pot: a clay pot",
+    "basket: a woven basket",
+    "needle: a bone needle",
+    "bowdrill: a bow drill",
+    "bow: a hunting bow",
+    "shield: a hide shield",
+    "armour: hide armour",
+    "boots: fur-lined boots",
+    "hat: a fur hat",
+    "fishtrap: a fish trap",
+    "rack: a drying rack",
+    "cloak: a hide cloak",
+    "chest: a storage chest",
+    "hearth: a stone hearth",
+    "traps: snare traps",
+    "collector: a rain collector",
+    "garden: a garden",
+    "workbench: a workbench",
+    "table: a table",
+    "chair: a chair",
+    "flute: a wooden flute",
+    "fence: a garden fence",
+    "lanterns: clay lanterns",
+    "bench: a bench by the lake",
+    "dock: a little dock",
+    "flowers: a flower bed",
+    "stonewall: stone walls for the hut",
+    "tower: a watchtower",
+    "statue: a carved statue",
+    "boat: a boat"
+  ],
+  "stores": {
+    "berries": 14,
+    "flint": 1,
+    "stone": 2,
+    "wood": 5
+  },
+  "t": 1184,
+  "tempC": 8,
+  "tools": [],
+  "toolsAndGear": [],
+  "weather": "fog",
+  "when": "Fri 25 Sep · 10:47",
+  "wild": [
+    "wildflowers x45",
+    "bracken x27",
+    "bramble (berries ready) x21",
+    "gorse (wood ready) x21",
+    "nettles (fiber ready) x18",
+    "blackthorn x14",
+    "heather (in flower) x10",
+    "shells x8",
+    "field mushrooms (mushroom ready) x8",
+    "reeds (fiber ready) x8",
+    "seaweed (seaweed ready) x6",
+    "rowan x6",
+    "pebbles x6",
+    "crab apple (apples ready) x6"
+  ],
+  "workplaces": [
+    "fire"
+  ]
+}

@@ -1,0 +1,215 @@
+[
+ {
+  "applyAt": 1001,
+  "beliefs": [
+   {
+    "about": "fire",
+    "claim": "burning"
+   },
+   {
+    "about": "shelter",
+    "claim": "leanto"
+   },
+   {
+    "about": "food",
+    "claim": "some"
+   },
+   {
+    "about": "wolves",
+    "claim": "far"
+   },
+   {
+    "about": "dog",
+    "claim": "wild"
+   },
+   {
+    "about": "weather",
+    "claim": "fog"
+   }
+  ],
+  "by": "page",
+  "diary": "Day 2, fog thick as wool. Hands torn from the brambles yesterday but I'm moving. Low tide is a gift\u2014the rocks are speaking.",
+  "feeling": "focused",
+  "focus": {
+   "build": 8,
+   "explore": 3,
+   "food": 12,
+   "fuel": 6,
+   "rest": -8
+  },
+  "hours": 3,
+  "remember": "The fire held the whole night. That dog is still out there watching. Don't let the tide turn you lazy\u2014work while the rocks are bare.",
+  "thought": "Cockles under the sand, mussels on the rocks. The sea pays rent twice a day.",
+  "valence": 0.4,
+  "weight": 0.7,
+  "id": "m1001"
+ },
+ {
+  "applyAt": 1006,
+  "diary": "The tide's on the turn now, so I'll leave the rocks be and head back up. Pockets are heavy with cockles and a few good mussels \u2014 enough for today, maybe tomorrow too. My hands still sting from yesterday's brambles, but they'll manage an axe well enough. Time to feed the fire properly, then start on the wood for those walls before this fog decides it wants to be rain.",
+  "favour": [
+   "leanto",
+   "knife",
+   "pile"
+  ],
+  "feeling": "sore but eager",
+  "focus": {
+   "build": 14,
+   "fuel": 5,
+   "rest": -3
+  },
+  "hours": 4,
+  "namePlace": {
+   "id": "p8_4",
+   "name": "Dog's Clearing"
+  },
+  "remember": "Tide's turned \u2014 no more shellfish till it's out again. Today's work: feed the fire, haul wood, get the first walls up before the weather turns.",
+  "thought": "Tide's turning, pockets full. Time to feed the fire and start hauling wood \u2014 the walls won't build themselves before the rain does.",
+  "valence": 0.35,
+  "weight": 0.45,
+  "id": "m1006"
+ },
+ {
+  "applyAt": 1135,
+  "beliefs": [
+   {
+    "about": "fire",
+    "claim": "out"
+   },
+   {
+    "about": "shelter",
+    "claim": "none"
+   },
+   {
+    "about": "food",
+    "claim": "some"
+   },
+   {
+    "about": "wolves",
+    "claim": "far"
+   },
+   {
+    "about": "dog",
+    "claim": "wild"
+   },
+   {
+    "about": "weather",
+    "claim": "fog"
+   }
+  ],
+  "by": "page",
+  "diary": "Day 2, and I'm learning the hard way: don't trust what you can't see. The fire went out while I was gathering shellfish. Tide won't turn again for hours. I have wood in my hands and fog in my eyes, but the lean-to isn't going to build itself.",
+  "feeling": "determined",
+  "focus": {
+   "build": 16,
+   "explore": -15,
+   "food": -8,
+   "fuel": 18,
+   "fun": -10,
+   "repair": 2,
+   "rest": -12,
+   "tame": -5
+  },
+  "hours": 3,
+  "plan": {
+   "name": "Rebuild the fire and finish the lean-to",
+   "steps": [
+    "gather wood 8",
+    "build fire",
+    "gather wood 6",
+    "build leanto"
+   ],
+   "weight": 0.95,
+   "why": "Fire's out and I wasted half the morning. Shelter and heat before the fog turns to rain."
+  },
+  "remember": "You told yourself the fire was still burning. It wasn't. Stop assuming. Go and look. Walls and roof before nightfall, or you're spending another night in the damp cold.",
+  "thought": "Fog's thick but the fire's five tiles back\u2014cold ashes by now. Wood first, then I rebuild it before dark steals what warmth I have left.",
+  "valence": 0.15,
+  "weight": 0.8,
+  "id": "m1135"
+ },
+ {
+  "applyAt": 216,
+  "bedtime": "21:00",
+  "diary": "My hands have finally stopped shaking. That fire is the first thing I've done right since the water spat me out, and I keep glancing at it like it might vanish if I look away too long. Light's going and I've only got branches leaned together, no real walls. There's a lake glinting through the trees I keep thinking about, but the cold matters more than the thirst tonight.",
+  "favour": [
+   "leanto",
+   "knife"
+  ],
+  "feeling": "resolved",
+  "focus": {
+   "build": 12,
+   "explore": 2,
+   "fuel": 3,
+   "rest": -5
+  },
+  "goals": [
+   "Keep the fire alive, always",
+   "Get walls and a roof over my head",
+   "Find that lake and fresh water",
+   "Learn what this island can give me"
+  ],
+  "hours": 5,
+  "namePlace": {
+   "id": "home",
+   "name": "First Camp"
+  },
+  "remember": "The fire took most of the evening and nearly didn't catch \u2014 don't let it go out if you can help it. Walk to that lake once there's a roof over your head.",
+  "thought": "Fire's holding. Get the lean-to walls up before dark takes the warmth with it \u2014 one task, then the next, same as before.",
+  "valence": 0.15,
+  "weight": 0.6,
+  "id": "m216"
+ },
+ {
+  "applyAt": 24,
+  "bedtime": "20:30",
+  "diary": "I don't know how long I was in the water. My hands won't stop shaking and my throat is raw from the salt. There's a lake inland, I can see the glint of it. I've got maybe three hours of light. I'm going to do this properly: one thing at a time.",
+  "favour": [
+   "fire",
+   "leanto"
+  ],
+  "feeling": "shaken",
+  "focus": {
+   "build": 10,
+   "explore": 6,
+   "fun": -10
+  },
+  "hours": 6,
+  "thought": "Nobody's coming. Say it out loud, Tomas. Water, fire, shelter before dark. Then you can fall apart.",
+  "id": "m24"
+ },
+ {
+  "applyAt": 463,
+  "diary": "I made it through the first night. The fire never quite died, though I woke twice to feed it, heart going, sure it had. My back aches from the bare ground. Tomorrow I build walls \u2014 I'm done sleeping like an animal in the open.",
+  "favour": [
+   "leanto",
+   "knife",
+   "pile"
+  ],
+  "feeling": "spent but steady",
+  "focus": {
+   "build": 12,
+   "fuel": 4,
+   "rest": 6
+  },
+  "hours": 7,
+  "plan": {
+   "name": "Roof before the rain",
+   "steps": [
+    "gather wood 12",
+    "build leanto",
+    "make knife",
+    "gather fiber 6",
+    "build pile",
+    "explore"
+   ],
+   "weight": 0.7,
+   "why": "One more night exposed like this could cost me the fire and the warmth both. Shelter comes before anything clever."
+  },
+  "remember": "Day one: fire's alive, I'm alive. Feed it before you sleep, not after you wake up scared. Walls next, then the lake.",
+  "thought": "Fire held all night. First night done, first fear survived. Tomorrow the walls go up before anything else can go wrong.",
+  "valence": 0.25,
+  "weight": 0.55,
+  "id": "m463"
+ }
+]
