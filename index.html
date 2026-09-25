@@ -5920,10 +5920,26 @@ function drawExtras(c, J, K, o, T) {
   drawProps(c, J, K, o, T);
   if (J.extra === "logs" && typeof D3 !== "undefined" && D3.prop) { const q = D3.prop("bundle", { count: clamp(Math.ceil((o.woodN || 3) / 2), 1, 8) }); if (q) { c.save(); c.translate(J.chest[0] - .4, J.chest[1] - .2); c.rotate(-.12); c.drawImage(q.cv, -q.ax, -q.ay, q.w, q.h); c.restore(); J.extra = null; } }
   if (J.extra === "logs") { const nL = clamp(Math.ceil((o.woodN || 3) / 2), 1, 5); c.save(); c.translate(J.chest[0] - .6, J.chest[1] - 1.2); c.rotate(-.12); for (let q = 0; q < nL; q++) { const yy = -1.1 - q * 1.2, xx = -5.5 + (q % 2) * .5; c.beginPath(); rrect(c, xx, yy, 10, 1.3, .6); oFill(c, "#a8743e", .3); c.fillStyle = "#e8c690"; c.beginPath(); c.arc(xx + 9.9, yy + .65, .55, 0, 6.29); c.fill(); } c.restore(); }
-  if (J.extra === "deerShoulder") { const col = o.carry === "boar" ? ["#8a6a52", "#5a4232", "#2e2218"] : ["#e0a868", "#b8783e", "#7a4a22"]; c.save(); c.translate(J.chest[0], J.chest[1] - 1.6); c.rotate(-.1); c.strokeStyle = col[2]; c.lineWidth = .7; c.beginPath(); c.moveTo(-3, .4); c.lineTo(-4.2, 3); c.moveTo(2.4, .4); c.lineTo(3.4, 2.8); c.stroke(); ball(c, -.5, 0, 3.2, col[0], col[1], col[2]); ball(c, 3.4, -1.2, 1.3, col[0], col[1], col[2]); c.restore(); }
-  if (J.extra === "rabbitHeld") { c.save(); c.translate(K.hF[0] + .2, K.hF[1] + 2.2); ball(c, 0, 0, 1.4, "#e8cfae", "#c9a27a", "#8a6a48"); c.fillStyle = "#c9a27a"; c.beginPath(); c.ellipse(-.3, 1.6, .35, 1.1, .2, 0, 6.29); c.fill(); c.restore(); }
-  if (J.extra === "bundleDown") { ball(c, 6.2, -4.4, 1.8, "#d9b27a", "#a87a44", "#6a4a24"); }
-  if (J.extra === "carcass" && o.carry) { const big = o.carry !== "rabbit", left = o.carryLeft == null ? 1 : o.carryLeft; c.save(); c.translate(8, -1.2); c.scale(big ? .9 : .6, big ? .9 : .6); ball(c, 0, 0, 3 * (.5 + left * .5), big ? "#d8a070" : "#e8cfae", big ? "#a8703c" : "#c9a27a", "#6a4020"); c.fillStyle = "#b8303a"; c.beginPath(); c.ellipse(-.6, -.4, 1.2 * left, .5, 0, 0, 6.29); c.fill(); c.restore(); if (left < .6) { c.fillStyle = "#f4ead8"; c.fillRect(9, -1.2, 2.4, .5); } }
+  // carried and butchered animals are the real carcass (X3.carrion: the same body the world leaves lying about),
+  // its meat going as he cuts it away; the old painted blobs only if 3D is unavailable
+  const X3c = (kind, left, v) => typeof X3 !== "undefined" && X3.carrion ? X3.carrion(kind === "boar" ? "boar" : kind === "rabbit" ? "rabbit" : "deer", { meat01: left }, v) : null;
+  const drawQ = (q, x, y, sc, rot) => { c.save(); c.translate(x, y); if (rot) c.rotate(rot); c.scale(sc, sc); c.drawImage(q.cv, -q.ax, -q.ay, q.w, q.h); c.restore(); };
+  if (J.extra === "deerShoulder") {
+    const q = X3c(o.carry, 1, 1);
+    if (q) drawQ(q, J.chest[0] - .4, J.chest[1] - .2, o.carry === "boar" ? .95 : .9, -.08);   // slung across his shoulders, legs gathered in front
+    else { const col = o.carry === "boar" ? ["#8a6a52", "#5a4232", "#2e2218"] : ["#e0a868", "#b8783e", "#7a4a22"]; c.save(); c.translate(J.chest[0], J.chest[1] - 1.6); c.rotate(-.1); ball(c, -.5, 0, 3.2, col[0], col[1], col[2]); ball(c, 3.4, -1.2, 1.3, col[0], col[1], col[2]); c.restore(); }
+  }
+  if (J.extra === "rabbitHeld") {
+    const q = X3c("rabbit", 1, 0);
+    if (q) drawQ(q, K.hF[0] + .2, K.hF[1] + .4, .8, Math.PI / 2);   // hanging by its hind legs from his fist
+    else { c.save(); c.translate(K.hF[0] + .2, K.hF[1] + 2.2); ball(c, 0, 0, 1.4, "#e8cfae", "#c9a27a", "#8a6a48"); c.restore(); }
+  }
+  if (J.extra === "bundleDown") { const q = typeof D3 !== "undefined" && D3.prop ? D3.prop("bundle", { count: 3 }) : null; if (q) drawQ(q, 6.2, -3.6, .8); else ball(c, 6.2, -4.4, 1.8, "#d9b27a", "#a87a44", "#6a4a24"); }
+  if (J.extra === "carcass" && o.carry) {
+    const big = o.carry !== "rabbit", left = o.carryLeft == null ? 1 : o.carryLeft, q = X3c(o.carry, left, 0);
+    if (q) drawQ(q, big ? 10 : 8, .2, big ? 1 : .9);                 // on the ground in front of him, opened up as he works
+    else { c.save(); c.translate(8, -1.2); c.scale(big ? .9 : .6, big ? .9 : .6); ball(c, 0, 0, 3 * (.5 + left * .5), big ? "#d8a070" : "#e8cfae", big ? "#a8703c" : "#c9a27a", "#6a4020"); c.restore(); }
+  }
   if (J.extra === "tinder") { c.fillStyle = "#c8a85a"; c.beginPath(); c.ellipse(6.2, -.6, 1.6, .6, 0, 0, 6.29); c.fill(); }
 }
 // the small things his clips put in his hands, drawn where his hands actually are (props follow the solved hand, not
