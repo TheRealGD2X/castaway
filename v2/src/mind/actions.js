@@ -3,7 +3,7 @@
 //    what it costs in minutes, including the walk to the nearest place he KNOWS of (from memory, not the truth);
 //  * for doing: the physical steps in the world, minute by minute (exec), which can fail (the branch he remembered
 //    is gone, the drill won't take, the tinder's damp), and then he rethinks.
-import { MW, idx, T } from "../world/gen.js";
+import { MW, MH, idx, T } from "../world/gen.js";
 import { here, goTo, walk } from "../sim/man.js";
 import { newFire, addFuel, ignite } from "../sim/fire.js";
 import { MET } from "../sim/body.js";
@@ -76,6 +76,36 @@ export const ACTIONS = {
     find: (W, M) => { const s = W.structs.find(q => q.k === "snare" && q.stage >= 1 && W.t - (q.checked ?? q.started) > 600); return s ? { x: s.x, y: s.y, tile: idx(Math.floor(s.x), Math.floor(s.y)), key: "snare", sid: s.id } : null; },
     pre: S => S.raw < 2000, eff: S => { S.raw += 300; }, cost: (W, M, t) => walkMin(M, t) + 5,
     exec: work({ adjacent: true, mins: 5, met: MET.gather, pose: "crouch", done: (W, M, t) => { const s = W.structs.find(q => q.id === t.sid); if (!s) return "fail"; s.checked = W.t; if (!s.caught) { M.say = "Nothing. The noose is still set."; return; } s.caught = 0; addRaw(M, 1100, W.water.stream * .01, "rabbit"); M.log.push([W.t, "rabbit"]); M.say = "A rabbit in the snare. Meat."; } }),
+  },
+  // a ship! down to the shore on that side, waving, shouting, while it's in sight
+  wave: {
+    r: [], w: ["signalled"],
+    find: (W, M) => { const sh = M.mem.ship; if (!sh) return null; const side = sh.side, i = nearestKnownTile(W, M, j => W.dsea[j] === 1 && (side === 0 ? (j / MW | 0) < MH * .4 : side === 1 ? j % MW > MW * .6 : side === 2 ? (j / MW | 0) > MH * .6 : j % MW < MW * .4), 80); return i < 0 ? null : { tile: i, ...tileXY(i), side }; },
+    pre: S => true, eff: S => { S.signalled = 1; }, cost: (W, M, t) => walkMin(M, t) * .6 + 5,
+    exec: (W, M, t, st) => {
+      if (!st.phase) { st.phase = "go"; if (!goTo(W, M, t.tile, false)) return "fail"; }
+      if (st.phase === "go") { M.pose = "walk"; M.met = MET.run; if (walk(W, M, 1.6)) { st.phase = "wave"; st.left = 40; } return "go"; }
+      const sh = W.ships.find(q => q.id === M.mem.ship?.id);
+      M.pose = "wave"; M.met = MET.stand * 1.5; M.say = "HERE! HEY! OVER HERE!";
+      if (!sh || --st.left <= 0) { M.say = sh ? "They can't see me. They can't see me." : "Gone. Just... gone."; M.log.push([W.t, "ship gone"]); return "done"; }
+      return "work";
+    },
+  },
+  // light the beacon: a brand from the camp fire carried up to it
+  lightSignal: {
+    r: ["fire"], w: ["signalled"],
+    find: (W, M) => { const s = W.structs.find(q => q.k === "signal" && q.stage >= 2); return s && M.mem.ship ? { x: s.x, y: s.y, tile: idx(Math.floor(s.x), Math.floor(s.y)), sid: s.id } : null; },
+    pre: S => S.fire === 2, eff: S => { S.signalled = 1; }, cost: (W, M, t) => walkMin(M, t) + 8,
+    exec: (W, M, t, st) => {
+      const camp = W.fires.find(f => f.lit || f.embers > .05);
+      if (!st.phase) { if (!camp) return "fail"; st.phase = "brand"; if (!goTo(W, M, idx(Math.floor(camp.x), Math.floor(camp.y)), true)) return "fail"; }
+      if (st.phase === "brand") { M.pose = "walk"; M.met = MET.run; if (walk(W, M, 1.5)) { st.phase = "run"; if (!goTo(W, M, t.tile, true)) return "fail"; M.say = "A brand from the fire. Run."; } return "go"; }
+      if (st.phase === "run") { M.pose = "walk"; M.met = MET.run; if (walk(W, M, 1.5)) st.phase = "light"; return "go"; }
+      const s = W.structs.find(q => q.id === t.sid); if (!s) return "fail";
+      let F = newFire(s.x, s.y); F.id = W.nextId++; F.signal = 1; addFuel(F, "tinder", .3, .1); addFuel(F, "kindling", 3, .15); addFuel(F, "logs", 10, .45); ignite(F, 1); F.fuel.kindling[2] = .4; W.fires.push(F);
+      W.structs.splice(W.structs.indexOf(s), 1);                           // the beacon becomes the fire
+      M.say = "Burn. BURN. Look this way..."; M.log.push([W.t, "signal lit"]); return "done";
+    },
   },
   // throw the dog something: food is how it learns he means it no harm
   feedDog: {

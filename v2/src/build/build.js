@@ -88,6 +88,16 @@ export const FAMILIES = {
     make: b => [{ name: "noose", need: { withies: 3 }, mins: 25, say: "A noose of twisted bark, a fist high, pegged where the rabbits run." }],
     props: s => ({ set: done(s, 0) }),
   },
+  // a beacon: a tripod of poles packed with dry wood and heaped with green boughs, on the highest ground over the
+  // sea, kept ready. Lit, the green stuff pours out white smoke that can be seen for miles
+  signal: {
+    label: "signal fire", minSkill: .2, onHeadland: true,
+    make: b => [
+      { name: "tripod", need: { poles: 4 }, mins: 30, say: "Three poles lashed into a tripod, dry wood packed inside." },
+      { name: "boughs", need: { boughs: 9 }, mins: 25, say: "Green boughs heaped over it. Green wood makes white smoke." },
+    ],
+    props: s => ({ ready: done(s, 1) }),
+  },
   roundhouse: {
     label: "roundhouse", minSkill: 1.5, shelter: true,
     make: b => [
@@ -147,6 +157,11 @@ const buildable = (W, i) => { const t = W.ter[i]; return (t === T.GRASS || t ===
 export function site(W, M, fam, b, campTile) {
   const cx = campTile % MW, cy = (campTile / MW) | 0, F = FAMILIES[fam];
   if (F.atFire) return { tile: campTile, dir: 0 };
+  if (F.onHeadland) {   // the highest ground he knows within a stone's throw of the sea
+    let best = -1, bh = -1;
+    for (let i = MW; i < MW * (MH - 1); i++) { if (!M.known[i] || W.dsea[i] > 3 || !buildable(W, i)) continue; if (W.h[i] > bh) { bh = W.h[i]; best = i; } }
+    return best < 0 ? null : { tile: best, dir: 0 };
+  }
   if (F.onRun) {   // the most worn run by a warren he knows of, that hasn't a snare on it
     let best = -1, bn = 2;
     for (const k in M.mem) { const m = M.mem[k]; if (m.k !== "warren") continue;

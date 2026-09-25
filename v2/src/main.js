@@ -3,6 +3,7 @@ import { createWorld, step } from "./sim/world.js";
 import { paintTerrain } from "./render/terrain.js";
 import { createView } from "./render/view.js";
 import { cal } from "./core/time.js";
+import { audioStart, audioStop, audioUpdate } from "./audio.js";
 
 const qs = new URLSearchParams(location.search), seed = +(qs.get("seed") || 1404719350);
 // the island was born this morning (preview): catch up to now, then one step per real minute
@@ -40,11 +41,18 @@ fb.addEventListener("click", () => setFollow(true));
 // what he's doing, and (tap) why, in his own words
 const act = document.getElementById("act"), why = document.getElementById("why"); let showWhy = false;
 act.addEventListener("click", () => { showWhy = !showWhy; why.style.display = showWhy ? "block" : "none"; });
+// sound: off until you tap the speaker (phones only allow sound after a tap); remembered for next time
+const sb = document.getElementById("snd"); let soundOn = false;
+const pref = (() => { try { return localStorage.getItem("cw2-sound") === "1"; } catch (e) { return false; } })();
+function setSound(on) { soundOn = on; sb.textContent = on ? "♪" : "♪̸"; sb.style.opacity = on ? 1 : .6; if (on) audioStart(); else audioStop(); try { localStorage.setItem("cw2-sound", on ? "1" : "0"); } catch (e) {} }
+sb.addEventListener("click", () => setSound(!soundOn));
+if (pref) addEventListener("pointerdown", () => { if (!soundOn) setSound(true); }, { once: true });
 const clk = document.getElementById("clk");
 function frame(now) {
   const c = cal(world.born, world.t), x = world.wx, M = world.man;
   if (follow && M) { const p = V.manPos(now); V.cam.x += (p.x * 16 - V.cam.x) * .08; V.cam.y += (p.y * 16 - 8 - V.cam.y) * .08; }
   V.draw(now);
+  if (soundOn) audioUpdate(world, V, now);
   if (M) {
     const doing = M.B.alive ? (M.act ? M.doing : M.pose === "sleep" ? "Sleeping" : "Resting") : "Tomas is gone";
     if (act.firstChild.textContent !== doing) act.firstChild.textContent = doing;

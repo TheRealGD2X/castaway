@@ -6,10 +6,20 @@ import { drawWeather } from "./weather.js";
 import { SKY, R, mix } from "./palette.js";
 import { hash3 } from "../core/rng.js";
 import { manSprite } from "./people.js";
+import { visibility } from "../sim/ships.js";
+import { sprite } from "./pix.js";
 import { dogSprite, raftSprite, gullSprite, rabbitSprite, snareSprite, scrapsSprite } from "./beasts.js";
 import { structSprite, pileSprite, drawFire, bedSprite, drawPot } from "./structs.js";
 
 const TREES = new Set(["oak", "birch", "pine", "rowan", "hazel"]), SHRUBS = new Set(["bramble", "gorse", "fern", "reeds"]);
+const shipCache = {};
+function shipSprite(k) {
+  return shipCache[k] || (shipCache[k] = sprite(16, 11, P => {
+    for (let x = 2; x < 14; x++) { P.set(x, 8, "#3a3530"); if (x > 2 && x < 13) P.set(x, 9, "#2a2622"); }
+    if (k === "yacht") { for (let y = 1; y < 8; y++) for (let x = 8 - Math.floor(y * .7); x <= 8; x++) P.set(x, y, "#e8e4da"); P.set(9, 7, "#e8e4da"); }
+    else { for (let x = 9; x < 13; x++) for (let y = 5; y < 8; y++) P.set(x, y, k === "coaster" ? "#b8b0a0" : "#c9c2b4"); P.set(10, 3, "#3a3530"); P.set(10, 4, "#3a3530"); if (k === "coaster") { P.set(11, 3, "#8a3a2a"); P.set(11, 4, "#8a3a2a"); } }
+  }));
+}
 export function createView(cv, world, terr) {
   const g = cv.getContext("2d", { alpha: false });
   const V = { cam: { x: world.cx * TS, y: world.cy * TS }, k: 0, aw: 0, ah: 0 };
@@ -104,6 +114,15 @@ export function createView(cv, world, terr) {
       }
     }
     while (di < dyn.length) dyn[di++].f();
+    // ships far out: a small shape on the edge of the sea in their direction, fading into the haze with distance
+    for (const sh of world.ships || []) {
+      const vis = visibility(world.wx) * 1.3; if (sh.dist > vis) continue;
+      const along = Math.max(-1, Math.min(1, sh.s / 16000)), far = Math.min(1, sh.off / 14000);
+      const tx = sh.side === 1 ? world.MW - 3 + far * 2 : sh.side === 3 ? 2 - far * 2 : world.MW / 2 + along * world.MW * .6;
+      const ty = sh.side === 0 ? 2 - far * 2 : sh.side === 2 ? world.MH - 3 + far * 2 : world.MH / 2 + along * world.MH * .6;
+      const px = Math.round(tx * TS) - sx, py = Math.round(ty * TS) - sy; if (px < -20 || py < -20 || px > aw + 20 || py > ah + 20) continue;
+      g.globalAlpha = Math.max(.15, 1 - sh.dist / vis); g.drawImage(shipSprite(sh.k), px - 8, py - 8); g.globalAlpha = 1;
+    }
     if (V.xray) V.xray();
     drawWeather(g, V, world, now, sx, sy);
     // firelight: warm light pooling round the hearth, strong at night, flickering

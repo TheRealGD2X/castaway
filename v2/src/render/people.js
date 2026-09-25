@@ -59,6 +59,7 @@ function paint(P, pose, f) {
       break;
     }
     case "stand": std(14, 0, [FX + 2, 15], [FX - 1, 15], 0, 0); break;
+    case "wave": std(14, 0, f ? [FX + 5, 1] : [FX + 3, 0], f ? [FX - 2, 1] : [FX - 4, 2], 0, 0, -1); break;     // both arms up, waving
     case "pick": std(14, 0, [FX + 4, 4 + f], [FX - 1, 15], 0, 0, -1); break;                  // reaching up into a bush
     case "snap": case "chop": std(14, f ? 1 : 0, f ? [FX + 5, 12] : [FX + 4, 4], f ? [FX + 3, 12] : [FX + 2, 4], 0, 0, 0, { what: "stick", x: f ? FX + 5 : FX + 4, y: f ? 12 : 4 }); break;
     case "build": std(14, 1, f ? [FX + 5, 6] : [FX + 5, 9], [FX + 3, 8], .5, 0, 0, { what: "pole", x: FX + 5, y: f ? 5 : 8 }); break;
@@ -116,7 +117,7 @@ function paint(P, pose, f) {
     default: std(14, 0, [FX + 2, 15], [FX - 1, 15], 0, 0);
   }
 }
-const FRAMES = { walk: 4, carrywalk: 4, drill: 6, knap: 2, whittle: 2, snap: 2, chop: 2, build: 2, pick: 2, pull: 2, crouch: 2, tend: 2, cut: 2, warm: 2, eat: 2 };
+const FRAMES = { wave: 2, walk: 4, carrywalk: 4, drill: 6, knap: 2, whittle: 2, snap: 2, chop: 2, build: 2, pick: 2, pull: 2, crouch: 2, tend: 2, cut: 2, warm: 2, eat: 2 };
 export function manSprite(pose, t) {
   const n = FRAMES[pose] || 1, speed = pose === "drill" ? 110 : pose === "walk" || pose === "carrywalk" ? 170 : 420;
   const f = n > 1 ? Math.floor(t / speed) % n : 0, key = pose + f;
