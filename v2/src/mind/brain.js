@@ -167,7 +167,7 @@ function exploreStep(W, M) {
 // once a minute: carry on with the current action, or think again
 export function think(W) {
   const M = W.man; if (!M || !M.B.alive) return;
-  M.met = MET.stand;
+  M.met = MET.stand; M.trail = [[M.x, M.y]];
   if (W.t % 60 === 0) { const c = M.windSeen || (M.windSeen = [0, 0, 0, 0, 0, 0, 0, 0]); c[W.wx.windDir | 0] += W.wx.wind; }   // he learns where the weather comes from
   const busy = M.act && M.act.st.phase;
   // reconsider when idle, when the current action ends, or every 20 minutes (something more urgent?)

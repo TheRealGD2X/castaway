@@ -56,10 +56,11 @@ export function walk(W, M, minutes = 1) {
   while (budget > 0 && M.path.length > 1) {
     const a = M.path[0], b = M.path[1], bx = b % MW + .5, by = ((b / MW) | 0) + .5;
     const dx = bx - M.x, dy = by - M.y, dist = Math.hypot(dx, dy) * 2 * (SLOW[W.ter[b]] || 1);
-    if (dist <= budget) { M.x = bx; M.y = by; budget -= dist; M.path.shift(); }
+    if (dist <= budget) { M.x = bx; M.y = by; budget -= dist; M.path.shift(); if (M.trail) M.trail.push([M.x, M.y]); }
     else { const f = budget / dist; M.x += dx * f; M.y += dy * f; budget = 0; }
     if (Math.abs(dx) > .01) M.face = dx > 0 ? 1 : -1;
   }
+  if (M.trail) M.trail.push([M.x, M.y]);                      // the way he went this minute, for drawing him walking it
   if (M.path.length < 2) { M.path = null; return true; }
   return false;
 }

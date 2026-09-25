@@ -44,3 +44,14 @@ v1 (the current game, repo root) keeps running until v2 is proven; then a new ca
 - M4 mind; the castaway arrives.
 - M5 animals and the ship's dog.
 - M6 Claude mind, journal, saving and catch-up, switch-over (fresh island).
+
+## Procedural building (src/build)
+He builds what he needs as he becomes able. A designer turns a brief (prevailing wind as he has felt it, where camp
+and the fire are, which materials he knows of, his build skill) into a design: a family (lean-to, debris hut, fire
+ring, reflector wall, woodpile, roundhouse), a site, an orientation (a lean-to's back to the weather, its mouth to
+the fire) and staged parts (poles, bracken, pine boughs, stones, withies, leaf litter, mud, reeds). What a
+structure does (rain and wind kept off, bedding, reflected fire heat, a dry wood store, a stone ring that holds
+embers) is computed from the parts installed, so a half-thatched roof half works. The mind weighs projects by
+predicting tonight's body temperature with and without them; each stage is an ordinary planner goal (gather the
+parts, then put them up), and materials put down on site stay there if he's called away. The renderer draws every
+structure from its parts and progress. Families need skill: the roundhouse only once he's built enough.
