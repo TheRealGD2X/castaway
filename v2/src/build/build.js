@@ -73,6 +73,15 @@ export const FAMILIES = {
     ],
     props: s => ({ store: done(s, 0), dry: frac(s, 1) }),
   },
+  // a funnel basket of woven withies, weighted with stones where fish run: they swim in and can't find the way out
+  fishTrap: {
+    label: "fish trap", minSkill: .25, inWater: true,
+    make: b => [
+      { name: "basket", need: { withies: 15 }, mins: 100, say: "A long basket woven from withies, with a funnel mouth the fish can push into but not back out of." },
+      { name: "set", need: { stones: 4 }, mins: 20, say: "Set in the water where it runs, mouth downstream, weighted with stones." },
+    ],
+    props: s => ({ trap: done(s, 1) }),
+  },
   roundhouse: {
     label: "roundhouse", minSkill: 1.5, shelter: true,
     make: b => [
@@ -132,6 +141,15 @@ const buildable = (W, i) => { const t = W.ter[i]; return (t === T.GRASS || t ===
 export function site(W, M, fam, b, campTile) {
   const cx = campTile % MW, cy = (campTile / MW) | 0, F = FAMILIES[fam];
   if (F.atFire) return { tile: campTile, dir: 0 };
+  if (F.inWater) {   // the nearest water he knows (stream first: fish run there) with a bank to stand on
+    let best = -1, bd = 1e9;
+    for (let i = MW; i < MW * (MH - 1); i++) {
+      if (!M.known[i] || (W.ter[i] !== T.STREAM && W.ter[i] !== T.LAKE) || W.structs.some(q => idx(Math.floor(q.x), Math.floor(q.y)) === i)) continue;
+      if (![1, -1, MW, -MW].some(o => W.ter[i + o] === T.GRASS || W.ter[i + o] === T.MEADOW || W.ter[i + o] === T.WOOD || W.ter[i + o] === T.MARSH)) continue;
+      const d = Math.abs(i % MW - cx) + Math.abs(((i / MW) | 0) - cy) + (W.ter[i] === T.STREAM ? 0 : 12); if (d < bd) { bd = d; best = i; }
+    }
+    return best < 0 ? null : { tile: best, dir: 0 };
+  }
   // the open side should face where the wind blows to (so it comes over the back): the best of the four
   const wv = OCT[b.wind]; let order = [0, 1, 2, 3].sort((a, c) => (wv[0] * DIRV[c][0] + wv[1] * DIRV[c][1]) - (wv[0] * DIRV[a][0] + wv[1] * DIRV[a][1]) || a - c);
   const sh = bestShelter(W);

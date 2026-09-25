@@ -19,9 +19,10 @@ export function bodyStep(B, ctx) {
   const met = ctx.met ?? MET.rest;
   // ---- energy
   const shiverW = B.shiver * 260 * (B.glyco > 80 ? 1 : .4);
-  const M = BMR_W * met + shiverW;                           // W of metabolic heat
+  const ill = B.ill || 0;                                     // an infection: fever, fluid loss, a gut that won't absorb
+  const M = BMR_W * met * (1 + ill * .12) + shiverW;         // W of metabolic heat
   let kcal = M * 60 / 4184;                                   // kcal this minute
-  const absorb = Math.min(B.gut, 2.2); B.gut -= absorb; B.glyco = Math.min(2000, B.glyco + absorb);
+  const absorb = Math.min(B.gut, 2.2 * (1 - ill * .6)); B.gut -= absorb; B.glyco = Math.min(2000, B.glyco + absorb);
   const fromFat = B.glyco < 400 ? kcal * clamp(.9 - B.glyco / 500, .3, .9) : kcal * .15;
   B.fat = Math.max(0, B.fat - fromFat / 7700); B.glyco = Math.max(0, B.glyco - (kcal - fromFat));
   // ---- heat
@@ -41,18 +42,19 @@ export function bodyStep(B, ctx) {
   loss += 10 + (met > 3 ? met * 4 : 0);                                     // breath
   const gain = (ctx.fireW || 0) + (ctx.sun || 0) * .3 * (1 - (ctx.rainBlock || 0));
   // thermoregulation: sweat when hot, shiver when cold (less when exhausted or out of fuel)
-  const sweatW = B.core > 37.4 ? Math.min(450, (B.core - 37.4) * 700) : 0;
+  const setP = ill * 1.6;                                               // fever: the body's thermostat turned up
+  const sweatW = B.core > 37.4 + setP ? Math.min(450, (B.core - 37.4 - setP) * 700) : 0;
   const Q = M + gain - loss - sweatW;
   B.core += Q * 60 / HEATCAP;
-  B.shiver = clamp((36.7 - B.core) * 1.6 + (B.core < 36.7 && Ts < 30 ? .1 : 0), 0, 1) * (B.fatigue > .9 ? .5 : 1) * (B.core < 32 ? .2 : 1);
+  B.shiver = clamp((36.7 + setP - B.core) * 1.6 + (B.core < 36.7 + setP && Ts < 30 ? .1 : 0), 0, 1) * (B.fatigue > .9 ? .5 : 1) * (B.core < 32 ? .2 : 1);
   B.sweat = sweatW;
   // ---- water (litres of deficit): breath and skin always, sweat, the kidneys; drinking is done by actions
   const urine = .00052 * clamp(1 - B.waterDef / 4, .25, 1);                 // kidneys save water as he dries out
-  B.waterDef += .00052 + urine + sweatW / 2.43e6 * 60 + (met > 2 ? .00006 * met : 0);
+  B.waterDef += .00052 + urine + ill * .0025 + sweatW / 2.43e6 * 60 + (met > 2 ? .00006 * met : 0);
   // ---- sleep and fatigue
   if (B.asleep) B.sleepP = Math.max(0, B.sleepP - B.sleepP / 150 * (ctx.sleepQ ?? 1));
   else B.sleepP = Math.min(1, B.sleepP + (1 - B.sleepP) / 1000);
-  B.fatigue = clamp(B.fatigue + (met > 3 ? (met - 3) * .0012 : -(met <= 1.6 ? .005 : .0015) - (B.asleep ? .002 : 0)), 0, 1);   // sitting down eases tired muscles
+  B.fatigue = clamp(B.fatigue + ill * .0008 + (met > 3 ? (met - 3) * .0012 : -(met <= 1.6 ? .005 : .0015) - (B.asleep ? .002 : 0)), 0, 1);   // sitting down eases tired muscles
   // ---- death: the body gives out
   if (B.core < 28) { B.alive = false; B.cause = "cold"; }
   else if (B.waterDef > 9) { B.alive = false; B.cause = "thirst"; }
@@ -61,13 +63,15 @@ export function bodyStep(B, ctx) {
 // the signals his mind reads
 export function feel(B) {
   return {
-    hunger: clamp(1 - B.glyco / 1500 - B.gut / 700 + (B.gut < 50 ? .15 : 0), 0, 1),   // a full stomach quiets hunger
+    hunger: clamp(1 - B.glyco / 1500 - B.gut / 700 + (B.gut < 50 ? .15 : 0), 0, 1) * (1 - (B.ill || 0) * .8),   // a full stomach quiets hunger
     thirst: clamp(B.waterDef / 3, 0, 1),
     cold: clamp((36.8 - B.core) / 2 + B.shiver * .3, 0, 1),
     hot: clamp((B.core - 37.4) / 1.2, 0, 1),
     tired: clamp(B.sleepP, 0, 1),
     weary: B.fatigue,
     wet: B.wet,
+    sick: B.ill || 0,
+    pain: (B.hurt || []).reduce((a, h) => a + h.sev, 0),
   };
 }
 export function eat(B, kcal) { B.gut = Math.min(3000, B.gut + kcal); }

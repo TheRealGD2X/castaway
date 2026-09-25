@@ -9,13 +9,16 @@ import { fireStep } from "./fire.js";
 import { arrive, look, bodyContext } from "./man.js";
 import { bodyStep } from "./body.js";
 import { think } from "../mind/brain.js";
+import { shoreInit, shoreDay } from "./shore.js";
+import { waterInit, waterTen, healthStep, growthPerMin } from "./health.js";
+import { fishInit, fishTen } from "./fish.js";
 import { MW, MH, SP } from "../world/gen.js";
 
 export function createWorld(seed, born, opt) {
   const W = generate(seed);
   W.born = born; W.t = 0;
   W.rng = makeRng(seed ^ 0x5eed);
-  envInit(W); ecoInit(W);
+  envInit(W); ecoInit(W); shoreInit(W); waterInit(W); fishInit(W);
   W.fires = []; W.structs = []; W.camp = null;
   // where the trees stand (shade, rain cover, slower walking) and a spatial index of everything rooted in place
   W.treeAt = new Uint8Array(MW * MH); W.grid = Array.from({ length: MW * MH }, () => []);
@@ -27,8 +30,8 @@ export function createWorld(seed, born, opt) {
 export function step(W) {
   W.t++;
   envStep(W);
-  if (W.t % 10 === 0) ecoTen(W);
-  if (cal(W.born, W.t).mod === 360) ecoDay(W);
+  if (W.t % 10 === 0) { ecoTen(W); waterTen(W); fishTen(W); }
+  if (cal(W.born, W.t).mod === 360) { ecoDay(W); shoreDay(W); }
   for (const F of W.fires) fireStep(F, W.wx);
   // the woodpile: wood under its cover dries toward seasoned; uncovered it follows the weather
   if (W.t % 10 === 0) for (const s of W.structs) if (s.k === "woodpile" && s.kg > 0) { const target = (s.props?.dry || 0) > .5 ? .14 : W.litterWet; s.moist = (s.moist ?? .25) + (target - (s.moist ?? .25)) / 300; }
@@ -36,6 +39,10 @@ export function step(W) {
   if (M && M.B.alive) {
     look(W);
     think(W);
+    healthStep(W, M);
+    // food he's carrying: bacteria multiply with the warmth
+    if (M.inv.raw > 0) M.rawLoad = (M.rawLoad || 0) * growthPerMin(W.wx.temp);
+    if (M.inv.food > 0 && M.foodLoad) M.foodLoad *= growthPerMin(W.wx.temp);
     bodyStep(M.B, bodyContext(W, M, M.met));
     if (!M.B.alive) M.log.push([W.t, "died", M.B.cause]);
   }
@@ -43,14 +50,14 @@ export function step(W) {
 const DYN = ["deadKg", "aut", "fall", "fruit", "n"];
 export function save(W) {
   return JSON.stringify({ v: 2, seed: W.seed, born: W.born, t: W.t, rng: W.rng.save(), wx: W.wx, nextId: W.nextId,
-    ents: W.ents.map(e => DYN.map(k => e[k] ?? null)), litter: Array.from(W.litter), litterWet: W.litterWet, items: W.items, fires: W.fires, structs: W.structs, camp: W.camp,
+    ents: W.ents.map(e => DYN.map(k => e[k] ?? null)), litter: Array.from(W.litter), litterWet: W.litterWet, items: W.items, fires: W.fires, structs: W.structs, camp: W.camp, shore: W.shore.map(b => b.kg), water: W.water, fish: W.fish,
     man: W.man ? Object.assign({}, W.man, { known: Array.from(W.man.known).join("") }) : null });
 }
 export function load(s) {
   const o = JSON.parse(s), W = createWorld(o.seed, o.born, { man: false });
   W.t = o.t; W.rng.load(o.rng); W.wx = o.wx; W.nextId = o.nextId; W.litterWet = o.litterWet; W.items = o.items;
   o.ents.forEach((v, i) => DYN.forEach((k, j) => { if (v[j] != null) W.ents[i][k] = v[j]; }));
-  W.litter = Float32Array.from(o.litter); W.fires = o.fires; W.structs = o.structs; W.camp = o.camp;
+  W.litter = Float32Array.from(o.litter); W.fires = o.fires; W.structs = o.structs; W.camp = o.camp; o.shore.forEach((kg, i) => { W.shore[i].kg = kg; }); W.water = o.water; W.fish = o.fish;
   if (o.man) { W.man = Object.assign(o.man, { known: Uint8Array.from(o.man.known, c => +c) }); }
   return W;
 }

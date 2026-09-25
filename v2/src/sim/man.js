@@ -36,6 +36,8 @@ export function look(W) {
   }
   for (const it of W.items) if ((it.x - cx) ** 2 + (it.y - cy) ** 2 <= r2) seen("i" + it.id, { k: it.k, x: it.x, y: it.y, kg: it.kg, moist: it.moist });
   for (const k in M.mem) if (k[0] === "i" && !W.items.some(it => "i" + it.id === k)) { const m = M.mem[k]; if ((m.x - cx) ** 2 + (m.y - cy) ** 2 <= r2) delete M.mem[k]; }   // gone (he sees it isn't there)
+  // the shore: beds he can see when the tide has uncovered them (and how deep they lie, so when they'll show again)
+  for (const b of W.shore) if ((b.x - cx) ** 2 + (b.y - cy) ** 2 <= r2 && W.wx.tide < -b.depth) seen("s" + b.id, { k: b.k, x: b.x, y: b.y, kg: b.kg, depth: b.depth, tile: b.tile });
   for (const f of W.fires) if ((f.x - cx) ** 2 + (f.y - cy) ** 2 <= r2) seen("fire" + f.id, { k: "fire", x: f.x, y: f.y, lit: f.lit, embers: f.embers, fuelKg: (f.fuel.logs[1] < .35 ? f.fuel.logs[0] : 0) + (f.fuel.kindling[1] < .35 ? f.fuel.kindling[0] : 0), tinder: f.fuel.tinder[1] < .3 ? f.fuel.tinder[0] : 0 });   // damp tinder is no tinder
 }
 // the conditions his body is in this minute (shelter he stands in, the fire beside him, the weather)

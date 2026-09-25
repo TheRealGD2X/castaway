@@ -6,7 +6,7 @@ import { drawWeather } from "./weather.js";
 import { SKY, R, mix } from "./palette.js";
 import { hash3 } from "../core/rng.js";
 import { manSprite } from "./people.js";
-import { structSprite, pileSprite, drawFire } from "./structs.js";
+import { structSprite, pileSprite, drawFire, bedSprite, drawPot } from "./structs.js";
 
 const TREES = new Set(["oak", "birch", "pine", "rowan", "hazel"]), SHRUBS = new Set(["bramble", "gorse", "fern", "reeds"]);
 export function createView(cv, world, terr) {
@@ -52,7 +52,9 @@ export function createView(cv, world, terr) {
       const sp = structSprite(s); if (sp) dyn.push({ y: s.y + (s.k === "fireRing" ? -.05 : .3), f: () => g.drawImage(sp.img, Math.round(s.x * TS) - sx - sp.ox, Math.round(s.y * TS) - sy + 5 - sp.oy) });
       let k = 0; for (const m in s.onsite || {}) if (s.onsite[m] > 0) { const pl = pileSprite(m, s.onsite[m]), ox = (k++ - .5) * 14; dyn.push({ y: s.y + .45, f: () => g.drawImage(pl.img, Math.round(s.x * TS + ox + 16) - sx - pl.ox, Math.round(s.y * TS) - sy + 6 - pl.oy) }); }
     }
-    for (const F of world.fires) dyn.push({ y: F.y, f: () => drawFire(g, F, Math.round(F.x * TS) - sx, Math.round(F.y * TS) - sy + 3, now, windX) });
+    for (const F of world.fires) dyn.push({ y: F.y, f: () => { const fx = Math.round(F.x * TS) - sx, fy = Math.round(F.y * TS) - sy + 3; drawFire(g, F, fx, fy, now, windX); if (M && M.boiling && world.t - M.boiling < 2) drawPot(g, fx + 5, fy + 1, now, true); } });
+    // the shore at low water: beds the tide has uncovered
+    for (const b of world.shore) if (world.wx.tide < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - world.wx.tide) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy); g.globalAlpha = 1; }
     if (M) {
       const p = V.manPos(now), pose = M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now);
       const inside = world.structs.find(q => (q.k === "leanto" || q.k === "debrisHut" || q.k === "roundhouse") && q.stage > 0 && Math.abs(q.x - p.x) < .6 && Math.abs(q.y - p.y) < .6);

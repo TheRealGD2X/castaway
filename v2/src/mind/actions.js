@@ -10,6 +10,9 @@ import { MET } from "../sim/body.js";
 import { eat as bodyEat, drink as bodyDrink } from "../sim/body.js";
 import { FRUIT } from "../sim/eco.js";
 import { clamp, dexp } from "../core/dmath.js";
+import { expose, hazard } from "../sim/health.js";
+import { SHELL, lowIn } from "../sim/shore.js";
+import { FISH } from "../sim/fish.js";
 import { MATS, MATERIALS, bestShelter, propsOf, woodpile, work as buildWork, finished, FAMILIES, fireRingAt } from "../build/build.js";
 
 const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) * 2;           // metres
@@ -24,22 +27,70 @@ export const deadFuelMoist = W => W.litterWet;                      // how damp 
 export const ACTIONS = {
   drink: {
     r: [], w: ["watered"],
-    find: (W, M) => { const i = nearestKnownTile(W, M, j => W.ter[j] === T.LAKE || W.ter[j] === T.STREAM); return i < 0 ? null : { tile: i, ...tileXY(i) }; },
-    pre: S => true, eff: S => { S.watered = 1; }, cost: (W, M, t) => walkMin(M, t) + 3,
-    exec: work({ adjacent: true, mins: 3, met: MET.stand, pose: "drink", done: (W, M) => bodyDrink(M.B, Math.max(.3, M.B.waterDef + .2)) }),
+    // the nearest fresh water, weighed by how much he's come to distrust each kind
+    find: (W, M) => { let best = null, bc = 1e9; for (const [tt, src] of [[T.STREAM, "stream"], [T.LAKE, "lake"], [T.MARSH, "marsh"]]) { const i = nearestKnownTile(W, M, j => W.ter[j] === tt); if (i < 0) continue; const t = { tile: i, ...tileXY(i), src }, c = walkMin(M, t) + riskMin(M, "water:" + src); if (c < bc) { bc = c; best = t; } } return best; },
+    pre: S => true, eff: S => { S.watered = 1; }, cost: (W, M, t) => walkMin(M, t) + 3 + riskMin(M, "water:" + t.src),
+    exec: work({ adjacent: true, mins: 3, met: MET.stand, pose: "drink", done: (W, M, t) => { const L = Math.max(.3, M.B.waterDef + .2); bodyDrink(M.B, L); expose(W, M, W.water[t.src || "stream"] * L, "water:" + (t.src || "stream")); } }),
     say: "Water first.",
   },
   forage: {
     r: ["food"], w: ["food"],
     find: (W, M) => nearestMem(M, m => FRUIT[m.k] && FRUIT[m.k].kcal > 0 && m.fruit > .15),
     pre: S => S.food < 1500, eff: S => { S.food += 700; }, cost: (W, M, t) => walkMin(M, t) + 25,
-    exec: work({ adjacent: true, mins: 25, met: MET.gather, pose: "pick", tick: (W, M, t) => { const e = W.ents.find(q => q.id === +t.key.slice(1)); if (!e || e.fruit <= .01) return "fail"; const F = FRUIT[e.k], take = Math.min(e.fruit, .02); e.fruit -= take; addInv(M, "food", F.kcal * take); } }),
+    exec: work({ adjacent: true, mins: 25, met: MET.gather, pose: "pick", tick: (W, M, t) => { const e = W.ents.find(q => q.id === +t.key.slice(1)); if (!e || e.fruit <= .01) return "fail"; const F = FRUIT[e.k], take = Math.min(e.fruit, .02); e.fruit -= take; addFood(M, F.kcal * take, .0005, "berries"); } }),
     say: "Something to eat, at least.",
   },
   eat: {
     r: ["food"], w: ["fed","food"],
     find: () => ({ x: null }), pre: S => S.food > 100, eff: S => { S.fed = 1; S.food = Math.max(0, S.food - 900); }, cost: () => 10,
-    exec: work({ here: true, mins: 10, met: MET.sit, pose: "eat", done: (W, M) => { const k = Math.min(M.inv.food || 0, Math.max(300, 1600 - M.B.glyco)); M.inv.food -= k; bodyEat(M.B, k); } }),
+    exec: work({ here: true, mins: 10, met: MET.sit, pose: "eat", done: (W, M) => { const k = Math.min(M.inv.food || 0, Math.max(300, 1600 - M.B.glyco)); M.inv.food -= k; bodyEat(M.B, k); expose(W, M, (M.foodLoad || 0) * k, M.foodWhat || "food"); } }),
+  },
+  // raw shellfish or fish, eaten without cooking: only when he's desperate (he knows it's risky, and learns how much)
+  eatRaw: {
+    r: ["raw"], w: ["fed", "raw"],
+    find: () => ({ x: null }), pre: S => S.raw > 100, eff: S => { S.fed = 1; S.raw = Math.max(0, S.raw - 900); }, cost: (W, M) => 15 + riskMin(M, "raw " + (M.rawWhat || "shellfish"), .5),
+    exec: work({ here: true, mins: 15, met: MET.sit, pose: "eat", done: (W, M) => { const k = Math.min(M.inv.raw || 0, 1200); M.inv.raw -= k; bodyEat(M.B, k); expose(W, M, (M.rawLoad || 0) * k, "raw " + (M.rawWhat || "shellfish")); } }),
+  },
+  // down to the shore when the tide is out: mussels off the stones, cockles raked from the sand
+  shellfish: {
+    r: ["raw"], w: ["raw"],
+    find: (W, M) => { let best = null, bc = 1e9; for (const k in M.mem) { const m = M.mem[k]; if (k[0] !== "s" || m.kg < 1) continue; const wait = lowIn(W, m.depth); if (wait == null) continue; const t = Object.assign({ key: k }, m), c = Math.max(walkMin(M, t), wait) + walkMin(M, t) * .2; if (c < bc) { bc = c; best = t; } } return best; },
+    pre: S => S.raw < 2000, eff: S => { S.raw += 700; }, cost: (W, M, t) => Math.max(walkMin(M, t), lowIn(W, t.depth) ?? 999) + 30,
+    exec: shellfishExec, say: "Low water. Mussels on the stones, as many as I can carry.",
+  },
+  // lift the fish trap: whatever swam in since he last looked
+  checkTrap: {
+    r: ["raw"], w: ["raw"],
+    find: (W, M) => { const s = W.structs.find(q => q.k === "fishTrap" && q.stage >= q.stages.length && W.t - (q.checked ?? q.started) > 480); return s ? { x: s.x, y: s.y, tile: idx(Math.floor(s.x), Math.floor(s.y)), key: "trap", sid: s.id } : null; },
+    pre: S => S.raw < 2000, eff: S => { S.raw += 500; }, cost: (W, M, t) => walkMin(M, t) + 10,
+    exec: work({ adjacent: true, mins: 10, met: MET.gather, pose: "crouch", done: (W, M, t) => { const s = W.structs.find(q => q.id === t.sid); if (!s) return "fail"; s.checked = W.t; const n = s.fish || 0; s.fish = 0; if (!n) { M.say = "Empty. Next time."; return; } addRaw(M, n * FISH.kcal, W.water.stream * .004, "fish"); M.log.push([W.t, "fish", n]); M.say = n > 1 ? `${n} trout in the trap!` : "A trout. Supper."; } }),
+  },
+  // cook on the fire: the heat kills what's growing in it, faster the hotter the fire
+  cook: {
+    r: ["raw", "fire"], w: ["food", "raw"],
+    find: (W, M) => litFireMem(M) || camp(W, M), pre: S => S.raw > 0 && S.fire === 2, eff: S => { S.food += S.raw; S.raw = 0; }, cost: (W, M, t) => walkMin(M, t) + 15,
+    exec: work({ adjacent: true, mins: 15, met: MET.sit, pose: "tend", tick: (W, M, t) => { const F = fireAt(W, t) || W.fires.find(f => f.lit); if (!F || F.heat < 300) return "fail"; M.rawLoad = (M.rawLoad || 0) * dexp(-.9 * Math.min(1, F.heat / 3000)); },
+      done: (W, M) => { const k = M.inv.raw || 0; addFood(M, k, M.rawLoad || 0, "cooked " + (M.rawWhat || "shellfish")); M.inv.raw = 0; M.rawLoad = 0; M.say = "Smells like a proper meal."; } }),
+  },
+  // a pot folded from a sheet of birch bark and pinned with a split stick: it holds water, and over hot coals the
+  // water in it boils before the bark can burn
+  makePot: {
+    r: ["flake", "pot"], w: ["pot"],
+    find: (W, M) => nearestMem(M, m => m.k === "birch"), pre: S => S.flake && !S.pot, eff: S => { S.pot = 1; }, cost: (W, M, t) => walkMin(M, t) + 40,
+    exec: work({ adjacent: true, mins: 40, met: MET.craft, pose: "whittle", tick: (W, M) => hazard(W, M, .0006, M.skill.knap) && null, done: (W, M) => { M.inv.pot = 1; } }),
+    say: "Score the bark round, peel a sheet off, fold the corners, pin them. A pot.",
+  },
+  // fetch water in the pot and boil it on the fire: clean water to keep by him
+  boilWater: {
+    r: ["pot", "fire", "clean"], w: ["clean"],
+    find: (W, M) => { const f = litFireMem(M); if (!f) return null; const i = nearestKnownTile(W, M, j => W.ter[j] === T.STREAM || W.ter[j] === T.LAKE); return i < 0 ? null : Object.assign({ water: i, src: W.ter[i] === T.STREAM ? "stream" : "lake" }, f); },
+    pre: S => S.pot && S.fire === 2 && S.clean < 2, eff: S => { S.clean += 1.5; }, cost: (W, M, t) => walkMin(M, tileXY(t.water)) * 2 + 25,
+    exec: boilExec, say: "Boil it. Whatever's in it won't be after this.",
+  },
+  drinkBoiled: {
+    r: ["clean"], w: ["watered", "clean"],
+    find: () => ({ x: null }), pre: S => S.clean >= .5, eff: S => { S.watered = 1; S.clean = Math.max(0, S.clean - 1.2); }, cost: () => 3,
+    exec: work({ here: true, mins: 3, met: MET.sit, pose: "drink", done: (W, M) => { const L = Math.min(M.inv.clean || 0, Math.max(.3, M.B.waterDef + .2)); bodyDrink(M.B, L); M.inv.clean -= L; } }),
   },
   gatherTinder: {
     r: ["tinder"], w: ["tinder"],
@@ -84,7 +135,7 @@ export const ACTIONS = {
     r: ["flake"], w: ["flake"],
     find: (W, M) => nearestMem(M, m => m.k === "flint"),
     pre: S => !S.flake, eff: S => { S.flake = 1; }, cost: (W, M, t) => walkMin(M, t) + 20,
-    exec: work({ adjacent: true, mins: 20, met: MET.craft, pose: "knap", done: (W, M) => { M.inv.flake = 1; M.skill.knap += .1; } }),
+    exec: work({ adjacent: true, mins: 20, met: MET.craft, pose: "knap", tick: (W, M) => { hazard(W, M, .004, M.skill.knap); }, done: (W, M) => { M.inv.flake = 1; M.skill.knap += .1; } }),
     say: "Strike the flint right and it gives an edge like glass.",
   },
   makeDrill: {
@@ -181,9 +232,36 @@ export function buildExec(W, M, t, st) {
   }
   M.pose = "build"; M.met = MET.build; M.face = s.x > M.x ? 1 : -1;
   const speed = .8 + Math.min(.6, M.skill.build * .3);          // practice makes him quicker
-  M.skill.build += .0015;
+  M.skill.build += .0015; hazard(W, M, .0002, M.skill.build);
   if (buildWork(W, s, speed / stage.mins)) { M.log.push([W.t, "built", s.k, stage.name]); if (s.k === "fireRing") for (const F of W.fires) if (Math.abs(F.x - s.x) < .6 && Math.abs(F.y - s.y) < .6) F.ring = true; return "done"; }
   return "work";
+}
+// food he carries, and the germs in it (organisms per kcal, mixed by kcal)
+function addFood(M, kcal, loadPerKcal, what) { const o = M.inv.food || 0; M.foodLoad = o + kcal > 0 ? ((M.foodLoad || 0) * o + loadPerKcal * kcal) / (o + kcal) : 0; M.inv.food = o + kcal; M.foodWhat = what; }
+function addRaw(M, kcal, loadPerKcal, what) { const o = M.inv.raw || 0; M.rawLoad = o + kcal > 0 ? ((M.rawLoad || 0) * o + loadPerKcal * kcal) / (o + kcal) : 0; M.inv.raw = o + kcal; M.rawWhat = what; }
+// how many minutes' trouble he'd go to, to avoid a risk he believes in (learned from being ill)
+const riskMin = (M, kind, prior = .1) => ((M.belief && M.belief[kind]) ?? prior) * 240;
+function shellfishExec(W, M, t, st) {
+  if (!st.phase) { st.phase = "go"; if (!goTo(W, M, t.tile, true)) return "fail"; st.wait = 0; }
+  if (st.phase === "go") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) st.phase = "wait"; return "go"; }
+  const b = W.shore.find(q => "s" + q.id === t.key); if (!b) return "fail";
+  if (st.phase === "wait") { if (W.wx.tide < -b.depth) { st.phase = "pick"; st.left = 30; } else { M.pose = "sit"; M.met = MET.sit; if (++st.wait > 420) return "fail"; return "work"; } }
+  M.pose = "crouch"; M.met = MET.gather; M.face = b.x > M.x ? 1 : -1;
+  if (W.wx.tide >= -b.depth) { M.say = "The tide's turned."; return st.got ? "done" : "fail"; }        // the water's back over them
+  const kg = Math.min(b.kg, .12); b.kg = +(b.kg - kg).toFixed(3); st.got = (st.got || 0) + kg;
+  addRaw(M, kg * SHELL[b.k].kcalKg, W.water.sea * .03, b.k);
+  if (--st.left <= 0 || b.kg < .2) { M.mem[t.key] && (M.mem[t.key].kg = b.kg); return "done"; }
+  return "work";
+}
+function boilExec(W, M, t, st) {
+  if (!st.phase) { st.phase = "fetch"; if (!goTo(W, M, t.water, true)) return "fail"; }
+  if (st.phase === "fetch") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) { st.phase = "fill"; st.left = 2; } return "go"; }
+  if (st.phase === "fill") { M.pose = "drink"; if (--st.left > 0) return "work"; st.phase = "back"; if (!goTo(W, M, idx(Math.floor(t.x), Math.floor(t.y)), true)) return "fail"; return "go"; }
+  if (st.phase === "back") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) { st.phase = "boil"; st.left = 20; } return "go"; }
+  const F = fireAt(W, t); if (!F || !F.lit) { M.say = "The fire's gone out under it."; return "fail"; }
+  M.pose = "tend"; M.met = MET.sit; M.face = F.x > M.x ? 1 : -1; M.boiling = W.t;
+  if (--st.left > 0) return "work";
+  M.inv.clean = (M.inv.clean || 0) + 1.5; return "done";
 }
 function addInv(M, k, v, moist) { if (k === "fuel") { const o = M.inv.fuel || 0; M.fuelMoist = o + v > 0 ? ((M.fuelMoist ?? .25) * o + (moist ?? .25) * v) / (o + v) : .25; } M.inv[k] = (M.inv[k] || 0) + v; M.carry = (M.inv.fuel || 0) + (M.inv.kindling || 0); }
 const fireAt = (W, t) => W.fires.find(f => "fire" + f.id === t.key) || W.fires.find(f => Math.abs(f.x - t.x) < 1.5 && Math.abs(f.y - t.y) < 1.5);

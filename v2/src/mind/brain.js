@@ -20,7 +20,7 @@ function situation(W, M) {
   const inv = M.inv, fireM = Object.entries(M.mem).find(([k, m]) => k.startsWith("fire") && m.lit);
   const S = { food: Math.round(inv.food || 0), tinder: +(inv.tinder || 0).toFixed(2), kindling: +(inv.kindling || 0).toFixed(1), fuel: +(inv.fuel || 0).toFixed(1),
     flake: inv.flake ? 1 : 0, drill: inv.drill ? 1 : 0, fire: fireM ? 2 : 0, fireFuel: fireM ? +(fireM[1].fuelKg || 0).toFixed(1) : 0,
-    fed: 0, watered: 0, warm: 0, rested: 0, rest: 0, dry: 0, stageDone: 0, stacked: 0, laid: 0, embers: 0, night: W.wx.elev < -.05 ? 1 : 0, rain: W.wx.rain > .3 ? 1 : 0 };
+    fed: 0, watered: 0, warm: 0, rested: 0, rest: 0, dry: 0, stageDone: 0, stacked: 0, laid: 0, embers: 0, raw: Math.round(inv.raw || 0), pot: inv.pot ? 1 : 0, clean: +(inv.clean || 0).toFixed(1), night: W.wx.elev < -.05 ? 1 : 0, rain: W.wx.rain > .3 ? 1 : 0 };
   for (const m of MATS) S[m] = Math.round(inv[m] || 0);
   // a fire laid but not lit, or gone to embers: he knows it's there
   // a fire laid but not lit (tinder in it), or gone to embers: ready to light. A dead hearth with only wood left
@@ -54,6 +54,7 @@ function projects(W, M, toDusk) {
     }
     if (fam === "fireRing") return hasFire ? 19 : 0;
     if (fam === "reflector") { const gain = predictNight(W, M, true, { reflect: .6 }) - baseF; return bestShelter(W) && hasFire ? 16 + Math.min(12, gain * 12) : 0; }
+    if (fam === "fishTrap") return hasFire && W.structs.some(q => FAMILIES[q.k].shelter && finished(q)) ? 16 + (M.B.glyco < 800 ? 6 : 0) : 0;   // food that comes to him, once he has a home
     if (fam === "woodpile") return bestShelter(W) ? 18 + (W.litterWet > .35 ? 5 : 0) : 0;
     return 0;
   };
@@ -96,6 +97,12 @@ function goals(W, M) {
     const eg = M.eveCache && W.t - M.eveCache[0] < 60 ? M.eveCache[1] : (M.eveCache = [W.t, predictNight(W, M, true) - predictNight(W, M, false)])[1];
     G.push({ k: "fire", vars: ["fire", "fireFuel"], want: S => S.fire === 2 && S.fireFuel >= 4, v: 30 + Math.min(20, eg * 20) + M.B.wet * 10, why: M.B.wet > .4 ? "Wet through: he wants a fire to dry out by tonight" : "A fire for the evening, before the light goes" });
   }
+  // clean water: once he's come to distrust the water here, a pot to boil it in, and boiled water kept by him
+  const wRisk = Math.max(0, ...Object.entries(M.belief || {}).filter(([k]) => k.startsWith("water:")).map(([, v]) => v));
+  if (wRisk > .3 && !S.night) {
+    if (!S.pot) G.push({ k: "pot", vars: ["pot"], want: S => S.pot, v: 20 + wRisk * 20, why: "The water made him ill. He wants a pot to boil it in" });
+    else if (S.clean < 1 && S.fire === 2) G.push({ k: "boil", vars: ["clean"], want: S => S.clean >= 1.5, v: 16 + wRisk * 30, why: "Boiling water to keep by him" });
+  }
   const roof = shelterAt(W, M.x, M.y).rain;
   if (x.rain > .8 && roof < .5 && M.B.wet > .4) G.push({ k: "dry", vars: ["dry"], want: S => S.dry, v: 45 + x.rain * 8, why: "Getting out of the rain" });
   if (f.weary > .75 && !S.night) G.push({ k: "rest", vars: ["rest"], want: S => S.rest, v: 20 + f.weary * 40, why: "Worn out; he has to sit a while" });
@@ -116,7 +123,7 @@ function minutesToDusk(W) { for (let m = 0; m < 900; m += 10) { const ms = W.bor
 import { sunAt } from "../sim/env.js";
 const sunElev = ms => sunAt(ms).elev;
 const knowsWater = (W, M) => { for (let i = 0; i < MW * MH; i++) if (M.known[i] && (W.ter[i] === 7 || W.ter[i] === 9)) return true; return false; };
-const knowsFood = M => Object.values(M.mem).some(m => (m.k === "bramble" || m.k === "hazel") && m.fruit > .15);
+const knowsFood = M => (M.inv.raw || 0) > 100 || (M.inv.food || 0) > 100 || Object.values(M.mem).some(m => ((m.k === "bramble" || m.k === "hazel") && m.fruit > .15) || ((m.k === "mussels" || m.k === "cockles") && m.kg > 1));
 
 // the actions that can matter to a goal: those that change its variables, then (transitively) those that change
 // what those actions need. Everything else (picking berries while planning a fire) is left out of the search.
@@ -168,6 +175,7 @@ function exploreStep(W, M) {
 export function think(W) {
   const M = W.man; if (!M || !M.B.alive) return;
   M.met = MET.stand; M.trail = [[M.x, M.y]];
+  if (M.say !== M.saidLast) { M.saidLast = M.say; M.sayT = W.t; }        // when he said it (words fade after a while)
   if (W.t % 60 === 0) { const c = M.windSeen || (M.windSeen = [0, 0, 0, 0, 0, 0, 0, 0]); c[W.wx.windDir | 0] += W.wx.wind; }   // he learns where the weather comes from
   const busy = M.act && M.act.st.phase;
   // reconsider when idle, when the current action ends, or every 20 minutes (something more urgent?)
@@ -208,4 +216,4 @@ function exploreExec(W, M, t, st) {
 }
 // after a failure he leaves that thing alone for a while (blistered hands, a branch that was gone)
 const COOL = { lightFire: 45, gatherKindling: 15, gatherFuel: 10 };
-export const LABEL = { drink: "Drinking", forage: "Picking berries", eat: "Eating", gatherTinder: "Gathering tinder", gatherKindling: "Gathering dead sticks", gatherFuel: "Collecting firewood", knapFlake: "Knapping flint", makeDrill: "Carving a fire drill", layFire: "Laying a fire", lightFire: "Making fire with the hand drill", shelterFromRain: "Sheltering from the rain", rest: "Resting", stackWood: "Stacking the woodpile", takeWood: "Taking wood from the pile", splitKindling: "Splitting dry kindling", get_poles: "Dragging in poles", get_bracken: "Cutting bracken", get_boughs: "Breaking off pine boughs", get_stones: "Carrying stones", get_withies: "Cutting withies", get_debris: "Gathering leaf litter", get_mud: "Digging mud", get_reeds: "Cutting reeds", feedFire: "Feeding the fire", warmUp: "Warming up by the fire", sleep: "Sleeping", explore: "Exploring" };
+export const LABEL = { drink: "Drinking", forage: "Picking berries", eat: "Eating", gatherTinder: "Gathering tinder", gatherKindling: "Gathering dead sticks", gatherFuel: "Collecting firewood", knapFlake: "Knapping flint", makeDrill: "Carving a fire drill", layFire: "Laying a fire", lightFire: "Making fire with the hand drill", shelterFromRain: "Sheltering from the rain", rest: "Resting", stackWood: "Stacking the woodpile", takeWood: "Taking wood from the pile", splitKindling: "Splitting dry kindling", eatRaw: "Eating it raw", shellfish: "Gathering shellfish", checkTrap: "Lifting the fish trap", cook: "Cooking", makePot: "Making a bark pot", boilWater: "Boiling water", drinkBoiled: "Drinking boiled water", get_poles: "Dragging in poles", get_bracken: "Cutting bracken", get_boughs: "Breaking off pine boughs", get_stones: "Carrying stones", get_withies: "Cutting withies", get_debris: "Gathering leaf litter", get_mud: "Digging mud", get_reeds: "Cutting reeds", feedFire: "Feeding the fire", warmUp: "Warming up by the fire", sleep: "Sleeping", explore: "Exploring" };

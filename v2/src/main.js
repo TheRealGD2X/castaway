@@ -48,7 +48,7 @@ function frame(now) {
   if (M) {
     const doing = M.B.alive ? (M.act ? M.doing : M.pose === "sleep" ? "Sleeping" : "Resting") : "Tomas is gone";
     if (act.firstChild.textContent !== doing) act.firstChild.textContent = doing;
-    const w = (M.why || "") + (M.say ? `\n“${M.say}”` : ""); if (why.textContent !== w) why.textContent = w;
+    const w = (M.why || "") + (M.say && world.t - (M.sayT || 0) < 45 ? `\n“${M.say}”` : "") + (M.B.ill > .1 ? "\n(He's ill.)" : "") + (M.B.hurt && M.B.hurt.length ? "\n(A cut on his hand is healing.)" : ""); if (why.textContent !== w) why.textContent = w;
   }
   const wxs = x.fog > .4 ? "Fog" : x.rain > 1.5 ? "Heavy rain" : x.rain > 0 ? "Rain" : x.cloud > .75 ? "Overcast" : x.cloud > .4 ? "Cloudy" : x.elev > 0 ? "Sunny" : "Clear";
   clk.textContent = `${String(c.h).padStart(2, "0")}:${String(c.mi).padStart(2, "0")} · ${wxs} · ${Math.round(x.temp)}°C · wind ${Math.round(x.wind * 2.237)} mph`;

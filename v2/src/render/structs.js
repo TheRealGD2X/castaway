@@ -109,8 +109,35 @@ function roundhouse(s) {
     if (da > .9) for (let y = base - 6; y <= base; y++) for (let x = cx - 3; x <= cx + 2; x++) P.set(x, y, "#2e2119");
   }), ox: 22, oy: 36 }));
 }
+// a funnel basket of withies lying in the water, weighted with stones
+function fishTrap(s) {
+  const a = done(s, 0), b = done(s, 1);
+  return memo(`ft:${q(a)}:${q(b)}`, () => ({ img: sprite(20, 10, P => {
+    const n = Math.round(a * 14);
+    for (let k = 0; k < n; k++) { const x = 2 + k; const r = 3 - Math.abs(k - 7) / 4; for (let y = Math.round(5 - r); y <= Math.round(5 + r); y++) P.set(x, y, (x + y) & 1 ? R.bark[3] : R.bark[2]); }
+    if (n > 3) for (let y = 3; y <= 7; y++) P.set(2, y, R.bark[1]);                          // the funnel mouth
+    if (b > 0) for (let k = 0; k < Math.round(b * 4); k++) { const x = 4 + k * 4; P.set(x, 8, R.rock[2]); P.set(x + 1, 8, R.rock[1]); }
+  }), ox: 10, oy: 6 }));
+}
+// shellfish uncovered by the tide: mussel clumps on wet stones, cockles in the sand
+export function bedSprite(k, kg, v) {
+  const n = Math.max(1, Math.min(9, Math.round(kg / 1.2)));
+  return memo(`bed:${k}:${n}:${v & 3}`, () => ({ img: sprite(16, 10, P => {
+    for (let y = 1; y < 9; y++) for (let x = 1; x < 15; x++) { const dx = (x - 8) / 7, dy = (y - 5) / 4; if (dx * dx + dy * dy < 1) P.set(x, y, k === "mussels" ? (hash3(x, y, v) > .5 ? R.shingle[1] : R.shingle[0]) : (hash3(x, y, v) > .5 ? R.sand[1] : R.sand[0])); }
+    for (let i = 0; i < n; i++) { const x = 3 + ((hash3(i, v, 1) * 10) | 0), y = 3 + ((hash3(i, v, 2) * 4) | 0);
+      if (k === "mussels") { P.set(x, y, "#1e2230"); P.set(x + 1, y, "#2c3346"); P.set(x, y + 1, "#2c3346"); P.set(x + 1, y + 1, "#46506a"); }
+      else { P.set(x, y, "#e9dcc0"); P.set(x + 1, y, "#cbb994"); } }
+  }, { outline: false }), ox: 8, oy: 5 }));
+}
+// the bark pot on the coals, steaming while it boils
+export function drawPot(g, px, py, now, boiling) {
+  g.fillStyle = "#2b1d16"; g.fillRect(px - 3, py - 4, 7, 4); g.fillStyle = R.birch[2]; g.fillRect(px - 2, py - 4, 5, 3); g.fillStyle = R.birch[1]; g.fillRect(px - 2, py - 2, 5, 1);
+  g.fillStyle = R.water[3]; g.fillRect(px - 1, py - 4, 3, 1);
+  if (boiling) for (let i = 0; i < 3; i++) { const l = ((now / 900 + i / 3) % 1); g.fillStyle = `rgba(240,240,236,${(1 - l) * .6})`; g.fillRect(px - 1 + Math.round(Math.sin(now / 400 + i) * 1.5), py - 6 - Math.round(l * 10), 2, 2); }
+}
 export function structSprite(s) {
   switch (s.k) {
+    case "fishTrap": return fishTrap(s);
     case "leanto": return leanto(s);
     case "debrisHut": return debrisHut(s);
     case "fireRing": return fireRing(s);
