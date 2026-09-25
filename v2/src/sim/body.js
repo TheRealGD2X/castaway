@@ -12,7 +12,7 @@ const HEATCAP = 75 * 3470;                             // J/K
 export function newBody() {
   return { gut: 400, glyco: 1400, fat: 12, waterDef: .4, core: 36.9, wet: 0, sleepP: .25, fatigue: 0, asleep: false, shiver: 0, sweat: 0, clo: .7, alive: true, cause: "", hurt: [], ill: 0, lastMeal: 0 };
 }
-// ctx: { met, airT, wind, rain, sun (W/m2 at ground), shelter: 0 open | 1 lean-to | 2 hut, fireW (radiant W reaching him),
+// ctx: { met, airT, wind, rain, sun (W/m2 at ground), rainBlock / windBlock: 0..1 kept off by shelter, fireW (radiant W reaching him),
 //        lying: on the ground?, bedding: 0..1 (bracken, a bed), blanket: extra clo }
 export function bodyStep(B, ctx) {
   if (!B.alive) return;
@@ -25,9 +25,11 @@ export function bodyStep(B, ctx) {
   const fromFat = B.glyco < 400 ? kcal * clamp(.9 - B.glyco / 500, .3, .9) : kcal * .15;
   B.fat = Math.max(0, B.fat - fromFat / 7700); B.glyco = Math.max(0, B.glyco - (kcal - fromFat));
   // ---- heat
-  const wind = ctx.wind * (ctx.shelter === 2 ? .05 : ctx.shelter === 1 ? .3 : 1) * (ctx.lying ? .7 : 1);
-  const rain = ctx.shelter ? 0 : ctx.rain;
-  B.wet = clamp(B.wet + rain * .015 - (B.wet > 0 ? (.0006 + ctx.fireW / 180000 + ctx.sun / 900000) * (1 + wind / 6) : 0) - (M > 250 ? 0 : 0), 0, 1);
+  const wind = ctx.wind * (1 - (ctx.windBlock || 0)) * (ctx.lying ? .7 : 1);
+  const rain = ctx.rain * (1 - (ctx.rainBlock || 0));
+  // clothes dry by body heat (more when working), wind, dry air, sun and a fire: a few hours on a breezy day
+  const dryK = .0006 + .004 * Math.max(0, 1.1 - (ctx.hum ?? .85)) + (met > 2 ? .00025 * met : 0) + (ctx.fireW || 0) / 180000 + (ctx.sun || 0) / 900000;
+  B.wet = clamp(B.wet + rain * .015 - (B.wet > 0 ? dryK * (1 + wind / 6) : 0), 0, 1);
   // skin temperature: vessels close in the cold (skin cools, holding heat in) and open when he's warm (skin flushes)
   const cold = Math.max(0, 33 - ctx.airT), Ts = Math.min(36, 33 - Math.min(5.5, cold * .22) - Math.max(0, 36.9 - B.core) * .8 + Math.max(0, B.core - 36.95) * 9);
   const Rcl = (B.clo + (ctx.blanket || 0)) * .155 * (1 - .65 * B.wet);
@@ -37,7 +39,7 @@ export function bodyStep(B, ctx) {
   loss += B.wet * 38 * (1 + wind / 6) * (ctx.airT < 20 ? 1 : .5);          // evaporation from wet clothes
   if (ctx.lying) loss += .45 * (Ts - (ctx.airT + 1.5)) * 4 * (1 - (ctx.bedding || 0) * .85);   // the ground draws heat
   loss += 10 + (met > 3 ? met * 4 : 0);                                     // breath
-  const gain = (ctx.fireW || 0) + (ctx.shelter === 2 ? 0 : (ctx.sun || 0) * .3);
+  const gain = (ctx.fireW || 0) + (ctx.sun || 0) * .3 * (1 - (ctx.rainBlock || 0));
   // thermoregulation: sweat when hot, shiver when cold (less when exhausted or out of fuel)
   const sweatW = B.core > 37.4 ? Math.min(450, (B.core - 37.4) * 700) : 0;
   const Q = M + gain - loss - sweatW;
@@ -50,7 +52,7 @@ export function bodyStep(B, ctx) {
   // ---- sleep and fatigue
   if (B.asleep) B.sleepP = Math.max(0, B.sleepP - B.sleepP / 150 * (ctx.sleepQ ?? 1));
   else B.sleepP = Math.min(1, B.sleepP + (1 - B.sleepP) / 1000);
-  B.fatigue = clamp(B.fatigue + (met > 3 ? (met - 3) * .0012 : -(.002 + (B.asleep ? .002 : 0))), 0, 1);
+  B.fatigue = clamp(B.fatigue + (met > 3 ? (met - 3) * .0012 : -(met <= 1.6 ? .005 : .0015) - (B.asleep ? .002 : 0)), 0, 1);   // sitting down eases tired muscles
   // ---- death: the body gives out
   if (B.core < 28) { B.alive = false; B.cause = "cold"; }
   else if (B.waterDef > 9) { B.alive = false; B.cause = "thirst"; }
@@ -59,7 +61,7 @@ export function bodyStep(B, ctx) {
 // the signals his mind reads
 export function feel(B) {
   return {
-    hunger: clamp(1 - B.glyco / 1500 + (B.gut < 50 ? .15 : 0), 0, 1),
+    hunger: clamp(1 - B.glyco / 1500 - B.gut / 700 + (B.gut < 50 ? .15 : 0), 0, 1),   // a full stomach quiets hunger
     thirst: clamp(B.waterDef / 3, 0, 1),
     cold: clamp((36.8 - B.core) / 2 + B.shiver * .3, 0, 1),
     hot: clamp((B.core - 37.4) / 1.2, 0, 1),

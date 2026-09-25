@@ -27,16 +27,18 @@ export function addFuel(F, cls, kg, moist) {                 // [kg, moisture, a
 // a coal from a bow drill or hand drill laid in the tinder: it catches if the tinder is dry enough
 export function ignite(F, quality) {
   const t = F.fuel.tinder; if (t[0] < .01) return false;
-  if (quality * clamp(1 - t[1] / .3, 0, 1) > .35) { t[2] = Math.max(t[2], .4); F.lit = true; return true; }
+  if (quality * clamp(1 - t[1] / .42, 0, 1) > .3) { t[2] = Math.max(t[2], .4); F.lit = true; return true; }
   return false;
 }
 const dry = m => clamp(1 - m / .42, .04, 1);
 export function fireStep(F, wx) {
-  const air = F.banked ? .12 : clamp(.75 + wx.wind / 14, .75, 1.5);
+  const air = F.banked ? .12 : clamp(.75 + wx.wind / (F.ring ? 28 : 14), .75, 1.5);   // a stone ring turns the wind
   const Henv = F.heat + F.embers * 2500;                        // W of heat bathing the fuel
   let J = 0, kgBurn = 0;
   for (const c of ORDER) {
     const f = F.fuel[c], C = CLS[c]; if (f[0] < 1e-5) { f[0] = 0; f[2] = 0; continue; }
+    // fuel lying cold in the hearth soaks up rain, and slowly dries again in dry weather
+    if (F.heat < 200 && !F.banked) f[1] = wx.rain > 0 ? Math.min(.6, f[1] + wx.rain * .0015 / (c === "logs" ? 3 : 1)) : f[1] > .15 ? f[1] - .00015 : f[1];
     // catching: unlit fuel takes light from the heat around it (tinder from embers or a coal)
     const heatK = c === "tinder" ? (F.embers > .03 ? 1 : 0) + Henv / 2000 : Henv / 8000;
     f[2] = clamp(f[2] + C.catchK * heatK * dry(f[1]) * (1 - f[2]), 0, 1);
@@ -51,7 +53,7 @@ export function fireStep(F, wx) {
     F.embers += kg * (c === "logs" ? .1 : c === "kindling" ? .04 : 0);
   }
   // embers glow down: slowly banked under ash, faster in wind and rain
-  const tauE = F.banked ? 600 : 100 / (1 + wx.wind / 12) / (1 + wx.rain * .6);
+  const tauE = (F.banked ? 600 : 100 / (1 + wx.wind / 12) / (1 + wx.rain * .6)) * (F.ring ? 1.4 : 1);   // and the hot stones hold the embers
   F.embers = F.embers * dexp(-1 / tauE);
   if (F.embers < 1e-4) F.embers = 0;
   F.heat = clamp(J / 60, 0, 80000);
