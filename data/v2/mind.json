@@ -21,5 +21,33 @@
    }
   ],
   "id": "m753"
+ },
+ {
+  "applyAt": 1000,
+  "thought": "A fishing boat went by out past the reef tonight, lit up and none the wiser I was here. Didn't wave, didn't shout — too far, too dark. Banked the fire and lay down hungry, thinking on it.",
+  "diary": "A boat passed this evening, out beyond the reef — the first sign of another living soul since I came ashore. I watched its lights a good while before they went. Didn't call out; it would never have carried, and I hadn't the strength to make a fool of myself for nothing. Belly's empty and won't let me forget it, but the fire's banked and should hold till morning. Next time a boat comes by, I want smoke enough to be seen, not just watched for.",
+  "intents": [
+   {
+    "k": "food",
+    "w": 30,
+    "hours": 48
+   },
+   {
+    "k": "build:leanto",
+    "w": 20,
+    "hours": 40
+   },
+   {
+    "k": "fire",
+    "w": 15,
+    "hours": 90
+   },
+   {
+    "k": "explore",
+    "w": 5,
+    "hours": 100
+   }
+  ],
+  "id": "m1000"
  }
 ]

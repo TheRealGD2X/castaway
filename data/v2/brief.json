@@ -1,31 +1,31 @@
 {
  "day": 1,
- "t": 752,
- "when": "Fri 25/9 18:32 (UK time)",
+ "t": 999,
+ "when": "Fri 25/9 22:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 15,
-  "wind": "9 mph from the E",
+  "temp": 13,
+  "wind": "8 mph from the E",
   "rain": "none",
   "fog": false,
-  "light": "day",
-  "tide": "high"
+  "light": "night",
+  "tide": "falling/low-ish"
  },
  "body": {
-  "hungry": "not",
-  "thirsty": "not",
-  "cold": "not",
-  "tired": "very",
-  "weary": "a little",
+  "hungry": "desperately",
+  "thirsty": "a little",
+  "cold": "a little",
+  "tired": "a little",
+  "weary": "not",
   "wet": "not",
   "ill": "no",
   "hurt": "a cut, healing",
-  "coreC": 37.4,
+  "coreC": 36.6,
   "lonely": "not"
  },
- "doing": "Cutting bracken",
- "why": "Working on the lean-to: the roof",
- "said": "It's caught.",
+ "doing": "Sleeping",
+ "why": "Worn out; time to sleep",
+ "said": "Bank the fire: ash over the coals, so there's fire in the morning.",
  "has": {
   "poles": 5,
   "stones": 2,
@@ -97,31 +97,32 @@
   }
  ],
  "fire": [
-  "burning"
+  "embers"
  ],
  "beliefs": {},
  "dog": "no dog (yet)",
  "knowsOf": {
   "places": {
-   "oak": 95,
-   "hazel": 77,
-   "pine": 46,
-   "birch": 20,
-   "flint": 10,
-   "rowan": 22,
-   "fern": 33,
-   "bramble": 10,
-   "boulder": 22,
-   "warren": 1,
-   "stones": 3,
-   "reeds": 16,
+   "oak": 240,
+   "hazel": 193,
+   "pine": 110,
+   "birch": 62,
+   "flint": 20,
+   "rowan": 46,
+   "fern": 99,
+   "bramble": 43,
+   "boulder": 48,
+   "warren": 3,
+   "stones": 7,
+   "reeds": 20,
    "mussels": 3,
    "cockles": 1,
-   "fire": 1
+   "fire": 1,
+   "ship": 1
   },
-  "islandSeen": "14%"
+  "islandSeen": "39%"
  },
- "shipsSeen": 0,
+ "shipsSeen": 1,
  "lately": [
   {
    "day": 1,
@@ -142,9 +143,35 @@
    "day": 1,
    "time": "18:00",
    "what": "fire 2"
+  },
+  {
+   "day": 1,
+   "time": "19:13",
+   "what": "ship fishing boat"
   }
  ],
- "intentions": [],
- "journal": [],
- "lastThought": ""
+ "intentions": [
+  {
+   "k": "build:leanto",
+   "w": 25,
+   "hoursLeft": 44
+  },
+  {
+   "k": "fire",
+   "w": 15,
+   "hoursLeft": 92
+  },
+  {
+   "k": "explore",
+   "w": 8,
+   "hoursLeft": 116
+  }
+ ],
+ "journal": [
+  {
+   "day": 1,
+   "text": "First proper day ashore, and I'm writing this by firelight with bracken up to my knees. Got the frame of a lean-to up and a ring of stones round the fire, and tonight, God willing, I won't freeze for it. Cut my hand on something in the wreckage this morning — nothing that won't mend. Tired in a way I don't think sleep alone will fix, but the fire's caught and holding, and that's the whole of my luck today and I'll take it. Tomorrow: the roof, before the weather remembers where it left off."
+  }
+ ],
+ "lastThought": "Fire's caught proper now, and there's a roof half over my head. First day nearly done and I'm still breathing — that'll do for a start."
 }
