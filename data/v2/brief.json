@@ -1,48 +1,48 @@
 {
- "day": 1,
- "t": 999,
- "when": "Fri 25/9 22:39 (UK time)",
+ "day": 2,
+ "t": 1539,
+ "when": "Sat 26/9 07:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 13,
-  "wind": "8 mph from the E",
+  "temp": 12,
+  "wind": "7 mph from the SE",
   "rain": "none",
   "fog": false,
-  "light": "night",
-  "tide": "falling/low-ish"
+  "light": "twilight",
+  "tide": "high"
  },
  "body": {
-  "hungry": "desperately",
-  "thirsty": "a little",
-  "cold": "a little",
+  "hungry": "a little",
+  "thirsty": "not",
+  "cold": "not",
   "tired": "a little",
   "weary": "not",
   "wet": "not",
   "ill": "no",
   "hurt": "a cut, healing",
-  "coreC": 36.6,
-  "lonely": "not"
+  "coreC": 37.6,
+  "lonely": "a little"
  },
- "doing": "Sleeping",
- "why": "Worn out; time to sleep",
- "said": "Bank the fire: ash over the coals, so there's fire in the morning.",
+ "doing": "Dragging in poles",
+ "why": "A signal fire would help: three poles lashed into a tripod, dry wood packed inside",
+ "said": "A deep bed of pine boughs. The ground won't steal his heat tonight.",
  "has": {
-  "poles": 5,
+  "poles": 3,
   "stones": 2,
-  "bracken": 12,
+  "bracken": 1,
   "flake": 1,
   "drill": 1
  },
  "skills": {
   "drill": 0.32,
   "knap": 0.1,
-  "build": 0.11,
+  "build": 0.27,
   "forage": 0
  },
  "built": [
   {
    "what": "lean-to",
-   "stage": "roof next (1/3 stages done)"
+   "stage": "finished"
   },
   {
    "what": "fire ring",
@@ -73,22 +73,22 @@
   {
    "k": "build:woodpile",
    "what": "woodpile",
-   "able": false
+   "able": true
   },
   {
    "k": "build:fishTrap",
    "what": "fish trap",
-   "able": false
+   "able": true
   },
   {
    "k": "build:snare",
    "what": "snare",
-   "able": false
+   "able": true
   },
   {
    "k": "build:signal",
    "what": "signal fire",
-   "able": false
+   "able": true
   },
   {
    "k": "build:roundhouse",
@@ -100,7 +100,11 @@
   "embers"
  ],
  "beliefs": {},
- "dog": "no dog (yet)",
+ "dog": {
+  "name": "Nell",
+  "trust": "keeps its distance",
+  "thin": false
+ },
  "knowsOf": {
   "places": {
    "oak": 240,
@@ -118,7 +122,8 @@
    "mussels": 3,
    "cockles": 1,
    "fire": 1,
-   "ship": 1
+   "ship": 1,
+   "dog": 1
   },
   "islandSeen": "39%"
  },
@@ -148,30 +153,49 @@
    "day": 1,
    "time": "19:13",
    "what": "ship fishing boat"
+  },
+  {
+   "day": 2,
+   "time": "06:29",
+   "what": "built leanto roof"
+  },
+  {
+   "day": 2,
+   "time": "07:25",
+   "what": "built leanto bed"
   }
  ],
  "intentions": [
   {
+   "k": "food",
+   "w": 30,
+   "hoursLeft": 39
+  },
+  {
    "k": "build:leanto",
-   "w": 25,
-   "hoursLeft": 44
+   "w": 20,
+   "hoursLeft": 31
   },
   {
    "k": "fire",
    "w": 15,
-   "hoursLeft": 92
+   "hoursLeft": 81
   },
   {
    "k": "explore",
-   "w": 8,
-   "hoursLeft": 116
+   "w": 5,
+   "hoursLeft": 91
   }
  ],
  "journal": [
   {
    "day": 1,
    "text": "First proper day ashore, and I'm writing this by firelight with bracken up to my knees. Got the frame of a lean-to up and a ring of stones round the fire, and tonight, God willing, I won't freeze for it. Cut my hand on something in the wreckage this morning — nothing that won't mend. Tired in a way I don't think sleep alone will fix, but the fire's caught and holding, and that's the whole of my luck today and I'll take it. Tomorrow: the roof, before the weather remembers where it left off."
+  },
+  {
+   "day": 1,
+   "text": "A boat passed this evening, out beyond the reef — the first sign of another living soul since I came ashore. I watched its lights a good while before they went. Didn't call out; it would never have carried, and I hadn't the strength to make a fool of myself for nothing. Belly's empty and won't let me forget it, but the fire's banked and should hold till morning. Next time a boat comes by, I want smoke enough to be seen, not just watched for."
   }
  ],
- "lastThought": "Fire's caught proper now, and there's a roof half over my head. First day nearly done and I'm still breathing — that'll do for a start."
+ "lastThought": "A fishing boat went by out past the reef tonight, lit up and none the wiser I was here. Didn't wave, didn't shout — too far, too dark. Banked the fire and lay down hungry, thinking on it."
 }

@@ -49,5 +49,33 @@
    }
   ],
   "id": "m1000"
+ },
+ {
+  "applyAt": 1540,
+  "thought": "Woke dry under a proper roof for the first time — bed of pine boughs, no ground-chill in my bones. Dragging poles now for a signal tripod. That boat won't slip past me twice.",
+  "diary": "Slept the whole night under a finished roof and didn't once wake shivering — small thing to be proud of, but I'll take my pride where I find it out here. The dog was at the treeline again this morning, close enough to see her properly this time: thin but not starving, watching me the way I watch the tide. Didn't push it. Today I want poles for a signal tripod, dry wood packed in the middle, so if another boat comes by there's more than moonlight to see me by. Belly's still asking questions I can't fully answer yet, but one thing at a time.",
+  "intents": [
+   {
+    "k": "build:signal",
+    "w": 25,
+    "hours": 72
+   },
+   {
+    "k": "food",
+    "w": 22,
+    "hours": 48
+   },
+   {
+    "k": "fire",
+    "w": 12,
+    "hours": 80
+   },
+   {
+    "k": "dog",
+    "w": 10,
+    "hours": 96
+   }
+  ],
+  "id": "m1540"
  }
 ]
