@@ -1,33 +1,33 @@
 {
  "day": 2,
- "t": 1539,
- "when": "Sat 26/9 07:39 (UK time)",
+ "t": 1839,
+ "when": "Sat 26/9 12:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 12,
+  "temp": 16,
   "wind": "7 mph from the SE",
   "rain": "none",
   "fog": false,
-  "light": "twilight",
-  "tide": "high"
+  "light": "day",
+  "tide": "low"
  },
  "body": {
-  "hungry": "a little",
+  "hungry": "not",
   "thirsty": "not",
   "cold": "not",
-  "tired": "a little",
+  "tired": "somewhat",
   "weary": "not",
   "wet": "not",
   "ill": "no",
   "hurt": "a cut, healing",
-  "coreC": 37.6,
+  "coreC": 37.8,
   "lonely": "a little"
  },
- "doing": "Dragging in poles",
- "why": "A signal fire would help: three poles lashed into a tripod, dry wood packed inside",
- "said": "A deep bed of pine boughs. The ground won't steal his heat tonight.",
+ "doing": "Building the fish trap",
+ "why": "Working on the fish trap: the basket",
+ "said": "A long basket woven from withies, with a funnel mouth the fish can push into but not back out of.",
  "has": {
-  "poles": 3,
+  "poles": 1,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
@@ -36,7 +36,7 @@
  "skills": {
   "drill": 0.32,
   "knap": 0.1,
-  "build": 0.27,
+  "build": 0.44,
   "forage": 0
  },
  "built": [
@@ -47,6 +47,14 @@
   {
    "what": "fire ring",
    "stage": "finished"
+  },
+  {
+   "what": "signal fire",
+   "stage": "finished"
+  },
+  {
+   "what": "fish trap",
+   "stage": "basket next (0/2 stages done)"
   }
  ],
  "canBuild": [
@@ -68,7 +76,7 @@
   {
    "k": "build:reflector",
    "what": "reflector wall",
-   "able": false
+   "able": true
   },
   {
    "k": "build:woodpile",
@@ -114,8 +122,8 @@
    "flint": 20,
    "rowan": 46,
    "fern": 99,
-   "bramble": 43,
-   "boulder": 48,
+   "bramble": 45,
+   "boulder": 49,
    "warren": 3,
    "stones": 7,
    "reeds": 20,
@@ -125,7 +133,7 @@
    "ship": 1,
    "dog": 1
   },
-  "islandSeen": "39%"
+  "islandSeen": "40%"
  },
  "shipsSeen": 1,
  "lately": [
@@ -163,27 +171,47 @@
    "day": 2,
    "time": "07:25",
    "what": "built leanto bed"
+  },
+  {
+   "day": 2,
+   "time": "10:00",
+   "what": "built signal tripod"
+  },
+  {
+   "day": 2,
+   "time": "11:17",
+   "what": "built signal boughs"
   }
  ],
  "intentions": [
   {
-   "k": "food",
-   "w": 30,
-   "hoursLeft": 39
-  },
-  {
    "k": "build:leanto",
    "w": 20,
-   "hoursLeft": 31
-  },
-  {
-   "k": "fire",
-   "w": 15,
-   "hoursLeft": 81
+   "hoursLeft": 26
   },
   {
    "k": "explore",
    "w": 5,
+   "hoursLeft": 86
+  },
+  {
+   "k": "build:signal",
+   "w": 25,
+   "hoursLeft": 67
+  },
+  {
+   "k": "food",
+   "w": 22,
+   "hoursLeft": 43
+  },
+  {
+   "k": "fire",
+   "w": 12,
+   "hoursLeft": 75
+  },
+  {
+   "k": "dog",
+   "w": 10,
    "hoursLeft": 91
   }
  ],
@@ -195,7 +223,11 @@
   {
    "day": 1,
    "text": "A boat passed this evening, out beyond the reef — the first sign of another living soul since I came ashore. I watched its lights a good while before they went. Didn't call out; it would never have carried, and I hadn't the strength to make a fool of myself for nothing. Belly's empty and won't let me forget it, but the fire's banked and should hold till morning. Next time a boat comes by, I want smoke enough to be seen, not just watched for."
+  },
+  {
+   "day": 2,
+   "text": "Slept the whole night under a finished roof and didn't once wake shivering — small thing to be proud of, but I'll take my pride where I find it out here. The dog was at the treeline again this morning, close enough to see her properly this time: thin but not starving, watching me the way I watch the tide. Didn't push it. Today I want poles for a signal tripod, dry wood packed in the middle, so if another boat comes by there's more than moonlight to see me by. Belly's still asking questions I can't fully answer yet, but one thing at a time."
   }
  ],
- "lastThought": "A fishing boat went by out past the reef tonight, lit up and none the wiser I was here. Didn't wave, didn't shout — too far, too dark. Banked the fire and lay down hungry, thinking on it."
+ "lastThought": "Woke dry under a proper roof for the first time — bed of pine boughs, no ground-chill in my bones. Dragging poles now for a signal tripod. That boat won't slip past me twice."
 }

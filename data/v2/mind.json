@@ -77,5 +77,32 @@
    }
   ],
   "id": "m1540"
+ },
+ {
+  "applyAt": 1840,
+  "thought": "Signal tripod's stood and packed with dry wood — one good thing done. Now it's withies and a funnel mouth for the fish trap, so I'm not living meal to meal on whatever the shore gives up.",
+  "intents": [
+   {
+    "k": "build:fishTrap",
+    "w": 25,
+    "hours": 48
+   },
+   {
+    "k": "stock",
+    "w": 12,
+    "hours": 60
+   },
+   {
+    "k": "food",
+    "w": 15,
+    "hours": 40
+   },
+   {
+    "k": "dog",
+    "w": 10,
+    "hours": 90
+   }
+  ],
+  "id": "m1840"
  }
 ]
