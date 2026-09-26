@@ -132,5 +132,32 @@
    }
   ],
   "id": "m2200"
+ },
+ {
+  "applyAt": 2440,
+  "thought": "Fire's gone to cold ash and my belly won't let me sleep proper. Fog's thick tonight. Come first light I'm at that trap and those snares before anything else — they'd better have earned their keep.",
+  "intents": [
+   {
+    "k": "fire",
+    "w": 20,
+    "hours": 48
+   },
+   {
+    "k": "food",
+    "w": 25,
+    "hours": 40
+   },
+   {
+    "k": "stock",
+    "w": 15,
+    "hours": 50
+   },
+   {
+    "k": "dog",
+    "w": 15,
+    "hours": 70
+   }
+  ],
+  "id": "m2440"
  }
 ]

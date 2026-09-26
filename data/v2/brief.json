@@ -1,32 +1,34 @@
 {
  "day": 2,
- "t": 2199,
- "when": "Sat 26/9 18:39 (UK time)",
+ "t": 2439,
+ "when": "Sat 26/9 22:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 16,
-  "wind": "6 mph from the SE",
+  "temp": 13,
+  "wind": "4 mph from the SE",
   "rain": "none",
-  "fog": false,
-  "light": "day",
-  "tide": "high"
+  "fog": true,
+  "light": "night",
+  "tide": "high-ish"
  },
  "body": {
-  "hungry": "not",
-  "thirsty": "not",
+  "hungry": "desperately",
+  "thirsty": "a little",
   "cold": "not",
-  "tired": "very",
-  "weary": "a little",
+  "tired": "a little",
+  "weary": "not",
   "wet": "not",
   "ill": "no",
-  "hurt": "a cut, healing",
-  "coreC": 37.5,
+  "hurt": "no",
+  "coreC": 36.6,
   "lonely": "a little"
  },
- "doing": "Collecting firewood",
- "why": "Laying in firewood while it's dry",
+ "doing": "Sleeping",
+ "why": "Worn out; time to sleep",
  "said": "Two poles off the ground so the wood doesn't sit in the wet.",
  "has": {
+  "fuel": 1.2,
+  "poles": 2,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
@@ -36,7 +38,7 @@
  "skills": {
   "drill": 0.32,
   "knap": 0.1,
-  "build": 0.69,
+  "build": 0.72,
   "forage": 0
  },
  "built": [
@@ -70,7 +72,7 @@
   },
   {
    "what": "debris hut",
-   "stage": "ridge next (0/4 stages done)"
+   "stage": "ribs next (1/4 stages done)"
   },
   {
    "what": "woodpile",
@@ -125,7 +127,7 @@
   }
  ],
  "fire": [
-  "burning"
+  "cold"
  ],
  "beliefs": {},
  "dog": {
@@ -232,48 +234,58 @@
    "day": 2,
    "time": "18:35",
    "what": "fed dog"
+  },
+  {
+   "day": 2,
+   "time": "19:12",
+   "what": "built debrisHut ridge"
   }
  ],
  "intentions": [
   {
    "k": "build:leanto",
    "w": 20,
-   "hoursLeft": 20
+   "hoursLeft": 16
   },
   {
    "k": "explore",
    "w": 5,
-   "hoursLeft": 80
+   "hoursLeft": 76
   },
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 61
-  },
-  {
-   "k": "fire",
-   "w": 12,
-   "hoursLeft": 69
+   "hoursLeft": 57
   },
   {
    "k": "build:fishTrap",
    "w": 25,
-   "hoursLeft": 42
-  },
-  {
-   "k": "stock",
-   "w": 12,
-   "hoursLeft": 54
+   "hoursLeft": 38
   },
   {
    "k": "food",
    "w": 15,
-   "hoursLeft": 34
+   "hoursLeft": 30
   },
   {
    "k": "dog",
+   "w": 18,
+   "hoursLeft": 76
+  },
+  {
+   "k": "build:debrisHut",
+   "w": 16,
+   "hoursLeft": 56
+  },
+  {
+   "k": "stock",
    "w": 10,
-   "hoursLeft": 84
+   "hoursLeft": 46
+  },
+  {
+   "k": "fire",
+   "w": 8,
+   "hoursLeft": 66
   }
  ],
  "journal": [
@@ -288,7 +300,11 @@
   {
    "day": 2,
    "text": "Slept the whole night under a finished roof and didn't once wake shivering — small thing to be proud of, but I'll take my pride where I find it out here. The dog was at the treeline again this morning, close enough to see her properly this time: thin but not starving, watching me the way I watch the tide. Didn't push it. Today I want poles for a signal tripod, dry wood packed in the middle, so if another boat comes by there's more than moonlight to see me by. Belly's still asking questions I can't fully answer yet, but one thing at a time."
+  },
+  {
+   "day": 2,
+   "text": "A day's proper work behind me and my arms know it. Fish trap's in the water, two snares laid along the warren path, wood stacking up on the rack before the weather turns. Best of it though: I set scraps out for the dog and backed off, and she came and ate them, watching me the whole time like I might change my mind about being harmless. Didn't try to touch her — that's a day for another time. Still just the two of us out here, but it feels a little less like just the one."
   }
  ],
- "lastThought": "Signal tripod's stood and packed with dry wood — one good thing done. Now it's withies and a funnel mouth for the fish trap, so I'm not living meal to meal on whatever the shore gives up."
+ "lastThought": "Bone-tired and glad of it — fish trap set, two snares out, wood going up off the wet ground. And I put scraps down for Nell today. She ate them once I'd stepped well back."
 }
