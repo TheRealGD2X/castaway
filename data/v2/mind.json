@@ -104,5 +104,33 @@
    }
   ],
   "id": "m1840"
+ },
+ {
+  "applyAt": 2200,
+  "thought": "Bone-tired and glad of it — fish trap set, two snares out, wood going up off the wet ground. And I put scraps down for Nell today. She ate them once I'd stepped well back.",
+  "diary": "A day's proper work behind me and my arms know it. Fish trap's in the water, two snares laid along the warren path, wood stacking up on the rack before the weather turns. Best of it though: I set scraps out for the dog and backed off, and she came and ate them, watching me the whole time like I might change my mind about being harmless. Didn't try to touch her — that's a day for another time. Still just the two of us out here, but it feels a little less like just the one.",
+  "intents": [
+   {
+    "k": "dog",
+    "w": 18,
+    "hours": 80
+   },
+   {
+    "k": "build:debrisHut",
+    "w": 16,
+    "hours": 60
+   },
+   {
+    "k": "stock",
+    "w": 10,
+    "hours": 50
+   },
+   {
+    "k": "fire",
+    "w": 8,
+    "hours": 70
+   }
+  ],
+  "id": "m2200"
  }
 ]

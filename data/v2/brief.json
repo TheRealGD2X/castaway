@@ -1,42 +1,42 @@
 {
  "day": 2,
- "t": 1839,
- "when": "Sat 26/9 12:39 (UK time)",
+ "t": 2199,
+ "when": "Sat 26/9 18:39 (UK time)",
  "alive": true,
  "weather": {
   "temp": 16,
-  "wind": "7 mph from the SE",
+  "wind": "6 mph from the SE",
   "rain": "none",
   "fog": false,
   "light": "day",
-  "tide": "low"
+  "tide": "high"
  },
  "body": {
   "hungry": "not",
   "thirsty": "not",
   "cold": "not",
-  "tired": "somewhat",
-  "weary": "not",
+  "tired": "very",
+  "weary": "a little",
   "wet": "not",
   "ill": "no",
   "hurt": "a cut, healing",
-  "coreC": 37.8,
+  "coreC": 37.5,
   "lonely": "a little"
  },
- "doing": "Building the fish trap",
- "why": "Working on the fish trap: the basket",
- "said": "A long basket woven from withies, with a funnel mouth the fish can push into but not back out of.",
+ "doing": "Collecting firewood",
+ "why": "Laying in firewood while it's dry",
+ "said": "Two poles off the ground so the wood doesn't sit in the wet.",
  "has": {
-  "poles": 1,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
-  "drill": 1
+  "drill": 1,
+  "withies": 1
  },
  "skills": {
   "drill": 0.32,
   "knap": 0.1,
-  "build": 0.44,
+  "build": 0.69,
   "forage": 0
  },
  "built": [
@@ -54,7 +54,27 @@
   },
   {
    "what": "fish trap",
-   "stage": "basket next (0/2 stages done)"
+   "stage": "finished"
+  },
+  {
+   "what": "snare",
+   "stage": "finished"
+  },
+  {
+   "what": "snare",
+   "stage": "finished"
+  },
+  {
+   "what": "snare",
+   "stage": "noose next (0/1 stages done)"
+  },
+  {
+   "what": "debris hut",
+   "stage": "ridge next (0/4 stages done)"
+  },
+  {
+   "what": "woodpile",
+   "stage": "cover next (1/2 stages done)"
   }
  ],
  "canBuild": [
@@ -66,7 +86,7 @@
   {
    "k": "build:debrisHut",
    "what": "debris hut",
-   "able": false
+   "able": true
   },
   {
    "k": "build:fireRing",
@@ -105,7 +125,7 @@
   }
  ],
  "fire": [
-  "embers"
+  "burning"
  ],
  "beliefs": {},
  "dog": {
@@ -128,10 +148,11 @@
    "stones": 7,
    "reeds": 20,
    "mussels": 3,
-   "cockles": 1,
+   "cockles": 2,
    "fire": 1,
    "ship": 1,
-   "dog": 1
+   "dog": 1,
+   "scraps": 1
   },
   "islandSeen": "40%"
  },
@@ -181,38 +202,78 @@
    "day": 2,
    "time": "11:17",
    "what": "built signal boughs"
+  },
+  {
+   "day": 2,
+   "time": "13:33",
+   "what": "built fishTrap basket"
+  },
+  {
+   "day": 2,
+   "time": "14:11",
+   "what": "built fishTrap set"
+  },
+  {
+   "day": 2,
+   "time": "16:00",
+   "what": "built snare noose"
+  },
+  {
+   "day": 2,
+   "time": "16:49",
+   "what": "built snare noose"
+  },
+  {
+   "day": 2,
+   "time": "17:58",
+   "what": "built woodpile rack"
+  },
+  {
+   "day": 2,
+   "time": "18:35",
+   "what": "fed dog"
   }
  ],
  "intentions": [
   {
    "k": "build:leanto",
    "w": 20,
-   "hoursLeft": 26
+   "hoursLeft": 20
   },
   {
    "k": "explore",
    "w": 5,
-   "hoursLeft": 86
+   "hoursLeft": 80
   },
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 67
-  },
-  {
-   "k": "food",
-   "w": 22,
-   "hoursLeft": 43
+   "hoursLeft": 61
   },
   {
    "k": "fire",
    "w": 12,
-   "hoursLeft": 75
+   "hoursLeft": 69
+  },
+  {
+   "k": "build:fishTrap",
+   "w": 25,
+   "hoursLeft": 42
+  },
+  {
+   "k": "stock",
+   "w": 12,
+   "hoursLeft": 54
+  },
+  {
+   "k": "food",
+   "w": 15,
+   "hoursLeft": 34
   },
   {
    "k": "dog",
    "w": 10,
-   "hoursLeft": 91
+   "hoursLeft": 84
   }
  ],
  "journal": [
@@ -229,5 +290,5 @@
    "text": "Slept the whole night under a finished roof and didn't once wake shivering — small thing to be proud of, but I'll take my pride where I find it out here. The dog was at the treeline again this morning, close enough to see her properly this time: thin but not starving, watching me the way I watch the tide. Didn't push it. Today I want poles for a signal tripod, dry wood packed in the middle, so if another boat comes by there's more than moonlight to see me by. Belly's still asking questions I can't fully answer yet, but one thing at a time."
   }
  ],
- "lastThought": "Woke dry under a proper roof for the first time — bed of pine boughs, no ground-chill in my bones. Dragging poles now for a signal tripod. That boat won't slip past me twice."
+ "lastThought": "Signal tripod's stood and packed with dry wood — one good thing done. Now it's withies and a funnel mouth for the fish trap, so I'm not living meal to meal on whatever the shore gives up."
 }
