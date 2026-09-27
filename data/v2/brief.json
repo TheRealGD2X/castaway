@@ -1,34 +1,32 @@
 {
  "day": 3,
- "t": 2979,
- "when": "Sun 27/9 07:39 (UK time)",
+ "t": 3279,
+ "when": "Sun 27/9 12:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 11,
-  "wind": "5 mph from the SE",
+  "temp": 15,
+  "wind": "7 mph from the SE",
   "rain": "none",
-  "fog": true,
-  "light": "twilight",
-  "tide": "high"
+  "fog": false,
+  "light": "day",
+  "tide": "falling/low-ish"
  },
  "body": {
-  "hungry": "not",
+  "hungry": "somewhat",
   "thirsty": "not",
   "cold": "not",
-  "tired": "a little",
-  "weary": "not",
+  "tired": "somewhat",
+  "weary": "a little",
   "wet": "not",
   "ill": "no",
   "hurt": "no",
-  "coreC": 37.3,
+  "coreC": 37.8,
   "lonely": "somewhat"
  },
- "doing": "Stacking the woodpile",
- "why": "Laying in firewood while it's dry",
- "said": "Two poles off the ground so the wood doesn't sit in the wet.",
+ "doing": "Building the debris hut",
+ "why": "Working on the debris hut: the pile",
+ "said": "Leaves and litter piled an arm's length deep over the whole thing.",
  "has": {
-  "fuel": 1.9,
-  "poles": 2,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
@@ -38,7 +36,7 @@
  "skills": {
   "drill": 0.32,
   "knap": 0.1,
-  "build": 0.72,
+  "build": 0.84,
   "forage": 0
  },
  "built": [
@@ -72,7 +70,7 @@
   },
   {
    "what": "debris hut",
-   "stage": "ribs next (1/4 stages done)"
+   "stage": "pile next (2/4 stages done)"
   },
   {
    "what": "woodpile",
@@ -239,53 +237,58 @@
    "day": 2,
    "time": "19:12",
    "what": "built debrisHut ridge"
+  },
+  {
+   "day": 3,
+   "time": "10:34",
+   "what": "built debrisHut ribs"
   }
  ],
  "intentions": [
   {
    "k": "build:leanto",
    "w": 20,
-   "hoursLeft": 7
+   "hoursLeft": 2
   },
   {
    "k": "explore",
    "w": 5,
-   "hoursLeft": 67
+   "hoursLeft": 62
   },
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 48
+   "hoursLeft": 43
   },
   {
    "k": "build:fishTrap",
    "w": 25,
-   "hoursLeft": 29
-  },
-  {
-   "k": "build:debrisHut",
-   "w": 16,
-   "hoursLeft": 47
-  },
-  {
-   "k": "fire",
-   "w": 20,
-   "hoursLeft": 39
+   "hoursLeft": 24
   },
   {
    "k": "food",
    "w": 25,
-   "hoursLeft": 31
+   "hoursLeft": 26
   },
   {
-   "k": "stock",
-   "w": 15,
-   "hoursLeft": 41
+   "k": "fire",
+   "w": 22,
+   "hoursLeft": 35
+  },
+  {
+   "k": "build:debrisHut",
+   "w": 18,
+   "hoursLeft": 45
   },
   {
    "k": "dog",
    "w": 15,
-   "hoursLeft": 61
+   "hoursLeft": 55
+  },
+  {
+   "k": "stock",
+   "w": 12,
+   "hoursLeft": 35
   }
  ],
  "journal": [
@@ -304,7 +307,11 @@
   {
    "day": 2,
    "text": "A day's proper work behind me and my arms know it. Fish trap's in the water, two snares laid along the warren path, wood stacking up on the rack before the weather turns. Best of it though: I set scraps out for the dog and backed off, and she came and ate them, watching me the whole time like I might change my mind about being harmless. Didn't try to touch her — that's a day for another time. Still just the two of us out here, but it feels a little less like just the one."
+  },
+  {
+   "day": 3,
+   "text": "Third day, and I made it through a hungry night without it turning into anything worse. Whatever I managed between the trap, the snares and what's left in my hands has quieted my stomach, if not answered every question about tomorrow. Fire's out again — that's twice now, and I'm getting tired of relighting it from scratch each morning. Fog's thick enough I can't see the shore from the lean-to. Feeling the quiet of this place more today than I have — no one to grumble to about any of it but myself, and Nell, who isn't much for conversation yet. Fire first, then the woodpile cover, then I'll see what the fog gives up."
   }
  ],
- "lastThought": "Fire's gone to cold ash and my belly won't let me sleep proper. Fog's thick tonight. Come first light I'm at that trap and those snares before anything else — they'd better have earned their keep."
+ "lastThought": "Belly's quiet again, thank God, though I couldn't rightly tell you what settled it. Fire's still cold ash and wants relighting before I do another thing. Fog's sitting low this morning — can't see past the treeline."
 }

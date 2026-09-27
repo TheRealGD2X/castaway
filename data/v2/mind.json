@@ -187,5 +187,32 @@
    }
   ],
   "id": "m2980"
+ },
+ {
+  "applyAt": 3280,
+  "thought": "Piling leaf litter over the debris hut, arm-deep, and it's coming on well. But that fire's been cold since last night and I keep telling myself I'll see to it after this next handful of leaves. No more excuses — soon as this pile's done.",
+  "intents": [
+   {
+    "k": "fire",
+    "w": 28,
+    "hours": 30
+   },
+   {
+    "k": "build:debrisHut",
+    "w": 18,
+    "hours": 45
+   },
+   {
+    "k": "food",
+    "w": 18,
+    "hours": 28
+   },
+   {
+    "k": "dog",
+    "w": 12,
+    "hours": 55
+   }
+  ],
+  "id": "m3280"
  }
 ]
