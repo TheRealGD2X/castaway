@@ -159,5 +159,33 @@
    }
   ],
   "id": "m2440"
+ },
+ {
+  "applyAt": 2980,
+  "thought": "Belly's quiet again, thank God, though I couldn't rightly tell you what settled it. Fire's still cold ash and wants relighting before I do another thing. Fog's sitting low this morning — can't see past the treeline.",
+  "diary": "Third day, and I made it through a hungry night without it turning into anything worse. Whatever I managed between the trap, the snares and what's left in my hands has quieted my stomach, if not answered every question about tomorrow. Fire's out again — that's twice now, and I'm getting tired of relighting it from scratch each morning. Fog's thick enough I can't see the shore from the lean-to. Feeling the quiet of this place more today than I have — no one to grumble to about any of it but myself, and Nell, who isn't much for conversation yet. Fire first, then the woodpile cover, then I'll see what the fog gives up.",
+  "intents": [
+   {
+    "k": "fire",
+    "w": 22,
+    "hours": 40
+   },
+   {
+    "k": "build:debrisHut",
+    "w": 18,
+    "hours": 50
+   },
+   {
+    "k": "dog",
+    "w": 15,
+    "hours": 60
+   },
+   {
+    "k": "stock",
+    "w": 12,
+    "hours": 40
+   }
+  ],
+  "id": "m2980"
  }
 ]

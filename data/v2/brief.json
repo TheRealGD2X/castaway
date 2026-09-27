@@ -1,33 +1,33 @@
 {
- "day": 2,
- "t": 2439,
- "when": "Sat 26/9 22:39 (UK time)",
+ "day": 3,
+ "t": 2979,
+ "when": "Sun 27/9 07:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 13,
-  "wind": "4 mph from the SE",
+  "temp": 11,
+  "wind": "5 mph from the SE",
   "rain": "none",
   "fog": true,
-  "light": "night",
-  "tide": "high-ish"
+  "light": "twilight",
+  "tide": "high"
  },
  "body": {
-  "hungry": "desperately",
-  "thirsty": "a little",
+  "hungry": "not",
+  "thirsty": "not",
   "cold": "not",
   "tired": "a little",
   "weary": "not",
   "wet": "not",
   "ill": "no",
   "hurt": "no",
-  "coreC": 36.6,
-  "lonely": "a little"
+  "coreC": 37.3,
+  "lonely": "somewhat"
  },
- "doing": "Sleeping",
- "why": "Worn out; time to sleep",
+ "doing": "Stacking the woodpile",
+ "why": "Laying in firewood while it's dry",
  "said": "Two poles off the ground so the wood doesn't sit in the wet.",
  "has": {
-  "fuel": 1.2,
+  "fuel": 1.9,
   "poles": 2,
   "stones": 2,
   "bracken": 1,
@@ -245,47 +245,47 @@
   {
    "k": "build:leanto",
    "w": 20,
-   "hoursLeft": 16
+   "hoursLeft": 7
   },
   {
    "k": "explore",
    "w": 5,
-   "hoursLeft": 76
+   "hoursLeft": 67
   },
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 57
+   "hoursLeft": 48
   },
   {
    "k": "build:fishTrap",
    "w": 25,
-   "hoursLeft": 38
-  },
-  {
-   "k": "food",
-   "w": 15,
-   "hoursLeft": 30
-  },
-  {
-   "k": "dog",
-   "w": 18,
-   "hoursLeft": 76
+   "hoursLeft": 29
   },
   {
    "k": "build:debrisHut",
    "w": 16,
-   "hoursLeft": 56
-  },
-  {
-   "k": "stock",
-   "w": 10,
-   "hoursLeft": 46
+   "hoursLeft": 47
   },
   {
    "k": "fire",
-   "w": 8,
-   "hoursLeft": 66
+   "w": 20,
+   "hoursLeft": 39
+  },
+  {
+   "k": "food",
+   "w": 25,
+   "hoursLeft": 31
+  },
+  {
+   "k": "stock",
+   "w": 15,
+   "hoursLeft": 41
+  },
+  {
+   "k": "dog",
+   "w": 15,
+   "hoursLeft": 61
   }
  ],
  "journal": [
@@ -306,5 +306,5 @@
    "text": "A day's proper work behind me and my arms know it. Fish trap's in the water, two snares laid along the warren path, wood stacking up on the rack before the weather turns. Best of it though: I set scraps out for the dog and backed off, and she came and ate them, watching me the whole time like I might change my mind about being harmless. Didn't try to touch her — that's a day for another time. Still just the two of us out here, but it feels a little less like just the one."
   }
  ],
- "lastThought": "Bone-tired and glad of it — fish trap set, two snares out, wood going up off the wet ground. And I put scraps down for Nell today. She ate them once I'd stepped well back."
+ "lastThought": "Fire's gone to cold ash and my belly won't let me sleep proper. Fog's thick tonight. Come first light I'm at that trap and those snares before anything else — they'd better have earned their keep."
 }
