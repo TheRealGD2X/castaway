@@ -214,5 +214,38 @@
    }
   ],
   "id": "m3280"
+ },
+ {
+  "applyAt": 3640,
+  "thought": "Debris hut's finished, bed and all, and the fire's caught proper this time. Legs won't hold me a minute longer, though — sitting here watching the flame do the work for once.",
+  "diary": "Second shelter done today — a proper debris hut, ridge and ribs and a deep bed of leaves, built with my own two hands and whatever the wood gave me. Fire's lit again and holding, third time of asking. I'm wrung out in a way that's more satisfaction than exhaustion, if that makes any sense to anyone but me. Tomorrow there's still that third snare wanting a noose, and the woodpile could do with its cover before the weather changes its mind about being kind. For now I'll sit by the fire a while and let my hands rest.",
+  "intents": [
+   {
+    "k": "build:snare",
+    "w": 15,
+    "hours": 40
+   },
+   {
+    "k": "stock",
+    "w": 12,
+    "hours": 40
+   },
+   {
+    "k": "dog",
+    "w": 15,
+    "hours": 60
+   },
+   {
+    "k": "fire",
+    "w": 10,
+    "hours": 40
+   },
+   {
+    "k": "explore",
+    "w": 10,
+    "hours": 80
+   }
+  ],
+  "id": "m3640"
  }
 ]

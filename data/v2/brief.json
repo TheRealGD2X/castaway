@@ -1,31 +1,31 @@
 {
  "day": 3,
- "t": 3279,
- "when": "Sun 27/9 12:39 (UK time)",
+ "t": 3639,
+ "when": "Sun 27/9 18:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 15,
+  "temp": 16,
   "wind": "7 mph from the SE",
   "rain": "none",
   "fog": false,
   "light": "day",
-  "tide": "falling/low-ish"
+  "tide": "high-ish"
  },
  "body": {
-  "hungry": "somewhat",
+  "hungry": "not",
   "thirsty": "not",
   "cold": "not",
   "tired": "somewhat",
-  "weary": "a little",
+  "weary": "very",
   "wet": "not",
   "ill": "no",
   "hurt": "no",
-  "coreC": 37.8,
+  "coreC": 37.4,
   "lonely": "somewhat"
  },
- "doing": "Building the debris hut",
- "why": "Working on the debris hut: the pile",
- "said": "Leaves and litter piled an arm's length deep over the whole thing.",
+ "doing": "Resting",
+ "why": "Worn out; he has to sit a while",
+ "said": "It's caught.",
  "has": {
   "stones": 2,
   "bracken": 1,
@@ -34,9 +34,9 @@
   "withies": 1
  },
  "skills": {
-  "drill": 0.32,
+  "drill": 0.96,
   "knap": 0.1,
-  "build": 0.84,
+  "build": 0.94,
   "forage": 0
  },
  "built": [
@@ -70,7 +70,7 @@
   },
   {
    "what": "debris hut",
-   "stage": "pile next (2/4 stages done)"
+   "stage": "finished"
   },
   {
    "what": "woodpile",
@@ -125,7 +125,7 @@
   }
  ],
  "fire": [
-  "cold"
+  "burning"
  ],
  "beliefs": {},
  "dog": {
@@ -242,53 +242,63 @@
    "day": 3,
    "time": "10:34",
    "what": "built debrisHut ribs"
+  },
+  {
+   "day": 3,
+   "time": "14:06",
+   "what": "built debrisHut pile"
+  },
+  {
+   "day": 3,
+   "time": "14:51",
+   "what": "built debrisHut bed"
+  },
+  {
+   "day": 3,
+   "time": "18:03",
+   "what": "fire 3"
   }
  ],
  "intentions": [
   {
-   "k": "build:leanto",
-   "w": 20,
-   "hoursLeft": 2
-  },
-  {
    "k": "explore",
    "w": 5,
-   "hoursLeft": 62
+   "hoursLeft": 56
   },
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 43
+   "hoursLeft": 37
   },
   {
    "k": "build:fishTrap",
    "w": 25,
-   "hoursLeft": 24
-  },
-  {
-   "k": "food",
-   "w": 25,
-   "hoursLeft": 26
-  },
-  {
-   "k": "fire",
-   "w": 22,
-   "hoursLeft": 35
-  },
-  {
-   "k": "build:debrisHut",
-   "w": 18,
-   "hoursLeft": 45
-  },
-  {
-   "k": "dog",
-   "w": 15,
-   "hoursLeft": 55
+   "hoursLeft": 18
   },
   {
    "k": "stock",
    "w": 12,
-   "hoursLeft": 35
+   "hoursLeft": 29
+  },
+  {
+   "k": "fire",
+   "w": 28,
+   "hoursLeft": 24
+  },
+  {
+   "k": "build:debrisHut",
+   "w": 18,
+   "hoursLeft": 39
+  },
+  {
+   "k": "food",
+   "w": 18,
+   "hoursLeft": 22
+  },
+  {
+   "k": "dog",
+   "w": 12,
+   "hoursLeft": 49
   }
  ],
  "journal": [
@@ -313,5 +323,5 @@
    "text": "Third day, and I made it through a hungry night without it turning into anything worse. Whatever I managed between the trap, the snares and what's left in my hands has quieted my stomach, if not answered every question about tomorrow. Fire's out again — that's twice now, and I'm getting tired of relighting it from scratch each morning. Fog's thick enough I can't see the shore from the lean-to. Feeling the quiet of this place more today than I have — no one to grumble to about any of it but myself, and Nell, who isn't much for conversation yet. Fire first, then the woodpile cover, then I'll see what the fog gives up."
   }
  ],
- "lastThought": "Belly's quiet again, thank God, though I couldn't rightly tell you what settled it. Fire's still cold ash and wants relighting before I do another thing. Fog's sitting low this morning — can't see past the treeline."
+ "lastThought": "Piling leaf litter over the debris hut, arm-deep, and it's coming on well. But that fire's been cold since last night and I keep telling myself I'll see to it after this next handful of leaves. No more excuses — soon as this pile's done."
 }
