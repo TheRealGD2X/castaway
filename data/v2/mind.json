@@ -247,5 +247,27 @@
    }
   ],
   "id": "m3640"
+ },
+ {
+  "applyAt": 3880,
+  "thought": "Ash banked over the coals, belly grumbling a little, throat drier than I'd like. Water's the thing I've not properly sorted yet — stream water straight down has never once agreed with a sailor's stomach. Sleep first, mind on it tomorrow.",
+  "intents": [
+   {
+    "k": "food",
+    "w": 20,
+    "hours": 24
+   },
+   {
+    "k": "stock",
+    "w": 15,
+    "hours": 36
+   },
+   {
+    "k": "boil",
+    "w": 12,
+    "hours": 30
+   }
+  ],
+  "id": "m3880"
  }
 ]

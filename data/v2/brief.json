@@ -1,32 +1,33 @@
 {
  "day": 3,
- "t": 3639,
- "when": "Sun 27/9 18:39 (UK time)",
+ "t": 3879,
+ "when": "Sun 27/9 22:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 16,
-  "wind": "7 mph from the SE",
+  "temp": 13,
+  "wind": "6 mph from the SE",
   "rain": "none",
   "fog": false,
-  "light": "day",
-  "tide": "high-ish"
+  "light": "night",
+  "tide": "high"
  },
  "body": {
-  "hungry": "not",
-  "thirsty": "not",
+  "hungry": "somewhat",
+  "thirsty": "a little",
   "cold": "not",
-  "tired": "somewhat",
-  "weary": "very",
+  "tired": "a little",
+  "weary": "not",
   "wet": "not",
   "ill": "no",
   "hurt": "no",
-  "coreC": 37.4,
+  "coreC": 36.7,
   "lonely": "somewhat"
  },
- "doing": "Resting",
- "why": "Worn out; he has to sit a while",
- "said": "It's caught.",
+ "doing": "Sleeping",
+ "why": "Worn out; time to sleep",
+ "said": "Bank the fire: ash over the coals, so there's fire in the morning.",
  "has": {
+  "fuel": 0.8,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
@@ -125,7 +126,7 @@
   }
  ],
  "fire": [
-  "burning"
+  "embers"
  ],
  "beliefs": {},
  "dog": {
@@ -151,8 +152,7 @@
    "cockles": 2,
    "fire": 1,
    "ship": 1,
-   "dog": 1,
-   "scraps": 1
+   "dog": 1
   },
   "islandSeen": "40%"
  },
@@ -261,44 +261,49 @@
  ],
  "intentions": [
   {
-   "k": "explore",
-   "w": 5,
-   "hoursLeft": 56
-  },
-  {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 37
+   "hoursLeft": 33
   },
   {
    "k": "build:fishTrap",
    "w": 25,
-   "hoursLeft": 18
-  },
-  {
-   "k": "stock",
-   "w": 12,
-   "hoursLeft": 29
-  },
-  {
-   "k": "fire",
-   "w": 28,
-   "hoursLeft": 24
+   "hoursLeft": 14
   },
   {
    "k": "build:debrisHut",
    "w": 18,
-   "hoursLeft": 39
+   "hoursLeft": 35
   },
   {
    "k": "food",
    "w": 18,
-   "hoursLeft": 22
+   "hoursLeft": 18
+  },
+  {
+   "k": "build:snare",
+   "w": 15,
+   "hoursLeft": 36
+  },
+  {
+   "k": "stock",
+   "w": 12,
+   "hoursLeft": 36
   },
   {
    "k": "dog",
-   "w": 12,
-   "hoursLeft": 49
+   "w": 15,
+   "hoursLeft": 56
+  },
+  {
+   "k": "fire",
+   "w": 10,
+   "hoursLeft": 36
+  },
+  {
+   "k": "explore",
+   "w": 10,
+   "hoursLeft": 76
   }
  ],
  "journal": [
@@ -321,7 +326,11 @@
   {
    "day": 3,
    "text": "Third day, and I made it through a hungry night without it turning into anything worse. Whatever I managed between the trap, the snares and what's left in my hands has quieted my stomach, if not answered every question about tomorrow. Fire's out again — that's twice now, and I'm getting tired of relighting it from scratch each morning. Fog's thick enough I can't see the shore from the lean-to. Feeling the quiet of this place more today than I have — no one to grumble to about any of it but myself, and Nell, who isn't much for conversation yet. Fire first, then the woodpile cover, then I'll see what the fog gives up."
+  },
+  {
+   "day": 3,
+   "text": "Second shelter done today — a proper debris hut, ridge and ribs and a deep bed of leaves, built with my own two hands and whatever the wood gave me. Fire's lit again and holding, third time of asking. I'm wrung out in a way that's more satisfaction than exhaustion, if that makes any sense to anyone but me. Tomorrow there's still that third snare wanting a noose, and the woodpile could do with its cover before the weather changes its mind about being kind. For now I'll sit by the fire a while and let my hands rest."
   }
  ],
- "lastThought": "Piling leaf litter over the debris hut, arm-deep, and it's coming on well. But that fire's been cold since last night and I keep telling myself I'll see to it after this next handful of leaves. No more excuses — soon as this pile's done."
+ "lastThought": "Debris hut's finished, bed and all, and the fire's caught proper this time. Legs won't hold me a minute longer, though — sitting here watching the flame do the work for once."
 }
