@@ -287,5 +287,27 @@
    }
   ],
   "id": "m4420"
+ },
+ {
+  "applyAt": 4720,
+  "thought": "Fed Nell twice this morning before I'd properly fed myself — daft, maybe, weak as I was, but she's thinner than she ought to be and I couldn't watch that and do nothing. She's coming round a little for it. Bracken for the woodpile cover now, belly settled enough to work.",
+  "intents": [
+   {
+    "k": "food",
+    "w": 25,
+    "hours": 20
+   },
+   {
+    "k": "dog",
+    "w": 18,
+    "hours": 45
+   },
+   {
+    "k": "stock",
+    "w": 15,
+    "hours": 22
+   }
+  ],
+  "id": "m4720"
  }
 ]
