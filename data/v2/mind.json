@@ -269,5 +269,23 @@
    }
   ],
   "id": "m3880"
+ },
+ {
+  "applyAt": 4420,
+  "thought": "Weak in the knees this morning, proper weak, stripping brambles with shaking hands. I've been building like a man with a full belly and I haven't got one. Today's for food and nothing else until I'm right again.",
+  "diary": "Fourth day, and hunger's caught up with me properly — weak enough this morning that the berry bushes swam a bit before my eyes. I've been so set on the building that I've let the eating slide, and that's a fool's bargain out here. The trap and the snares haven't given me much yet, whatever the reason, so it's berries and whatever else I can find with my own two hands today. No more roofs, no more tripods, till I've put something solid back in my stomach. Nell was watching from the treeline again this morning — I daresay she knows hunger better than I do.",
+  "intents": [
+   {
+    "k": "food",
+    "w": 35,
+    "hours": 24
+   },
+   {
+    "k": "boil",
+    "w": 10,
+    "hours": 24
+   }
+  ],
+  "id": "m4420"
  }
 ]

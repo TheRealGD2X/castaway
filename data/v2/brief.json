@@ -1,33 +1,34 @@
 {
- "day": 3,
- "t": 3879,
- "when": "Sun 27/9 22:39 (UK time)",
+ "day": 4,
+ "t": 4419,
+ "when": "Mon 28/9 07:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 13,
-  "wind": "6 mph from the SE",
+  "temp": 12,
+  "wind": "7 mph from the SE",
   "rain": "none",
   "fog": false,
-  "light": "night",
+  "light": "twilight",
   "tide": "high"
  },
  "body": {
-  "hungry": "somewhat",
-  "thirsty": "a little",
+  "hungry": "desperately",
+  "thirsty": "somewhat",
   "cold": "not",
-  "tired": "a little",
+  "tired": "not",
   "weary": "not",
   "wet": "not",
   "ill": "no",
   "hurt": "no",
-  "coreC": 36.7,
+  "coreC": 36.8,
   "lonely": "somewhat"
  },
- "doing": "Sleeping",
- "why": "Worn out; time to sleep",
+ "doing": "Picking berries",
+ "why": "Weak with hunger",
  "said": "Bank the fire: ash over the coals, so there's fire in the morning.",
  "has": {
   "fuel": 0.8,
+  "food": 216,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
@@ -263,47 +264,52 @@
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 33
+   "hoursLeft": 24
   },
   {
    "k": "build:fishTrap",
    "w": 25,
-   "hoursLeft": 14
+   "hoursLeft": 5
   },
   {
    "k": "build:debrisHut",
    "w": 18,
-   "hoursLeft": 35
-  },
-  {
-   "k": "food",
-   "w": 18,
-   "hoursLeft": 18
+   "hoursLeft": 26
   },
   {
    "k": "build:snare",
    "w": 15,
-   "hoursLeft": 36
-  },
-  {
-   "k": "stock",
-   "w": 12,
-   "hoursLeft": 36
+   "hoursLeft": 27
   },
   {
    "k": "dog",
    "w": 15,
-   "hoursLeft": 56
+   "hoursLeft": 47
   },
   {
    "k": "fire",
    "w": 10,
-   "hoursLeft": 36
+   "hoursLeft": 27
   },
   {
    "k": "explore",
    "w": 10,
-   "hoursLeft": 76
+   "hoursLeft": 67
+  },
+  {
+   "k": "food",
+   "w": 20,
+   "hoursLeft": 15
+  },
+  {
+   "k": "stock",
+   "w": 15,
+   "hoursLeft": 27
+  },
+  {
+   "k": "boil",
+   "w": 12,
+   "hoursLeft": 21
   }
  ],
  "journal": [
@@ -332,5 +338,5 @@
    "text": "Second shelter done today — a proper debris hut, ridge and ribs and a deep bed of leaves, built with my own two hands and whatever the wood gave me. Fire's lit again and holding, third time of asking. I'm wrung out in a way that's more satisfaction than exhaustion, if that makes any sense to anyone but me. Tomorrow there's still that third snare wanting a noose, and the woodpile could do with its cover before the weather changes its mind about being kind. For now I'll sit by the fire a while and let my hands rest."
   }
  ],
- "lastThought": "Debris hut's finished, bed and all, and the fire's caught proper this time. Legs won't hold me a minute longer, though — sitting here watching the flame do the work for once."
+ "lastThought": "Ash banked over the coals, belly grumbling a little, throat drier than I'd like. Water's the thing I've not properly sorted yet — stream water straight down has never once agreed with a sailor's stomach. Sleep first, mind on it tomorrow."
 }
