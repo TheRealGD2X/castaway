@@ -337,5 +337,22 @@
    }
   ],
   "id": "m5080"
+ },
+ {
+  "applyAt": 5320,
+  "thought": "Hungry again, proper hungry, and I thought I'd sorted that this morning. Trap and snares are set but they're not earning their keep the way I hoped. First light, I check every one of them properly, not just glance and walk on.",
+  "intents": [
+   {
+    "k": "food",
+    "w": 28,
+    "hours": 20
+   },
+   {
+    "k": "dog",
+    "w": 15,
+    "hours": 40
+   }
+  ],
+  "id": "m5320"
  }
 ]

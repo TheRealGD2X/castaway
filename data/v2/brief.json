@@ -1,31 +1,31 @@
 {
  "day": 4,
- "t": 5079,
- "when": "Mon 28/9 18:39 (UK time)",
+ "t": 5319,
+ "when": "Mon 28/9 22:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 16,
+  "temp": 13,
   "wind": "5 mph from the SE",
   "rain": "none",
-  "fog": false,
-  "light": "day",
-  "tide": "falling/low-ish"
+  "fog": true,
+  "light": "night",
+  "tide": "high"
  },
  "body": {
-  "hungry": "not",
+  "hungry": "very",
   "thirsty": "a little",
   "cold": "not",
-  "tired": "somewhat",
+  "tired": "not",
   "weary": "not",
   "wet": "not",
   "ill": "no",
   "hurt": "no",
-  "coreC": 37.2,
+  "coreC": 36.7,
   "lonely": "very"
  },
- "doing": "Stacking the woodpile",
- "why": "Resting by the fire",
- "said": "Coals still alive under the ash. Tinder on them, blow, and it takes.",
+ "doing": "Sleeping",
+ "why": "Worn out; time to sleep",
+ "said": "Bank the fire: ash over the coals, so there's fire in the morning.",
  "has": {
   "stones": 2,
   "bracken": 1,
@@ -125,7 +125,7 @@
   }
  ],
  "fire": [
-  "burning"
+  "embers"
  ],
  "beliefs": {},
  "dog": {
@@ -158,11 +158,6 @@
  },
  "shipsSeen": 1,
  "lately": [
-  {
-   "day": 1,
-   "time": "19:13",
-   "what": "ship fishing boat"
-  },
   {
    "day": 2,
    "time": "06:29",
@@ -268,54 +263,55 @@
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 13
+   "hoursLeft": 9
   },
   {
    "k": "build:debrisHut",
    "w": 18,
-   "hoursLeft": 15
+   "hoursLeft": 11
   },
   {
    "k": "build:snare",
    "w": 15,
-   "hoursLeft": 16
-  },
-  {
-   "k": "fire",
-   "w": 10,
-   "hoursLeft": 16
-  },
-  {
-   "k": "explore",
-   "w": 10,
-   "hoursLeft": 56
+   "hoursLeft": 12
   },
   {
    "k": "boil",
    "w": 10,
-   "hoursLeft": 13
+   "hoursLeft": 9
   },
   {
    "k": "food",
    "w": 25,
-   "hoursLeft": 14
-  },
-  {
-   "k": "dog",
-   "w": 18,
-   "hoursLeft": 39
+   "hoursLeft": 10
   },
   {
    "k": "stock",
    "w": 15,
-   "hoursLeft": 16
+   "hoursLeft": 12
+  },
+  {
+   "k": "explore",
+   "w": 18,
+   "hoursLeft": 56
+  },
+  {
+   "k": "dog",
+   "w": 20,
+   "hoursLeft": 41
+  },
+  {
+   "k": "build:reflector",
+   "w": 12,
+   "hoursLeft": 46
+  },
+  {
+   "k": "fire",
+   "w": 8,
+   "hoursLeft": 20
   }
  ],
  "journal": [
-  {
-   "day": 1,
-   "text": "A boat passed this evening, out beyond the reef — the first sign of another living soul since I came ashore. I watched its lights a good while before they went. Didn't call out; it would never have carried, and I hadn't the strength to make a fool of myself for nothing. Belly's empty and won't let me forget it, but the fire's banked and should hold till morning. Next time a boat comes by, I want smoke enough to be seen, not just watched for."
-  },
   {
    "day": 2,
    "text": "Slept the whole night under a finished roof and didn't once wake shivering — small thing to be proud of, but I'll take my pride where I find it out here. The dog was at the treeline again this morning, close enough to see her properly this time: thin but not starving, watching me the way I watch the tide. Didn't push it. Today I want poles for a signal tripod, dry wood packed in the middle, so if another boat comes by there's more than moonlight to see me by. Belly's still asking questions I can't fully answer yet, but one thing at a time."
@@ -335,7 +331,11 @@
   {
    "day": 4,
    "text": "Fourth day, and hunger's caught up with me properly — weak enough this morning that the berry bushes swam a bit before my eyes. I've been so set on the building that I've let the eating slide, and that's a fool's bargain out here. The trap and the snares haven't given me much yet, whatever the reason, so it's berries and whatever else I can find with my own two hands today. No more roofs, no more tripods, till I've put something solid back in my stomach. Nell was watching from the treeline again this morning — I daresay she knows hunger better than I do."
+  },
+  {
+   "day": 4,
+   "text": "Sat by the fire tonight and counted up what's done: lean-to, fire ring, signal tripod, fish trap, all three snares, the debris hut, and now the woodpile with its cover. Four days, and everything I set my mind to that first hungry night is built and standing. I ought to feel like a man who's won something. Instead it's the quiet that's got me — proper lonely tonight, more than I've let on. Nell's closer than she was, and I'm glad of her, but she's not much for talking back. Tomorrow I think I'll walk further than I have — see more of this place than the same worn paths between hut and fire and trap. A man needs something ahead of him, not just behind."
   }
  ],
- "lastThought": "Fed Nell twice this morning before I'd properly fed myself — daft, maybe, weak as I was, but she's thinner than she ought to be and I couldn't watch that and do nothing. She's coming round a little for it. Bracken for the woodpile cover now, belly settled enough to work."
+ "lastThought": "Woodpile's covered, third snare's got its noose. Everything I set out to build in these four days is standing. Fire's burning proper and I've a full belly, and still this evening feels emptier than it ought to."
 }
