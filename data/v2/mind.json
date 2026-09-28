@@ -309,5 +309,33 @@
    }
   ],
   "id": "m4720"
+ },
+ {
+  "applyAt": 5080,
+  "thought": "Woodpile's covered, third snare's got its noose. Everything I set out to build in these four days is standing. Fire's burning proper and I've a full belly, and still this evening feels emptier than it ought to.",
+  "diary": "Sat by the fire tonight and counted up what's done: lean-to, fire ring, signal tripod, fish trap, all three snares, the debris hut, and now the woodpile with its cover. Four days, and everything I set my mind to that first hungry night is built and standing. I ought to feel like a man who's won something. Instead it's the quiet that's got me — proper lonely tonight, more than I've let on. Nell's closer than she was, and I'm glad of her, but she's not much for talking back. Tomorrow I think I'll walk further than I have — see more of this place than the same worn paths between hut and fire and trap. A man needs something ahead of him, not just behind.",
+  "intents": [
+   {
+    "k": "explore",
+    "w": 18,
+    "hours": 60
+   },
+   {
+    "k": "dog",
+    "w": 20,
+    "hours": 45
+   },
+   {
+    "k": "build:reflector",
+    "w": 12,
+    "hours": 50
+   },
+   {
+    "k": "fire",
+    "w": 8,
+    "hours": 24
+   }
+  ],
+  "id": "m5080"
  }
 ]
