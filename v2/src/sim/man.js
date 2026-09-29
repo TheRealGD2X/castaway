@@ -56,7 +56,7 @@ export function bodyContext(W, M, met) {
   fireW *= sh.fire * (1 + sh.reflect);
   // a dog asleep against him is a hot-water bottle (a dog's body gives off about 50 W; he gets some of it)
   if (M.B.asleep) for (const a of W.animals) if (a.sp === "dog" && a.curled) fireW += 22;                    // a debris hut shuts the fire out; a reflector wall throws it back in
-  return { met, airT: x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: x.rain, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: x.hum, fireW, lying: M.B.asleep, bedding: sh.bed, sleepQ: 1 };
+  return { met, airT: x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: x.rain, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: x.hum, fireW, lying: M.B.asleep || M.pose === "lie", bedding: sh.bed, sleepQ: 1 };
 }
 // walk along the path: real speed (about 1.2 m/s on firm grass), slower on rough ground, when tired or cold
 export function walk(W, M, minutes = 1) {

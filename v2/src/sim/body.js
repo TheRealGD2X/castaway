@@ -64,8 +64,12 @@ export function bodyStep(B, ctx) {
 export function feel(B) {
   return {
     hunger: clamp(1 - B.glyco / 1500 - B.gut / 700 + (B.gut < 50 ? .15 : 0), 0, 1) * (1 - (B.ill || 0) * .8),   // a full stomach quiets hunger
+    // An empty stomach and depleted energy reserves are different signals. Several days of fuel left means
+    // eating becomes urgent even while staying warm matters; eating also restores fuel for shivering.
+    starving: clamp(1 - (B.fat * 7700 + B.glyco + B.gut) / 15400, 0, 1) * clamp(1 - B.gut / 1800, 0, 1),
     thirst: clamp(B.waterDef / 3, 0, 1),
     cold: clamp((36.8 - B.core) / 2 + B.shiver * .3, 0, 1),
+    hypothermic: clamp((35 - B.core) / 7, 0, 1),             // danger keeps rising after ordinary cold feels maximal
     hot: clamp((B.core - 37.4) / 1.2, 0, 1),
     tired: clamp(B.sleepP, 0, 1),
     weary: B.fatigue,

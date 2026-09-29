@@ -15,13 +15,14 @@ import { here, walk, goTo } from "../sim/man.js";
 import { MW, MH, idx } from "../world/gen.js";
 import { intent } from "../sim/mindlink.js";
 import { clamp } from "../core/dmath.js";
+import { exposure } from "./exposure.js";
 
 // what he believes his situation to be, simplified for planning
 function situation(W, M) {
   const inv = M.inv, fireM = Object.entries(M.mem).find(([k, m]) => k.startsWith("fire") && m.lit);
   const S = { food: Math.round(inv.food || 0), tinder: +(inv.tinder || 0).toFixed(2), kindling: +(inv.kindling || 0).toFixed(1), fuel: +(inv.fuel || 0).toFixed(1),
     flake: inv.flake ? 1 : 0, drill: inv.drill ? 1 : 0, fire: fireM ? 2 : 0, fireFuel: fireM ? +(fireM[1].fuelKg || 0).toFixed(1) : 0,
-    fed: 0, watered: 0, warm: 0, rested: 0, rest: 0, dry: 0, stageDone: 0, stacked: 0, laid: 0, embers: 0, dogFed: 0, signalled: 0, watched: 0, raw: Math.round(inv.raw || 0), pot: inv.pot ? 1 : 0, clean: +(inv.clean || 0).toFixed(1), night: W.wx.elev < -.05 ? 1 : 0, rain: W.wx.rain > .3 ? 1 : 0 };
+    fed: 0, watered: 0, warm: 0, cover: bestShelter(W) ? 1 : 0, rested: 0, rest: 0, dry: 0, stageDone: 0, stacked: 0, laid: 0, embers: 0, dogFed: 0, signalled: 0, watched: 0, raw: Math.round(inv.raw || 0), pot: inv.pot ? 1 : 0, clean: +(inv.clean || 0).toFixed(1), night: W.wx.elev < -.05 ? 1 : 0, rain: W.wx.rain > .3 ? 1 : 0 };
   for (const m of MATS) S[m] = Math.round(inv[m] || 0);
   // a fire laid but not lit, or gone to embers: he knows it's there
   // a fire laid but not lit (tinder in it), or gone to embers: ready to light. A dead hearth with only wood left
@@ -88,8 +89,15 @@ function goals(W, M) {
   const f = feel(M.B), S = situation(W, M), G = [], x = W.wx, C = cal(W.born, W.t);
   const toDusk = x.elev > -.05 ? minutesToDusk(W) : 0;
   if (f.thirst > .3) G.push({ k: "water", vars: ["watered"], want: S => S.watered, v: 50 + f.thirst * 70, why: f.thirst > .7 ? "Parched" : "Thirsty" });
-  if (f.hunger > .5 && (S.food > 100 || knowsFood(M))) G.push({ k: "food", vars: ["fed"], want: S => S.fed, v: 30 + f.hunger * 55 + intent(W, M, "food"), why: f.hunger > .85 ? "Weak with hunger" : "Hungry" });
-  if ((M.B.core < 36.4 || (M.B.wet > .5 && x.temp < 12)) && S.fire === 2) G.push({ k: "warm", vars: ["warm"], want: S => S.warm, v: 60 + f.cold * 60, why: M.B.wet > .5 ? "Soaked and cold; he needs to dry out by the fire" : "Cold to the bone" });
+  if ((f.hunger > .5 || f.starving > .1) && (S.food > 100 || knowsFood(M))) G.push({ k: "food", vars: ["fed"], want: S => S.fed, v: 30 + f.hunger * 55 + f.starving * 500 + intent(W, M, "food"), why: f.starving > .5 ? "Running out of strength; he needs food to keep warm" : f.hunger > .85 ? "Weak with hunger" : "Hungry" });
+  if ((M.B.core < 36.4 || (M.B.wet > .5 && x.temp < 12)) && (S.fire === 2 || S.cover)) {
+    const target = ACTIONS.warmUp.find(W, M);
+    if (target) {
+      const outside = exposure(W, M, M, 60, true), refuge = exposure(W, M, target);
+      const relief = Math.max(0, outside.cold - refuge.cold);
+      G.push({ k: "warm", vars: ["warm"], want: S => S.warm, v: 60 + f.cold * 60 + f.hypothermic * 700 + relief * 120, why: target.key === "shelter" ? (M.B.wet > .5 ? "Soaked and cold; he can hold more heat inside his shelter" : "Cold; he can hold more heat inside his shelter") : M.B.wet > .5 ? "Soaked and cold; he needs to dry out by the fire" : "Cold to the bone" });
+    }
+  }
   // tonight: would a night without fire chill him dangerously? then a lit fire with fuel for the night, by dusk
   const needFuel = 6;
   if (!(S.fire === 2 && S.fireFuel >= needFuel)) {
@@ -114,7 +122,11 @@ function goals(W, M) {
   if (dg && W.t - dg.t < 180 && ((dg.trust ?? 0) < .85 || dg.thin) && !S.night && (S.food >= 150 || S.raw >= 150) && f.hunger < .45)
     G.push({ k: "dog", vars: ["dogFed"], want: S => S.dogFed, v: 16 + (M.lonely || 0) * 25 + intent(W, M, "dog"), why: dg.thin && (dg.trust ?? 0) >= .85 ? `${dg.name} is all ribs. He shares what he has` : (dg.trust ?? 0) < .3 ? `The ship's dog, ${dg.name}. Thin and wary. He wants it to trust him` : `${dg.name} is coming round. A bit of food, and a quiet word` });
   const roof = shelterAt(W, M.x, M.y).rain;
-  if (x.rain > .8 && roof < .5 && M.B.wet > .4) G.push({ k: "dry", vars: ["dry"], want: S => S.dry, v: 45 + x.rain * 8, why: "Getting out of the rain" });
+  if (x.rain > .8 && roof < .5 && M.B.wet > .4) {
+    const target = ACTIONS.shelterFromRain.find(W, M), outside = exposure(W, M, M);
+    const relief = target ? Math.max(0, outside.cold - exposure(W, M, { ...target, pose: "sit" }).cold) : 0;
+    G.push({ k: "dry", vars: ["dry"], want: S => S.dry, v: 45 + x.rain * 8 + relief * 120, why: relief > .1 ? "Losing heat in the rain; the shelter would keep him warmer" : "Getting out of the rain" });
+  }
   if ((f.weary > .75 || intent(W, M, "rest") > 0) && !S.night) G.push({ k: "rest", vars: ["rest"], want: S => S.rest, v: (f.weary > .75 ? 20 + f.weary * 40 : 8) + intent(W, M, "rest"), why: f.weary > .75 ? "Worn out; he has to sit a while" : "Taking his time. Sitting with his thoughts" });
   // curiosity: on a quiet day he goes to see the parts of the island he doesn't know yet
   if (!S.night && !G.some(g => g.explore) && W.t % 60 < 5) { let k = 0, n = 0; for (let i = 0; i < M.known.length; i += 7) if (W.ter[i] > 1) { n++; k += M.known[i]; } M.seen = k / Math.max(1, n); }   // share of the land he has seen
@@ -222,7 +234,7 @@ export function think(W) {
     else if (pick) { M.why = pick.why; if (!M.act) M.plan = pick.steps; }
     if (!pick && !M.act) { M.idleSince = W.t; M.goal = null; M.why = S.fire === 2 ? "Resting by the fire" : "Catching his breath"; M.pose = "sit"; M.met = MET.sit; return; }
   }
-  if (!M.act && M.plan && M.plan.length) { const s = M.plan[0]; M.act = { a: s.a, t: s.t, st: {} }; M.doing = LABEL[s.a] || (s.a.startsWith("build_") ? "Building the " + FAMILIES[s.a.slice(6)].label : s.a); }
+  if (!M.act && M.plan && M.plan.length) { const s = M.plan[0]; M.act = { a: s.a, t: s.t, st: {} }; M.doing = s.a === "warmUp" && s.t.key === "shelter" ? "Warming up in the shelter" : LABEL[s.a] || (s.a.startsWith("build_") ? "Building the " + FAMILIES[s.a.slice(6)].label : s.a); }
   if (!M.act) return;
   const A = ACTIONS[M.act.a] || (M.act.a.startsWith("build_") ? { exec: (W, M, t, st) => { if (t.d) { const n = place(W, t.d); if (W.camp == null && FAMILIES[n.k].shelter) W.camp = idx(Math.floor(n.x + DIRV[n.dir][0]), Math.floor(n.y + DIRV[n.dir][1])); t.sid = n.id; delete t.d; M.projCache = null; } return buildExec(W, M, t, st); } } : null);
   const r = M.act.a === "explore" ? exploreExec(W, M, M.act.t, M.act.st) : A ? A.exec(W, M, M.act.t, M.act.st) : "fail";

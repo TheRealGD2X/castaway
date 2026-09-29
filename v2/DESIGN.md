@@ -55,3 +55,20 @@ embers) is computed from the parts installed, so a half-thatched roof half works
 predicting tonight's body temperature with and without them; each stage is an ordinary planner goal (gather the
 parts, then put them up), and materials put down on site stay there if he's called away. The renderer draws every
 structure from its parts and progress. Families need skill: the roundhouse only once he's built enough.
+
+## Thermal refuge
+The mind also compares the next hour's heat balance at a remembered fireside seat and inside his best built
+shelter (`mind/exposure.js`). Forecasts copy his body and use the ordinary physiology with the weather he can
+currently feel; they do not consume randomness, change his real body, or know the next weather front. Expected
+cold avoided adds weight to warming and taking cover, so warmth does not always mean sitting in exposed rain
+beside a fire. He can lie awake on his existing bed to conserve heat, without receiving sleep recovery.
+Depleted fat, glycogen and food in his gut produce a separate starvation signal, so ordinary hunger does not
+stay at a fixed priority while his remaining energy vanishes. Eating competes more urgently with keeping warm
+as those reserves fall; calories and heat are still gained only through the normal physical processes.
+Danger from hypothermia continues rising below 35 degrees, even after ordinary cold has reached its maximum
+signal, so an immediate collapse from cold can outweigh a slower energy deficit. A full gut quiets food urgency
+while its contents digest.
+Actions that need the shelter enter its tile rather than stopping beside it. These choices use existing saved
+pose and action fields; old checkpoints and the mind routine's thought and brief formats remain compatible.
+Run `node test/exposure.test.js` as well as the standard checks for forecasts, shelter entry, heat recovery and
+replay. Long-term food supply and winter survival still need separate work.

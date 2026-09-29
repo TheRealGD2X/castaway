@@ -12,6 +12,7 @@ import { FRUIT } from "../sim/eco.js";
 import { clamp, dexp } from "../core/dmath.js";
 import { expose, hazard } from "../sim/health.js";
 import { SHELL, lowIn } from "../sim/shore.js";
+import { warmPlace } from "./exposure.js";
 import { FISH } from "../sim/fish.js";
 import { MATS, MATERIALS, bestShelter, propsOf, woodpile, work as buildWork, finished, FAMILIES, fireRingAt } from "../build/build.js";
 
@@ -239,9 +240,9 @@ export const ACTIONS = {
     exec: work({ adjacent: true, mins: 3, met: MET.stand, pose: "tend", done: (W, M, t) => { const F = fireAt(W, t); if (!F) return "fail"; addFuel(F, "logs", M.inv.fuel || 0, M.fuelMoist ?? .25); M.inv.fuel = 0; } }),
   },
   warmUp: {
-    r: ["fire"], w: ["warm"],
-    find: (W, M) => litFireMem(M) || camp(W, M), pre: S => S.fire === 2, eff: S => { S.warm = 1; }, cost: (W, M, t) => walkMin(M, t) + 30,
-    exec: work({ adjacent: true, mins: 30, met: MET.sit, pose: "warm", until: (W, M) => M.B.core > 36.8 && M.B.wet < .15 }),
+    r: ["fire", "cover"], w: ["warm"],
+    find: (W, M) => warmPlace(W, M, litFireMem(M) || camp(W, M)), pre: S => S.fire === 2 || S.cover, eff: S => { S.warm = 1; }, cost: (W, M, t) => walkMin(M, t) + 30,
+    exec: (W, M, t, st) => (t.key === "shelter" ? warmSheltered : warmFireside)(W, M, t, st),
   },
   sleep: {
     r: ["night"], w: ["rested"],
@@ -250,6 +251,8 @@ export const ACTIONS = {
     exec: sleepExec,
   },
 };
+const warmFireside = work({ adjacent: true, mins: 30, met: MET.sit, pose: "warm", until: (W, M) => M.B.core > 36.6 && M.B.wet < .25 });
+const warmSheltered = work({ adjacent: false, mins: 30, met: MET.sit, pose: "lie", until: (W, M) => M.B.core > 36.6 && M.B.wet < .25 });
 // ------------------------------------------------------------ gathering building materials
 // where each material comes from (as he remembers the island), what it needs, and what taking it does to the world
 const MATSRC = {
@@ -398,7 +401,14 @@ function lightFireExec(W, M, t, st) {
 // a standard piece of work: walk there (or stay), then work for some minutes; tick each minute, done at the end
 function work(o) {
   return (W, M, t, st) => {
-    if (!st.phase) { st.phase = "go"; if (!o.here && t.x != null && d2(M, t) > 2.2) { if (!goTo(W, M, t.tile ?? idx(Math.floor(t.x), Math.floor(t.y)), o.adjacent)) return "fail"; } else M.path = null; }
+    if (!st.phase) {
+      st.phase = "go";
+      const tile = t.x != null ? t.tile ?? idx(Math.floor(t.x), Math.floor(t.y)) : null;
+      // Work inside a shelter must reach its tile. Being within one tile is enough for a tree or fire,
+      // but can leave him outside the roof while he believes he has taken cover.
+      const move = !o.here && tile != null && (o.adjacent ? d2(M, t) > 2.2 : here(M) !== tile);
+      if (move) { if (!goTo(W, M, tile, o.adjacent)) return "fail"; } else M.path = null;
+    }
     if (st.phase === "go") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) { st.phase = "work"; st.left = o.mins; } return "go"; }
     M.pose = o.pose; M.met = o.met;
     if (t.x != null) M.face = t.x > M.x ? 1 : -1;

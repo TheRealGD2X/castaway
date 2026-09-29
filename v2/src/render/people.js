@@ -25,6 +25,7 @@ export const ANIM = {
   warm:      { stance: "sit", work: [9, -8], motion: "warm", period: 3000, frames: 4, lean: .1 },           // hands to the fire
   eat:       { stance: "sit", work: [5, -6], motion: "mouth", period: 2600, frames: 8, lean: .05 },
   sleep:     { stance: "lie" },
+  lie:       { stance: "lie" },                                                                         // conserving heat while awake
 };
 for (const k in ANIM) ANIM[k].key = k;
 export function manSprite(pose, t) { return rigSprite(ANIM[pose] || ANIM.stand, t); }
