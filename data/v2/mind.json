@@ -404,5 +404,37 @@
    }
   ],
   "id": "m6160"
+ },
+ {
+  "applyAt": 6520,
+  "thought": "Sitting up over the sea with clean water cooling in the pot and Nell curled by my feet, watching for a sail that isn't there yet. Signal's ready if one comes. Quieter kind of hope tonight, not the desperate sort — I can wait.",
+  "intents": [
+   {
+    "k": "boil",
+    "w": 12,
+    "hours": 40
+   },
+   {
+    "k": "food",
+    "w": 15,
+    "hours": 20
+   },
+   {
+    "k": "explore",
+    "w": 15,
+    "hours": 35
+   },
+   {
+    "k": "build:reflector",
+    "w": 10,
+    "hours": 30
+   },
+   {
+    "k": "dog",
+    "w": 10,
+    "hours": 25
+   }
+  ],
+  "id": "m6520"
  }
 ]
