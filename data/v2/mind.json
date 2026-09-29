@@ -436,5 +436,27 @@
    }
   ],
   "id": "m6520"
+ },
+ {
+  "applyAt": 6760,
+  "thought": "Hungry again, proper hungry, same as every night this week near enough. Three snares and a trap and it's still not steady. Maybe what I need isn't more of the same but new ground — further along the coast, past what I've already picked clean.",
+  "intents": [
+   {
+    "k": "food",
+    "w": 25,
+    "hours": 24
+   },
+   {
+    "k": "fire",
+    "w": 12,
+    "hours": 20
+   },
+   {
+    "k": "explore",
+    "w": 15,
+    "hours": 30
+   }
+  ],
+  "id": "m6760"
  }
 ]
