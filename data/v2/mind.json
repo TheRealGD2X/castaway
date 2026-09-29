@@ -354,5 +354,28 @@
    }
   ],
   "id": "m5320"
+ },
+ {
+  "applyAt": 5860,
+  "thought": "Sick as a dog in the night, and I still can't say for certain what did it — the berries, the stream, or that marsh water I knew better than to trust. Weak and hungry again this morning, but I'm boiling every drop from now on, no arguments with myself about it.",
+  "diary": "Fifth day, and I've been properly ill overnight — cramping, sweating, up more than once. I keep turning it over: was it the berries, the stream water, or that marsh water I had a bad feeling about even as I drank it? Can't say for certain, and that not-knowing is its own kind of misery. What I do know is I've been careless about water since I got here, telling myself a sailor's stomach can take anything, and a sailor's stomach very much cannot. From now on it's boiled water only, whatever the bother of it. Weak and hungry again this morning too — desperately so — which doesn't help me tell illness from hunger. Very low today, if I'm honest with this page. Nell came close enough to nose at my hand while I lay there, which I won't forget in a hurry.",
+  "intents": [
+   {
+    "k": "boil",
+    "w": 25,
+    "hours": 60
+   },
+   {
+    "k": "food",
+    "w": 20,
+    "hours": 20
+   },
+   {
+    "k": "dog",
+    "w": 15,
+    "hours": 30
+   }
+  ],
+  "id": "m5860"
  }
 ]

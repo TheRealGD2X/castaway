@@ -1,32 +1,33 @@
 {
- "day": 4,
- "t": 5319,
- "when": "Mon 28/9 22:39 (UK time)",
+ "day": 5,
+ "t": 5859,
+ "when": "Tue 29/9 07:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 13,
-  "wind": "5 mph from the SE",
+  "temp": 11,
+  "wind": "8 mph from the SE",
   "rain": "none",
-  "fog": true,
-  "light": "night",
-  "tide": "high"
+  "fog": false,
+  "light": "twilight",
+  "tide": "high-ish"
  },
  "body": {
-  "hungry": "very",
-  "thirsty": "a little",
+  "hungry": "desperately",
+  "thirsty": "somewhat",
   "cold": "not",
   "tired": "not",
   "weary": "not",
   "wet": "not",
-  "ill": "no",
+  "ill": "not",
   "hurt": "no",
-  "coreC": 36.7,
+  "coreC": 36.8,
   "lonely": "very"
  },
- "doing": "Sleeping",
- "why": "Worn out; time to sleep",
- "said": "Bank the fire: ash over the coals, so there's fire in the morning.",
+ "doing": "Picking berries",
+ "why": "Weak with hunger",
+ "said": "Sick as a dog. Was it the berries or the stream water or the marsh water?",
  "has": {
+  "food": 216,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
@@ -127,7 +128,11 @@
  "fire": [
   "embers"
  ],
- "beliefs": {},
+ "beliefs": {
+  "berries": 0.35,
+  "water:stream": 0.35,
+  "water:marsh": 0.35
+ },
  "dog": {
   "name": "Nell",
   "trust": "wary but coming round",
@@ -158,16 +163,6 @@
  },
  "shipsSeen": 1,
  "lately": [
-  {
-   "day": 2,
-   "time": "06:29",
-   "what": "built leanto roof"
-  },
-  {
-   "day": 2,
-   "time": "07:25",
-   "what": "built leanto bed"
-  },
   {
    "day": 2,
    "time": "10:00",
@@ -257,58 +252,63 @@
    "day": 4,
    "time": "14:25",
    "what": "built snare noose"
+  },
+  {
+   "day": 4,
+   "time": "01:38",
+   "what": "ill water:marsh"
   }
  ],
  "intentions": [
   {
    "k": "build:signal",
    "w": 25,
-   "hoursLeft": 9
+   "hoursLeft": 0
   },
   {
    "k": "build:debrisHut",
    "w": 18,
-   "hoursLeft": 11
+   "hoursLeft": 2
   },
   {
    "k": "build:snare",
    "w": 15,
-   "hoursLeft": 12
+   "hoursLeft": 3
   },
   {
    "k": "boil",
    "w": 10,
-   "hoursLeft": 9
-  },
-  {
-   "k": "food",
-   "w": 25,
-   "hoursLeft": 10
+   "hoursLeft": 0
   },
   {
    "k": "stock",
    "w": 15,
-   "hoursLeft": 12
+   "hoursLeft": 3
   },
   {
    "k": "explore",
    "w": 18,
-   "hoursLeft": 56
-  },
-  {
-   "k": "dog",
-   "w": 20,
-   "hoursLeft": 41
+   "hoursLeft": 47
   },
   {
    "k": "build:reflector",
    "w": 12,
-   "hoursLeft": 46
+   "hoursLeft": 37
   },
   {
    "k": "fire",
    "w": 8,
-   "hoursLeft": 20
+   "hoursLeft": 11
+  },
+  {
+   "k": "food",
+   "w": 28,
+   "hoursLeft": 11
+  },
+  {
+   "k": "dog",
+   "w": 15,
+   "hoursLeft": 31
   }
  ],
  "journal": [
@@ -337,5 +337,5 @@
    "text": "Sat by the fire tonight and counted up what's done: lean-to, fire ring, signal tripod, fish trap, all three snares, the debris hut, and now the woodpile with its cover. Four days, and everything I set my mind to that first hungry night is built and standing. I ought to feel like a man who's won something. Instead it's the quiet that's got me — proper lonely tonight, more than I've let on. Nell's closer than she was, and I'm glad of her, but she's not much for talking back. Tomorrow I think I'll walk further than I have — see more of this place than the same worn paths between hut and fire and trap. A man needs something ahead of him, not just behind."
   }
  ],
- "lastThought": "Woodpile's covered, third snare's got its noose. Everything I set out to build in these four days is standing. Fire's burning proper and I've a full belly, and still this evening feels emptier than it ought to."
+ "lastThought": "Hungry again, proper hungry, and I thought I'd sorted that this morning. Trap and snares are set but they're not earning their keep the way I hoped. First light, I check every one of them properly, not just glance and walk on."
 }
