@@ -377,5 +377,32 @@
    }
   ],
   "id": "m5860"
+ },
+ {
+  "applyAt": 6160,
+  "thought": "Got a pot fired and ready — no more excuses about boiling water now. Catching my breath, eating properly, and the sickness has near enough passed. Best of all, Nell came right up to me today, no hanging back. She trusts me now.",
+  "intents": [
+   {
+    "k": "boil",
+    "w": 15,
+    "hours": 40
+   },
+   {
+    "k": "food",
+    "w": 15,
+    "hours": 20
+   },
+   {
+    "k": "explore",
+    "w": 15,
+    "hours": 40
+   },
+   {
+    "k": "dog",
+    "w": 10,
+    "hours": 30
+   }
+  ],
+  "id": "m6160"
  }
 ]

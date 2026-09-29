@@ -1,38 +1,38 @@
 {
  "day": 5,
- "t": 5859,
- "when": "Tue 29/9 07:39 (UK time)",
+ "t": 6159,
+ "when": "Tue 29/9 12:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 11,
-  "wind": "8 mph from the SE",
+  "temp": 15,
+  "wind": "7 mph from the SE",
   "rain": "none",
   "fog": false,
-  "light": "twilight",
+  "light": "day",
   "tide": "high-ish"
  },
  "body": {
-  "hungry": "desperately",
-  "thirsty": "somewhat",
+  "hungry": "not",
+  "thirsty": "not",
   "cold": "not",
-  "tired": "not",
+  "tired": "a little",
   "weary": "not",
   "wet": "not",
-  "ill": "not",
+  "ill": "a little",
   "hurt": "no",
-  "coreC": 36.8,
-  "lonely": "very"
+  "coreC": 37.8,
+  "lonely": "a little"
  },
- "doing": "Picking berries",
- "why": "Weak with hunger",
+ "doing": "Eating",
+ "why": "Catching his breath",
  "said": "Sick as a dog. Was it the berries or the stream water or the marsh water?",
  "has": {
-  "food": 216,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
   "drill": 1,
-  "withies": 1
+  "withies": 1,
+  "pot": 1
  },
  "skills": {
   "drill": 0.96,
@@ -135,8 +135,8 @@
  },
  "dog": {
   "name": "Nell",
-  "trust": "wary but coming round",
-  "thin": true
+  "trust": "trusts him",
+  "thin": false
  },
  "knowsOf": {
   "places": {
@@ -163,16 +163,6 @@
  },
  "shipsSeen": 1,
  "lately": [
-  {
-   "day": 2,
-   "time": "10:00",
-   "what": "built signal tripod"
-  },
-  {
-   "day": 2,
-   "time": "11:17",
-   "what": "built signal boughs"
-  },
   {
    "day": 2,
    "time": "13:33",
@@ -257,65 +247,46 @@
    "day": 4,
    "time": "01:38",
    "what": "ill water:marsh"
+  },
+  {
+   "day": 5,
+   "time": "08:03",
+   "what": "fed dog"
   }
  ],
  "intentions": [
   {
-   "k": "build:signal",
-   "w": 25,
-   "hoursLeft": 0
-  },
-  {
-   "k": "build:debrisHut",
-   "w": 18,
-   "hoursLeft": 2
-  },
-  {
-   "k": "build:snare",
-   "w": 15,
-   "hoursLeft": 3
-  },
-  {
-   "k": "boil",
-   "w": 10,
-   "hoursLeft": 0
-  },
-  {
-   "k": "stock",
-   "w": 15,
-   "hoursLeft": 3
-  },
-  {
    "k": "explore",
    "w": 18,
-   "hoursLeft": 47
+   "hoursLeft": 42
   },
   {
    "k": "build:reflector",
    "w": 12,
-   "hoursLeft": 37
+   "hoursLeft": 32
   },
   {
    "k": "fire",
    "w": 8,
-   "hoursLeft": 11
+   "hoursLeft": 6
+  },
+  {
+   "k": "boil",
+   "w": 25,
+   "hoursLeft": 55
   },
   {
    "k": "food",
-   "w": 28,
-   "hoursLeft": 11
+   "w": 20,
+   "hoursLeft": 15
   },
   {
    "k": "dog",
    "w": 15,
-   "hoursLeft": 31
+   "hoursLeft": 25
   }
  ],
  "journal": [
-  {
-   "day": 2,
-   "text": "Slept the whole night under a finished roof and didn't once wake shivering — small thing to be proud of, but I'll take my pride where I find it out here. The dog was at the treeline again this morning, close enough to see her properly this time: thin but not starving, watching me the way I watch the tide. Didn't push it. Today I want poles for a signal tripod, dry wood packed in the middle, so if another boat comes by there's more than moonlight to see me by. Belly's still asking questions I can't fully answer yet, but one thing at a time."
-  },
   {
    "day": 2,
    "text": "A day's proper work behind me and my arms know it. Fish trap's in the water, two snares laid along the warren path, wood stacking up on the rack before the weather turns. Best of it though: I set scraps out for the dog and backed off, and she came and ate them, watching me the whole time like I might change my mind about being harmless. Didn't try to touch her — that's a day for another time. Still just the two of us out here, but it feels a little less like just the one."
@@ -335,7 +306,11 @@
   {
    "day": 4,
    "text": "Sat by the fire tonight and counted up what's done: lean-to, fire ring, signal tripod, fish trap, all three snares, the debris hut, and now the woodpile with its cover. Four days, and everything I set my mind to that first hungry night is built and standing. I ought to feel like a man who's won something. Instead it's the quiet that's got me — proper lonely tonight, more than I've let on. Nell's closer than she was, and I'm glad of her, but she's not much for talking back. Tomorrow I think I'll walk further than I have — see more of this place than the same worn paths between hut and fire and trap. A man needs something ahead of him, not just behind."
+  },
+  {
+   "day": 5,
+   "text": "Fifth day, and I've been properly ill overnight — cramping, sweating, up more than once. I keep turning it over: was it the berries, the stream water, or that marsh water I had a bad feeling about even as I drank it? Can't say for certain, and that not-knowing is its own kind of misery. What I do know is I've been careless about water since I got here, telling myself a sailor's stomach can take anything, and a sailor's stomach very much cannot. From now on it's boiled water only, whatever the bother of it. Weak and hungry again this morning too — desperately so — which doesn't help me tell illness from hunger. Very low today, if I'm honest with this page. Nell came close enough to nose at my hand while I lay there, which I won't forget in a hurry."
   }
  ],
- "lastThought": "Hungry again, proper hungry, and I thought I'd sorted that this morning. Trap and snares are set but they're not earning their keep the way I hoped. First light, I check every one of them properly, not just glance and walk on."
+ "lastThought": "Sick as a dog in the night, and I still can't say for certain what did it — the berries, the stream, or that marsh water I knew better than to trust. Weak and hungry again this morning, but I'm boiling every drop from now on, no arguments with myself about it."
 }
