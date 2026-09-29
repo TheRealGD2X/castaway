@@ -78,16 +78,16 @@ export function paintTerrain(W, opt = {}) {
       else if (dep < 3.5) c = R.water[1];
       else c = dep < 6 ? R.water[0] : R.deep[dep < 9 ? 2 : dep < 13 ? 1 : 0];
       // soft wave lines on open water
-      if (near > 6 && ((py + ((px / 7) | 0) * 3) % 11 === 0) && p2 > .55 && (px % 9) < 4) c = dep < 3.5 ? R.water[3] : R.water[1];
+      if (near > 6 && ((py + ((px / 14) | 0) * 3) % 17 === 0) && p2 > .6 && (px % 14) < 6) c = dep < 3.5 ? R.water[3] : R.water[1];
     } else if (m === T.SAND) {
       c = p1 > .62 ? R.sand[3] : p1 < .3 ? R.sand[1] : R.sand[2];
       if (hs < .012) c = R.sand[0]; else if (hs > .992) c = R.sand[4];
       if (WATER(M(px, py + 1)) || WATER(M(px, py + 2)) || WATER(M(px - 2, py)) || WATER(M(px + 2, py)) || WATER(M(px, py - 2))) c = R.sand[1];   // wet at the tideline
     } else if (m === T.SHINGLE) {
-      const cs = 4, gx = Math.floor(px / cs), gy = Math.floor(py / cs); let best = 99, bx = 0, by = 0;
-      for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) { const cx = (gx + ox) * cs + hash3(gx + ox, gy + oy, s + 350) * cs, cy = (gy + oy) * cs + hash3(gx + ox, gy + oy, s + 351) * cs, r = 1.3 + hash3(gx + ox, gy + oy, s + 352) * 1.2, d = Math.sqrt((px - cx) ** 2 + ((py - cy) * 1.3) ** 2) / r; if (d < best) { best = d; bx = (px - cx) / r; by = (py - cy) / r; } }
+      const cs = 6, gx = Math.floor(px / cs), gy = Math.floor(py / cs); let best = 99, bx = 0, by = 0;
+      for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) { const cx = (gx + ox) * cs + hash3(gx + ox, gy + oy, s + 350) * cs, cy = (gy + oy) * cs + hash3(gx + ox, gy + oy, s + 351) * cs, r = 2.4 + hash3(gx + ox, gy + oy, s + 352) * 1.3, d = Math.sqrt((px - cx) ** 2 + ((py - cy) * 1.3) ** 2) / r; if (d < best) { best = d; bx = (px - cx) / r; by = (py - cy) / r; } }
       const tone = hash3(Math.floor(px / 4), Math.floor(py / 4), s + 353);
-      c = best < .9 ? (-bx * .55 - by * .83 > .3 ? R.shingle[4] : tone < .5 ? R.shingle[2] : R.shingle[3]) : R.shingle[best < 1.2 ? 0 : 1];
+      c = best < .9 ? (-bx * .55 - by * .83 > .3 ? R.shingle[3] : tone < .5 ? R.shingle[2] : R.shingle[2]) : R.shingle[1];
     } else if (m === T.ROCK) {
       // rocky ground: flat stones bedded in thin turf and soil, each outlined and lit from the upper left
       const cs = 9, gx = Math.floor(px / cs), gy = Math.floor(py / cs); let best = 99, bx = 0, by = 0, br = 0;
@@ -101,9 +101,9 @@ export function paintTerrain(W, opt = {}) {
     } else {
       const ramp = m === T.MEADOW ? R.meadow : m === T.WOOD ? R.wood : R.grass;
       const pa = (vnoise(px * .018, py * .018, s + 315) * .7 + vnoise(px * .05, py * .05, s + 316) * .3);
-      const dz = ((px + py) & 1) ? .015 : -.015;                                   // a one-pixel checker where tones meet
+      const dz = 0;                                   // a one-pixel checker where tones meet
       c = pa + dz > .6 ? ramp[3] : pa + dz < .36 ? ramp[1] : ramp[2];
-      if (m === T.WOOD && vnoise(px * .3, py * .3, s + 317) > .8 && hs < .5) c = aut > .3 && hs < aut * .3 ? leafAut[(hs * 1000 | 0) % 4] : R.dirt[1];   // leaf litter in drifts
+      if (m === T.WOOD && vnoise(px * .17, py * .17, s + 317) > .84 && hs < .2) c = aut > .3 && hs < aut * .3 ? leafAut[(hs * 1000 | 0) % 4] : R.dirt[1];   // leaf litter in drifts
     }
     put(i, c);
   }
@@ -112,8 +112,8 @@ export function paintTerrain(W, opt = {}) {
   for (let cy = 0; cy < PH / 6; cy++) for (let cx = 0; cx < PW / 6; cx++) {
     const px = cx * 6 + ((hash3(cx, cy, s + 330) * 5) | 0), py = cy * 6 + ((hash3(cx, cy, s + 331) * 5) | 0), h = hash3(cx, cy, s + 332);
     const m = M(px, py); if (LEVEL(m) !== 2 || M(px, py + 2) !== m || M(px, py - 3) !== m) continue;
-    if ((m === T.GRASS && h < .1) || (m === T.WOOD && h < .06)) tuft(px, py, m === T.WOOD ? R.wood : R.grass);
-    else if (m === T.MEADOW && h < .18) { const fl = h < .06 ? "#f4f0e2" : h < .12 ? "#f2d34a" : "#ee8f8a"; put(py * PW + px, fl); put((py + 1) * PW + px, R.meadow[0]); if (h < .03) { put(py * PW + px + 2, fl); put((py + 1) * PW + px + 2, R.meadow[0]); } }
+    if ((m === T.GRASS && h < .04) || (m === T.WOOD && h < .025)) tuft(px, py, m === T.WOOD ? R.wood : R.grass);
+    else if (m === T.MEADOW && h < .10) { const fl = h < .06 ? "#f4f0e2" : h < .12 ? "#f2d34a" : "#ee8f8a"; put(py * PW + px, fl); put((py + 1) * PW + px, R.meadow[0]); if (h < .03) { put(py * PW + px + 2, fl); put((py + 1) * PW + px + 2, R.meadow[0]); } }
   }
   for (let py = 0; py < PH - 2; py++) for (let px = 0; px < PW; px++) {
     const m = mat[py * PW + px], L = LEVEL(m); if (!L) continue;
@@ -125,5 +125,11 @@ export function paintTerrain(W, opt = {}) {
     else if (L === 2 && (LEVEL(M(px - 1, py)) < 2 || LEVEL(M(px + 1, py)) < 2 || LEVEL(M(px, py - 1)) < 2)) put(py * PW + px, (m === T.ROCK ? R.rock : R.grass)[0]);
   }
   g.putImageData(im, 0, 0);
-  return { cv, mat, PW, PH };
+  // Restrained seasonal ground colour, without repainting geometry every day.
+  const recolor = autumn => {
+    g.putImageData(im, 0, 0);
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(177,146,81,${Math.min(.16, autumn * .16)})`; g.fillRect(0, 0, PW, PH); g.globalCompositeOperation = 'source-over';
+  };
+  recolor(aut);
+  return { cv, mat, PW, PH, recolor };
 }

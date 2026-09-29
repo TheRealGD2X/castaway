@@ -3,6 +3,12 @@ export const PI = 3.141592653589793, TAU = 6.283185307179586;
 export const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
 export const lerp = (a, b, t) => a + (b - a) * t;
 export const smooth = t => t * t * (3 - 2 * t);
+// Simulation distances are bounded island/ship coordinates, safely below overflow.
+export const dhypot = (x, y) => Math.sqrt(x * x + y * y);
+export const dsq = x => x * x;
+export const dround = x => Math.floor(x + .5);
+export const dceil = x => -Math.floor(-x);
+export const dsign = x => x < 0 ? -1 : x > 0 ? 1 : 0;
 // sine by range reduction and a 7th-order minimax-style polynomial (error < 1e-6 is plenty for weather and seasons)
 export function dsin(x) {
   x = x - TAU * Math.floor(x / TAU);                 // [0, 2pi)

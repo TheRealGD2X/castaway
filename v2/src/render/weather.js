@@ -28,9 +28,9 @@ export function skyTint(x) {
   let c;
   if (e > .25) c = "#ffffff";
   else if (e > .05) c = mix("#ffd9a8", "#ffffff", (e - .05) / .2);
-  else if (e > -.05) c = mix("#c9867a", "#ffd9a8", (e + .05) / .1);
-  else if (e > -.2) c = mix("#4f5f90", "#c9867a", (e + .2) / .15);
-  else c = "#46568a";
+  else if (e > -.05) c = mix("#c29a76", "#ffd9a8", (e + .05) / .1);
+  else if (e > -.2) c = mix("#617e88", "#c29a76", (e + .2) / .15);
+  else c = "#526e7c";
   if (cl > .5) c = mix(c, mix(c, "#b4bcc4", .5), Math.min(1, (cl - .5) * 1.6));   // overcast: greyer, flatter light
   if (x.rain > 0) c = mix(c, "#8e98a6", Math.min(.55, x.rain * .22));             // rain: gloomier still
   return c;
@@ -41,24 +41,29 @@ export function drawWeather(g, V, W, now, sx, sy) {
   if (x.elev > 0 && x.cloud > .2 && x.cloud < .95) {
     const tex = cloudShadowTexture(), S = tex.width, dir = x.windDir * Math.PI / 4, sp = x.wind * .004;
     const ox = Math.floor((((sx + now * sp * Math.sin(dir)) % S) + S) % S), oy = Math.floor((((sy - now * sp * Math.cos(dir)) % S) + S) % S);
-    g.globalAlpha = .16 * Math.min(1, x.cloud * 1.6);
+    g.globalAlpha = .09 * Math.min(1, x.cloud * 1.6);
     for (let y = -oy; y < ah; y += S) for (let xx = -ox; xx < aw; xx += S) g.drawImage(tex, xx, y);
     g.globalAlpha = 1;
   }
   // wet ground: a cool darkening while it rains and for a while after
   if (x.rain > 0) { g.fillStyle = "rgba(30,40,60,.10)"; g.fillRect(0, 0, aw, ah); }
   // rain: slanted streaks (more, longer and faster the harder it falls; the wind leans them) and splashes where they land
-  if (x.rain > .05) {
-    const n = Math.min(1400, Math.round(aw * ah / 500 * Math.min(4, x.rain))), slant = (x.windDir >= 4 ? -1 : 1) * Math.min(3, x.wind / 5), t = now / 1000;
-    g.fillStyle = "rgba(220,236,248,.78)";
+  if (x.rain > .05 && x.temp > 1) {
+    const n = Math.min(700, Math.round(aw * ah / 900 * Math.min(4, x.rain))), slant = (x.windDir >= 4 ? -1 : 1) * Math.min(3, x.wind / 5), t = now / 1000;
+    g.fillStyle = "rgba(220,236,238,.40)";
     for (let i = 0; i < n; i++) {
       const hx = (i * 7919) % 1000 / 1000, hy = (i * 104729) % 1000 / 1000, sp = 220 + (i % 5) * 30;
       const px = Math.floor((hx * (aw + 40) + slant * t * sp * .3) % (aw + 40)) - 20, py = Math.floor((hy * ah + t * sp) % ah);
       for (let k = 0; k < 6; k++) g.fillRect(px + Math.round(slant * k * .3), py + k, 1, 1);
     }
-    g.fillStyle = "rgba(226,240,248,.8)";
+    g.fillStyle = "rgba(226,240,232,.38)";
     const fr = Math.floor(now / 120), ns = Math.min(260, Math.round(aw * ah / 2500 * Math.min(4, x.rain)));
     for (let i = 0; i < ns; i++) { const hx = ((i * 2654435761 + fr * 40503) >>> 0) % 997 / 997, hy = ((i * 40503 + fr * 2654435761) >>> 0) % 991 / 991, px = Math.floor(hx * aw), py = Math.floor(hy * ah); g.fillRect(px - 1, py, 1, 1); g.fillRect(px + 1, py, 1, 1); g.fillRect(px, py - 1, 1, 1); }
+  }
+  if (x.rain > .05 && x.temp <= 1) {
+    g.fillStyle = 'rgba(246,246,232,.85)';
+    const n = Math.min(100, Math.floor(aw * ah * x.rain / 1700));
+    for (let i = 0; i < n; i++) { const py = Math.floor((i * 83 + now * .024) % ah), px = Math.floor(((i * 137 + Math.sin(now / 1400 + i) * 8) % aw + aw) % aw); g.fillRect(px, py, 1 + (i % 3 === 0), 1); }
   }
   // fog: a pale veil and soft banks of mist drifting with the air
   if (x.fog > .03) {

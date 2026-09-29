@@ -9,18 +9,19 @@ import { newFire, addFuel, ignite } from "../sim/fire.js";
 import { MET } from "../sim/body.js";
 import { eat as bodyEat, drink as bodyDrink } from "../sim/body.js";
 import { FRUIT } from "../sim/eco.js";
-import { clamp, dexp } from "../core/dmath.js";
+import { dround, dsq, dhypot, clamp, dexp } from "../core/dmath.js";
 import { expose, hazard } from "../sim/health.js";
 import { SHELL, lowIn } from "../sim/shore.js";
 import { warmPlace } from "./exposure.js";
+import { craftActions } from "./crafts.js";
 import { FISH } from "../sim/fish.js";
 import { MATS, MATERIALS, bestShelter, propsOf, woodpile, work as buildWork, finished, FAMILIES, fireRingAt } from "../build/build.js";
 
-const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) * 2;           // metres
+const d2 = (a, b) => dhypot(a.x - b.x, a.y - b.y) * 2;           // metres
 export const walkMin = (M, p) => d2(M, p) * 1.25 / 72;                 // rough minutes to walk there
 // nearest remembered thing matching f
 function nearestMem(M, f) { let best = null, bd = 1e9; for (const k in M.mem) { const m = M.mem[k]; if (!f(m, k)) continue; const d = d2(M, m); if (d < bd) { bd = d; best = Object.assign({ key: k }, m); } } return best; }
-function nearestKnownTile(W, M, f, rmax = 60) { const cx = Math.floor(M.x), cy = Math.floor(M.y); let best = -1, bd = 1e9; for (let y = Math.max(0, cy - rmax); y < Math.min(W.MH, cy + rmax); y++) for (let x = Math.max(0, cx - rmax); x < Math.min(MW, cx + rmax); x++) { const i = y * MW + x; if (!M.known[i] || !f(i)) continue; const d = (x - cx) ** 2 + (y - cy) ** 2; if (d < bd) { bd = d; best = i; } } return best; }
+function nearestKnownTile(W, M, f, rmax = 60) { const cx = Math.floor(M.x), cy = Math.floor(M.y); let best = -1, bd = 1e9; for (let y = Math.max(0, cy - rmax); y < Math.min(W.MH, cy + rmax); y++) for (let x = Math.max(0, cx - rmax); x < Math.min(MW, cx + rmax); x++) { const i = y * MW + x; if (!M.known[i] || !f(i)) continue; const d = dsq(x - cx) + dsq(y - cy); if (d < bd) { bd = d; best = i; } } return best; }
 const tileXY = i => ({ x: i % MW + .5, y: ((i / MW) | 0) + .5 });
 export const deadFuelMoist = W => W.litterWet;                      // how damp dead wood and grass are right now
 
@@ -38,7 +39,7 @@ export const ACTIONS = {
     r: ["food"], w: ["food"],
     find: (W, M) => nearestMem(M, m => FRUIT[m.k] && FRUIT[m.k].kcal > 0 && m.fruit > .15),
     pre: S => S.food < 1500, eff: S => { S.food += 700; }, cost: (W, M, t) => walkMin(M, t) + 25,
-    exec: work({ adjacent: true, mins: 25, met: MET.gather, pose: "pick", tick: (W, M, t) => { const e = W.ents.find(q => q.id === +t.key.slice(1)); if (!e || e.fruit <= .01) { if (M.mem[t.key]) M.mem[t.key].fruit = 0; return (M.inv.food || 0) > 150 ? "done" : "fail"; } const F = FRUIT[e.k], take = Math.min(e.fruit, .02); e.fruit -= take; addFood(M, F.kcal * take, .0005, "berries"); } }),
+    exec: work({ adjacent: true, mins: 25, met: MET.gather, pose: "pick", tick: (W, M, t) => { const e = W.ents.find(q => q.id === +t.key.slice(1)); if (!e || e.fruit <= .01) { if (M.mem[t.key]) M.mem[t.key].fruit = 0; return (M.inv.food || 0) > 150 ? "done" : "fail"; } const F = FRUIT[e.k], take = Math.min(e.fruit, M.inv.basket ? .028 : .02); e.fruit -= take; addFood(M, F.kcal * take, .0005, "berries"); } }),
     say: "Something to eat, at least.",
   },
   eat: {
@@ -47,8 +48,8 @@ export const ACTIONS = {
     exec: work({ here: true, mins: 10, met: MET.sit, pose: "eat", done: (W, M) => {
       let k = Math.min(M.inv.food || 0, Math.max(300, 1600 - M.B.glyco));
       // the dog watching every mouthful: if it's thin or still wary, a share goes its way
-      const dog = W.animals.find(a => a.sp === "dog" && !a.adrift && !a.dead && Math.hypot(a.x - M.x, a.y - M.y) < 5);
-      if (dog && (dog.E < .35 || dog.trust < .85) && k > 200) { const share = Math.round(k * (dog.E < .2 ? .35 : .2)); k -= share; M.inv.food -= share; W.items.push({ id: W.nextId++, k: "scraps", t: W.t, x: M.x + (dog.x - M.x) * .5, y: M.y + (dog.y - M.y) * .5, kcal: share, from: "man" }); M.log.push([W.t, "fed dog"]); }
+      const dog = W.animals.find(a => a.sp === "dog" && !a.adrift && !a.dead && dhypot(a.x - M.x, a.y - M.y) < 5);
+      if (dog && (dog.E < .35 || dog.trust < .85) && k > 200) { const share = dround(k * (dog.E < .2 ? .35 : .2)); k -= share; M.inv.food -= share; W.items.push({ id: W.nextId++, k: "scraps", t: W.t, x: M.x + (dog.x - M.x) * .5, y: M.y + (dog.y - M.y) * .5, kcal: share, from: "man" }); M.log.push([W.t, "fed dog"]); }
       M.inv.food -= k; bodyEat(M.B, k); expose(W, M, (M.foodLoad || 0) * k, M.foodWhat || "food"); } }),
   },
   // raw shellfish or fish, eaten without cooking: only when he's desperate (he knows it's risky, and learns how much)
@@ -81,7 +82,7 @@ export const ACTIONS = {
   // an hour on the highest ground he knows near the sea, looking out
   watchSea: {
     r: [], w: ["watched"],
-    find: (W, M) => { let best = -1, bh = -1; for (let i = MW; i < MW * (MH - 1); i++) { if (!M.known[i] || W.dsea[i] > 4 || W.dsea[i] < 1 || W.treeAt[i] || W.ter[i] === T.WOOD) continue; const h = W.h[i] - Math.hypot(i % MW - M.x, (i / MW | 0) - M.y) * .004; if (h > bh) { bh = h; best = i; } } return best < 0 ? null : { tile: best, ...tileXY(best) }; },
+    find: (W, M) => { let best = -1, bh = -1; for (let i = MW; i < MW * (MH - 1); i++) { if (!M.known[i] || W.dsea[i] > 4 || W.dsea[i] < 1 || W.treeAt[i] || W.ter[i] === T.WOOD) continue; const h = W.h[i] - dhypot(i % MW - M.x, (i / MW | 0) - M.y) * .004; if (h > bh) { bh = h; best = i; } } return best < 0 ? null : { tile: best, ...tileXY(best) }; },
     pre: S => !S.watched, eff: S => { S.watched = 1; }, cost: (W, M, t) => walkMin(M, t) + 60,
     exec: work({ adjacent: false, mins: 60, met: MET.sit, pose: "sit", tick: (W, M) => { M.lastWatch = W.t; } }),
   },
@@ -258,22 +259,22 @@ const warmSheltered = work({ adjacent: false, mins: 30, met: MET.sit, pose: "lie
 const MATSRC = {
   poles: { find: (W, M) => nearestMem(M, (m, k) => (k[0] === "i" && m.k === "branch" && m.kg > 1) || (m.deadKg > 3)), mins: 12, pose: "snap", met: MET.carry, say: "Long straight dead limbs, dragged back two at a time.",
     take: (W, M, t) => { if (t.key[0] === "i") { const k = W.items.findIndex(it => "i" + it.id === t.key); if (k < 0) return "fail"; W.items.splice(k, 1); } else { const e = W.ents.find(q => "e" + q.id === t.key); if (!e || e.deadKg < 2) return "fail"; e.deadKg -= 3; } } },
-  bracken: { find: (W, M) => nearestMem(M, (m, k) => m.k === "fern" && (m.n ?? 1) > 0), mins: 15, pose: "pull", met: MET.gather, say: "Armfuls of bracken. It'll thatch a roof and make a bed.",
-    take: (W, M, t) => { const e = W.ents.find(q => "e" + q.id === t.key); if (!e || (e.n ?? 1) <= 0) return "fail"; e.n = (e.n ?? 1) - 1; } },
+  bracken: { find: (W, M) => nearestMem(M, (m, k) => m.k === "fern" && (m.n ?? 1) >= 1), mins: 15, pose: "pull", met: MET.gather, say: "Armfuls of bracken. It'll thatch a roof and make a bed.",
+    take: (W, M, t) => { const e = W.ents.find(q => "e" + q.id === t.key); if (!e || (e.n ?? 1) < 1) return "fail"; e.n = (e.n ?? 1) - 1; } },
   boughs: { find: (W, M) => nearestMem(M, m => m.k === "pine"), mins: 15, pose: "snap", met: MET.gather, say: "Green pine boughs: they shed rain, and they're soft to lie on." },
   stones: { find: (W, M) => nearestMem(M, m => m.k === "stones" && (m.n ?? 1) > 0) || tileTarget(W, M, j => W.ter[j] === T.SHINGLE), mins: 15, pose: "crouch", met: MET.carry, say: "Stones from the beach, as many as he can carry." },
-  withies: { needs: ["flake"], find: (W, M) => nearestMem(M, m => m.k === "hazel" || m.k === "birch"), mins: 20, pose: "cut", met: MET.gather, say: "Long whippy shoots cut with the flake. They'll weave." },
+  withies: { take: (W, M, t) => { const e = W.ents.find(q => "e" + q.id === t.key); if (!e || (e.shoots ?? 16 * e.size) < 5) return "fail"; e.shoots = (e.shoots ?? 16 * e.size) - 5; }, needs: ["flake"], find: (W, M) => nearestMem(M, m => (m.k === "hazel" || m.k === "birch") && (m.shoots ?? 10) >= 5), mins: 20, pose: "cut", met: MET.gather, say: "Long whippy shoots cut with the flake. They'll weave." },
   debris: { find: (W, M) => tileTarget(W, M, j => W.ter[j] === T.WOOD && !W.treeAt[j]), mins: 12, pose: "crouch", met: MET.gather, say: "Leaves and litter scooped up by the armful." },
   mud: { find: (W, M) => tileTarget(W, M, j => W.ter[j] === T.MARSH || W.ter[j] === T.STREAM), mins: 20, pose: "crouch", met: MET.dig, say: "Sticky mud from the bank. It'll daub the walls." },
-  reeds: { needs: ["flake"], find: (W, M) => nearestMem(M, m => m.k === "reeds"), mins: 20, pose: "cut", met: MET.gather, say: "Reeds cut at the base, bundled for thatch." },
+  reeds: { take: (W, M, t) => { const e = W.ents.find(q => "e" + q.id === t.key); if (!e || (e.n ?? 3) < 1) return "fail"; e.n = (e.n ?? 3) - 1; }, needs: ["flake"], find: (W, M) => nearestMem(M, m => m.k === "reeds" && (m.n ?? 3) >= 1), mins: 20, pose: "cut", met: MET.gather, say: "Reeds cut at the base, bundled for thatch." },
 };
 function tileTarget(W, M, f) { const i = nearestKnownTile(W, M, f, 45); return i < 0 ? null : { tile: i, ...tileXY(i) }; }
 for (const m of MATS) {
   const src = MATSRC[m], trip = MATERIALS[m].trip, n = "get_" + m;
   ACTIONS[n] = {
     r: [m, ...(src.needs || [])], w: [m], find: src.find,
-    pre: S => S[m] < 60 && (src.needs || []).every(v => S[v]), eff: S => { S[m] += trip; }, cost: (W, M, t) => walkMin(M, t) + src.mins,
-    exec: work({ adjacent: true, mins: src.mins, met: src.met, pose: src.pose, done: (W, M, t) => { if (src.take && src.take(W, M, t) === "fail") return "fail"; M.inv[m] = (M.inv[m] || 0) + trip; } }),
+    pre: S => S[m] < 60 && (src.needs || []).every(v => S[v]), eff: S => { S[m] += trip; }, cost: (W, M, t) => walkMin(M, t) + src.mins / (M.inv.axe && (m === "poles" || m === "withies") ? 1.35 : 1),
+    exec: work({ adjacent: true, mins: (W, M) => src.mins / (M.inv.axe && (m === "poles" || m === "withies") ? 1.35 : 1), met: src.met, pose: src.pose, done: (W, M, t) => { if (src.take && src.take(W, M, t) === "fail") return "fail"; M.inv[m] = (M.inv[m] || 0) + trip; if (M.inv.axe && (m === "poles" || m === "withies")) { M.axeWear = Math.max(0, (M.axeWear ?? 1) - .025); if (!M.axeWear) M.inv.axe = 0; } } }),
     say: src.say,
   };
 }
@@ -290,13 +291,19 @@ export function buildExec(W, M, t, st) {
     st.paid = 1; if (stage.say && s.prog === 0) M.say = stage.say;
   }
   M.pose = "build"; M.met = MET.build; M.face = s.x > M.x ? 1 : -1;
-  const speed = .8 + Math.min(.6, M.skill.build * .3);          // practice makes him quicker
+  const bench = W.structs.some(q => q.k === "workbench" && finished(q) && Math.abs(q.x - M.x) < 3 && Math.abs(q.y - M.y) < 3);
+  const speed = (.8 + Math.min(.6, M.skill.build * .3)) * (bench ? 1.15 : 1) * (M.inv.axe ? 1.12 : 1);          // practice makes him quicker
   M.skill.build += .0015; hazard(W, M, .0002, M.skill.build);
   if (buildWork(W, s, speed / stage.mins)) { M.log.push([W.t, "built", s.k, stage.name]); if (s.k === "fireRing") for (const F of W.fires) if (Math.abs(F.x - s.x) < .6 && Math.abs(F.y - s.y) < .6) F.ring = true; return "done"; }
   return "work";
 }
+Object.assign(ACTIONS, craftActions(work));
+// An action can consume a material without being a way to obtain that material.
+const PROVIDES = { eat:["fed"], eatRaw:["fed"], cook:["food"], feedDog:["dogFed"], makeDrill:["drill"], stackWood:["stacked"], feedFire:["fireFuel"], drinkBoiled:["watered"] };
+for (const [k, vars] of Object.entries(PROVIDES)) ACTIONS[k].provides = vars;
+
 // food he carries, and the germs in it (organisms per kcal, mixed by kcal)
-function addFood(M, kcal, loadPerKcal, what) { const o = M.inv.food || 0; M.foodLoad = o + kcal > 0 ? ((M.foodLoad || 0) * o + loadPerKcal * kcal) / (o + kcal) : 0; M.inv.food = o + kcal; M.foodWhat = what; }
+function addFood(M, kcal, loadPerKcal, what) { M.preserved = 0; const o = M.inv.food || 0; M.foodLoad = o + kcal > 0 ? ((M.foodLoad || 0) * o + loadPerKcal * kcal) / (o + kcal) : 0; M.inv.food = o + kcal; M.foodWhat = what; }
 function addRaw(M, kcal, loadPerKcal, what) { const o = M.inv.raw || 0; M.rawLoad = o + kcal > 0 ? ((M.rawLoad || 0) * o + loadPerKcal * kcal) / (o + kcal) : 0; M.inv.raw = o + kcal; M.rawWhat = what; }
 // how many minutes' trouble he'd go to, to avoid a risk he believes in (learned from being ill)
 const riskMin = (M, kind, prior = .1) => ((M.belief && M.belief[kind]) ?? prior) * 240;
@@ -315,7 +322,7 @@ function shellfishExec(W, M, t, st) {
 function feedDogExec(W, M, t, st) {
   const dog = W.animals.find(a => a.sp === "dog" && !a.adrift && !a.dead); if (!dog) return "fail";
   if (!st.phase) { st.phase = "go"; st.left = 30; }
-  const d = Math.hypot(dog.x - M.x, dog.y - M.y);
+  const d = dhypot(dog.x - M.x, dog.y - M.y);
   if (st.phase === "go") {   // close enough to throw, not so close it bolts
     if (d < 5) { st.phase = "toss"; st.wait = 3; }
     else { if (--st.left <= 0) return "fail"; const i = idx(Math.floor(dog.x - (dog.x - M.x) / d * 3.5), Math.floor(dog.y - (dog.y - M.y) / d * 3.5)); if (!M.path || M.pathTo !== i) { if (!goTo(W, M, i, false)) return "fail"; M.pathTo = i; } M.pose = "walk"; M.met = MET.walk; walk(W, M); return "go"; }
@@ -350,7 +357,7 @@ export function camp(W, M) {
 // in the open, rain soaks the hearth board and the ember before it can be tipped into the tinder
 export function drillOdds(W, M) {
   // the kit is kept dry under his roof if he has one, or inside his shirt (as damp as he is)
-  const roofs = W.structs.filter(q => FAMILIES[q.k].shelter && (q.props || propsOf(q)).rain > .5), home = roofs.length > 0, kit = Math.min(deadFuelMoist(W), home ? .1 : .1 + M.B.wet * .15), roofed = roofs.some(q => Math.hypot(q.x - M.x, q.y - M.y) < 1.6);
+  const roofs = W.structs.filter(q => FAMILIES[q.k].shelter && (q.props || propsOf(q)).rain > .5), home = roofs.length > 0, kit = Math.min(deadFuelMoist(W), home ? .1 : .1 + M.B.wet * .15), roofed = roofs.some(q => dhypot(q.x - M.x, q.y - M.y) < 1.6);
   const rain = roofed ? 1 : clamp(1 - W.wx.rain * .25, .1, 1);
   return clamp((.12 + .6 * (1 - dexp(-M.skill.drill / 1.5))) * (1 - kit * 1.8) * (1 - M.B.fatigue * .5) * (M.B.core < 35.5 ? .5 : 1) * rain, .02, .9);
 }
@@ -409,10 +416,10 @@ function work(o) {
       const move = !o.here && tile != null && (o.adjacent ? d2(M, t) > 2.2 : here(M) !== tile);
       if (move) { if (!goTo(W, M, tile, o.adjacent)) return "fail"; } else M.path = null;
     }
-    if (st.phase === "go") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) { st.phase = "work"; st.left = o.mins; } return "go"; }
+    if (st.phase === "go") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) { st.phase = "work"; st.left = typeof o.mins === "function" ? o.mins(W, M) : o.mins; } return "go"; }
     M.pose = o.pose; M.met = o.met;
     if (t.x != null) M.face = t.x > M.x ? 1 : -1;
-    if (o.tick) { const r = o.tick(W, M, t); if (r === "fail") return "fail"; }
+    if (o.tick) { const r = o.tick(W, M, t, st); if (r === "fail") return "fail"; }
     if (o.until && o.until(W, M)) st.left = 0;
     if (--st.left <= 0) { const r = o.done ? o.done(W, M, t) : null; return r === "fail" ? "fail" : "done"; }
     return "work";
@@ -421,7 +428,7 @@ function work(o) {
 function sleepExec(W, M, t, st) {
   if (!st.phase) { st.phase = "go"; if (t.x != null && d2(M, t) > .8) { if (!goTo(W, M, idx(Math.floor(t.x), Math.floor(t.y)), t.key !== "shelter")) st.phase = "sleep"; } }   // into the shelter, or beside the fire
   if (st.phase === "go") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) st.phase = "sleep"; return "go"; }
-  if (!st.banked) { st.banked = 1; for (const F of W.fires) if (F.lit && Math.hypot(F.x - M.x, F.y - M.y) < 3 && F.fuel.logs[0] > .5) { F.banked = true; M.say = "Bank the fire: ash over the coals, so there's fire in the morning."; } }
+  if (!st.banked) { st.banked = 1; for (const F of W.fires) if (F.lit && dhypot(F.x - M.x, F.y - M.y) < 3 && F.fuel.logs[0] > .5) { F.banked = true; M.say = "Bank the fire: ash over the coals, so there's fire in the morning."; } }
   M.pose = "sleep"; M.met = MET.sleep; M.B.asleep = true;
   // he wakes when he's slept enough and it's light, or the cold wakes him
   if ((M.B.sleepP < .12 && W.wx.elev > -.05) || M.B.core < 35.8 || M.B.shiver > .6) { M.B.asleep = false; return "done"; }

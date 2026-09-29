@@ -11,8 +11,8 @@
 import { R } from "./palette.js";
 import { sprite } from "./pix.js";
 
-const W = 26, H = 28, FX = 12, FY = 27;
-const COL = { skin: ["#b8704f", "#cf8a64", "#eab08a"], shirt: ["#a89e88", "#d3c9b1", "#ebe3cd"], trou: ["#3f372e", "#51463b", "#675a4b"], boot: "#2f241c", hair: "#4a2e1c", hair2: "#6b4428", beard: "#5e3c24", eye: "#1b120c" };
+const W = 34, H = 36, FX = 15, FY = 35;
+const COL = { skin: ["#b8704f", "#cf8a64", "#eab08a"], shirt: ["#8b6c49", "#bb9660", "#e2c08a"], trou: ["#3f372e", "#51463b", "#675a4b"], boot: "#2f241c", hair: "#4a2e1c", hair2: "#6b4428", beard: "#5e3c24", eye: "#1b120c" };
 const HEAD = [                                  // 9 x 9, facing right, looking ahead / looking down
   ["..HHHHH..", ".HHHHHHH.", "HHHhhHHHH", "HHHHSSSSS", "HHHSSSSeS", "HHSSSSSSSs", "HBSSSSSSS", ".BBBBBBB.", "..BBBBB.."],
   [".........", "..HHHHH..", ".HHHHHHH.", "HHHhhHHHH", "HHHHHSSSS", "HHHSSSSSS", "HHBSSSSeSs", ".BBBSSSS.", "..BBBBB.."],
@@ -73,12 +73,19 @@ function prop(P, tool, hx, hy, ex, ey, p) {
   const dx = hx - ex, dy = hy - ey, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;   // along the forearm
   if (tool === "stick" || tool === "branch") { const L = tool === "branch" ? 9 : 6; brush(P, hx - ux * 2, hy - uy * 2, hx + ux * L, hy + uy * L, .5, [R.bark[1], R.bark[2], R.bark[3]]); }
   else if (tool === "stone" || tool === "flake") { const c = tool === "flake" ? R.flint : R.rock; put(P, hx + ux * 1.5, hy + uy * 1.5, c[3]); put(P, hx + ux * 1.5 + 1, hy + uy * 1.5, c[2]); put(P, hx + ux * 1.5, hy + uy * 1.5 + 1, c[1]); }
+  else if (tool === "rod") { brush(P,hx,hy,hx+8,hy-11,.55,[R.bark[1],R.bark[3],R.bark[4]]); for(let j=0;j<13;j++)put(P,hx+8,hy-10+j,'#d2c8a3'); }
+  else if (tool === "cord") { for(let j=-4;j<5;j++)put(P,hx+j,hy+Math.abs(j)*.3,'#d7bd80'); }
+  else if (tool === "clay") { for(let j=-2;j<=2;j++)for(let i=-3;i<=3;i++)if(i*i/10+j*j/5<=1)put(P,hx+i,hy+j,j<0?'#c68c60':'#98603e'); }
+  else if (tool === "basket") { for(let j=0;j<5;j++)for(let i=-3;i<4;i++)put(P,hx+i,hy+j,(i+j)%2?'#b89c64':'#927746'); }
   else if (tool === "bundle") { for (let i = -3; i <= 3; i++) for (let j = -2; j <= 1; j++) if (Math.abs(i) + Math.abs(j) < 4) put(P, hx + i, hy + j - 1, R.fern[(i + j + 6) % 4]); }
   else if (tool === "pot") { for (let i = -1; i <= 2; i++) for (let j = 0; j <= 2; j++) put(P, hx + i, hy - j, j === 2 ? R.water[3] : R.birch[j ? 2 : 1]); }
 }
 // ---------------------------------------------------------------- pose and draw one frame
 export function drawRig(P, spec, p) {
   const st = STANCE[spec.stance === "walk" ? "stand" : spec.stance] || STANCE.stand, walking = spec.stance === "walk";
+  // More substantial limbs and an upright silhouette, with room around every tool.
+  const base = P, scale = 1.2;
+  P = { ...base, set(x,y,c) { const xx = Math.round(FX + (x - FX) * scale), yy = Math.round(FY + (y - FY) * scale); base.set(xx,yy,c); if (Math.floor(x*3)%3 === 0) base.set(xx+1,yy,c); } };
   const ox = FX, oy = FY;
   // walking: a gait cycle moves the feet (the far foot half a cycle behind) and bobs the hips
   let feet = st.feet.map(f => [f[0], f[1]]), bob = 0;
@@ -102,15 +109,21 @@ export function drawRig(P, spec, p) {
   };
   const A = [arm(0), arm(1)], L = [leg(0), leg(1)];
   const drawLeg = (l, far) => { const cols = far ? [COL.trou[0], COL.trou[0], COL.trou[1]] : COL.trou; brush(P, l.hx, hipY, l.kx, l.ky, 1.4, cols); brush(P, l.kx, l.ky, l.fx, l.fy, 1.2, cols); const bx = Math.round(l.fx), by = Math.round(l.fy); for (let i = -1; i <= 2; i++) { P.set(bx + i, by + 1, COL.boot); if (i < 2) P.set(bx + i, by, COL.boot); } };
-  const drawArm = (q, far) => { const sc = far ? [COL.shirt[0], COL.shirt[0], COL.shirt[1]] : COL.shirt, kc = far ? [COL.skin[0], COL.skin[0], COL.skin[1]] : COL.skin; brush(P, sh[far ? 0 : 1][0], sh[far ? 0 : 1][1], q.ex, q.ey, 1.1, sc); brush(P, q.ex, q.ey, q.hx, q.hy, .9, kc); brush(P, q.hx, q.hy, q.hx + .6, q.hy + .4, 1, kc); };
+  const drawArm = (q, far) => { const sc = far ? [COL.shirt[0], COL.shirt[0], COL.shirt[1]] : COL.shirt, kc = far ? [COL.skin[0], COL.skin[0], COL.skin[1]] : COL.skin; brush(P, sh[far ? 0 : 1][0], sh[far ? 0 : 1][1], q.ex, q.ey, 1.5, sc); brush(P, q.ex, q.ey, q.hx, q.hy, 1.25, kc); brush(P, q.hx, q.hy, q.hx + .6, q.hy + .4, 1.25, kc); };
   // back to front: far arm, far leg, torso, near leg, head, tool, near arm
   drawArm(A[0], true); if (spec.tool && spec.two) prop(P, spec.tool, A[0].hx, A[0].hy, A[0].ex, A[0].ey, p);
   drawLeg(L[0], true);
   brush(P, hipX, hipY - 1, nX, nY + 1, 3.1, COL.shirt);                                   // the body in his shirt
   brush(P, hipX - .5, hipY, hipX + .5, hipY, 2.2, COL.trou);                             // belt line / hips
   drawLeg(L[1], false);
+  // Shirt placket, collar, cuff and leather belt catch the light without noisy texture.
+  brush(P, nX + 1, nY + 3, hipX + 1, hipY - 2, .35, ['#8b6c49','#8b6c49','#bb9660']);
+  put(P, nX, nY+2, '#ead0a0'); put(P, nX+1, nY+5, '#70533a'); put(P, hipX+2, hipY, '#c5ad73');
   const look = wy > nY + 4 ? 1 : 0, hx0 = Math.round(nX - 4 + a * 2), hy0 = Math.round(nY - 9 + look);
-  HEAD[look].forEach((row, y) => { for (let x = 0; x < row.length; x++) { const c = HC[row[x]]; if (c) P.set(hx0 + x, hy0 + y, c); } });
+  HEAD[look].forEach((row, y) => { for (let x = 0; x < row.length; x++) { let c = HC[row[x]];
+    if (row[x] === 'e' && (spec.mood === 'tired' || p > .87)) c = COL.skin[1];
+    if (row[x] === 'S' && spec.mood === 'ill') c = '#d4b287';
+    if (c) P.set(hx0 + x, hy0 + y, c); } });
   if (spec.tool && !spec.two) prop(P, spec.tool, A[1].hx, A[1].hy, A[1].ex, A[1].ey, p);
   if (spec.tool === "pole" && walking) brush(P, nX - 8, nY - 1, nX + 9, nY - 3, .6, [R.bark[1], R.bark[2], R.bark[3]]);
   drawArm(A[1], false);
@@ -136,7 +149,7 @@ const cache = new Map();
 // a frame of an animation: spec + phase, quantised to `frames` steps per cycle and cached
 export function rigSprite(spec, t) {
   if (spec.stance === "lie") { let s = cache.get("lie"); if (!s) { s = sprite(W, H, sleeping); cache.set("lie", s); } return { img: s, ox: FX, oy: FY }; }
-  const period = spec.period || 1000, n = spec.frames || 8, f = Math.floor(((t % period) + period) % period / period * n), key = spec.key + ":" + f;
+  const period = spec.period || 1000, n = spec.frames || 8, f = Math.floor(((t % period) + period) % period / period * n), key = spec.key + ":" + f + ":" + (spec.mood || "calm");
   let s = cache.get(key); if (!s) { s = sprite(W, H, P => drawRig(P, spec, f / n)); cache.set(key, s); }
   return { img: s, ox: FX, oy: FY };
 }

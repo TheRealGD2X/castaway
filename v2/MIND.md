@@ -40,3 +40,13 @@ means to do in the days ahead. Those thoughts go into the simulation at a set mi
 - Stay true to the brief. Don't invent things that didn't happen, things he hasn't got, or places he hasn't seen.
 - His voice: a practical, wry, tired, decent man; a sailor. British English. No melodrama. Small true details.
 - Keep it gentle: this is a calm, cozy watch for the reader, even when life is hard for him.
+
+## Additional context (backwards-compatible)
+
+The brief keeps its existing keys and the `think.js` input format is unchanged. `canBuild` now also lists
+`build:workbench`, `build:dryingRack`, `build:foodStore` and `build:bedding`; they accept the same weighted
+building intention format. `built` entries add `condition` (sound or damaged). An optional `ground` object
+reports felt surface temperature, snow, frost and ice, and weather can describe precipitation as snow.
+Inventory can include cord, basket, line, axe, wrap, greenPot and clayPot. A green pot is unfired; only clayPot
+is a finished ceramic pot. Tomas's own planner handles crafting, fishing, preservation and repair from needs,
+materials and experience. Do not assume he completed a recipe or a house unless the brief says so.

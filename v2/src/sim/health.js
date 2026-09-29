@@ -12,7 +12,7 @@
 //  * WOUNDS: a cut carries dirt; bacteria grow in it unless his body (or a wash with clean water) clears them;
 //    it heals at a rate set by his condition, and hurts while it does.
 // Randomness is only the seeded RNG deciding whether a given dose takes hold, as nature decides.
-import { clamp, dexp } from "../core/dmath.js";
+import { dround, clamp, dexp } from "../core/dmath.js";
 
 export const SRC = {                         // base load (org/L) in cool dry weather, runoff gain, flush time (h)
   stream: { base: .4, runoff: 9, flushH: 6 },
@@ -42,7 +42,7 @@ export function expose(W, M, organisms, what) {
   const p = 1 - dexp(-R_DOSE * organisms);
   if (W.rng.f() < p) {
     const B = M.B, incub = 12 * 60 + W.rng.f() * 36 * 60;
-    if (!B.infection) B.infection = { at: W.t + Math.round(incub), load: 0, what, peak: 0 };
+    if (!B.infection) B.infection = { at: W.t + dround(incub), load: 0, what, peak: 0 };
   }
 }
 // every minute: incubation, the fight between the infection and his immune system, wounds

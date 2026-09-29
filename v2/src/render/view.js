@@ -1,5 +1,7 @@
 // The camera and the frame: terrain, then everything standing on it sorted by depth, then the light of the hour.
 // Integer zoom (device pixels per art pixel) keeps every pixel crisp; the crown of each tree sways by whole pixels.
+import { jointedDog } from "./dogrig.js";
+import { drawGroundLife } from "./groundlife.js";
 import { TS } from "./terrain.js";
 import { tree, shrub, rock, shadow, branch } from "./sprites.js";
 import { drawWeather } from "./weather.js";
@@ -9,7 +11,7 @@ import { manSprite } from "./people.js";
 import { visibility } from "../sim/ships.js";
 import { sprite } from "./pix.js";
 import { dogSprite, raftSprite, gullSprite, rabbitSprite, snareSprite, scrapsSprite } from "./beasts.js";
-import { structSprite, pileSprite, drawFire, bedSprite, drawPot } from "./structs.js";
+import { structSprite, snowOnRoof, pileSprite, drawFire, bedSprite, drawPot } from "./structs.js";
 
 const TREES = new Set(["oak", "birch", "pine", "rowan", "hazel"]), SHRUBS = new Set(["bramble", "gorse", "fern", "reeds"]);
 const shipCache = {};
@@ -48,11 +50,12 @@ export function createView(cv, world, terr) {
     g.fillStyle = R.deep[0]; g.fillRect(0, 0, aw, ah);
     const x0 = Math.max(0, sx), y0 = Math.max(0, sy), x1 = Math.min(terr.PW, sx + aw), y1 = Math.min(terr.PH, sy + ah);
     if (x1 > x0 && y1 > y0) g.drawImage(terr.cv, x0, y0, x1 - x0, y1 - y0, x0 - sx, y0 - sy, x1 - x0, y1 - y0);
+    drawGroundLife(g, V, world, sx, sy, terr);
     // water sparkle: a few bright pixels that come and go
     const fr = Math.floor(now / 400);
     for (let ty = Math.max(0, (sy / TS) | 0); ty <= Math.min(world.MH - 1, ((sy + ah) / TS) | 0); ty++) for (let tx = Math.max(0, (sx / TS) | 0); tx <= Math.min(world.MW - 1, ((sx + aw) / TS) | 0); tx++) {
       const t = world.ter[ty * world.MW + tx]; if (!(t === 0 || t === 1 || t === 7)) continue;
-      const h = hash3(tx, ty, fr); if (h > .22) continue;
+      const h = hash3(tx, ty, fr); if (h > .09) continue;
       const px = tx * TS + ((hash3(tx, ty, fr + 1) * 13) | 0) - sx, py = ty * TS + ((hash3(tx, ty, fr + 2) * 13) | 0) - sy;
       g.fillStyle = h < .08 ? "#e8fbf6" : R.water[4]; g.fillRect(px, py, h < .08 ? 2 : 1, 1);
     }
@@ -61,8 +64,15 @@ export function createView(cv, world, terr) {
     // what he has made and the man himself, merged into the back-to-front order of trees and plants
     const dyn = [], M = world.man, windX = (world.wx.windDir >= 3 && world.wx.windDir <= 5 ? -1 : world.wx.windDir === 2 || world.wx.windDir === 6 ? 0 : 1) * world.wx.wind * .35;
     for (const s of world.structs) {
-      const sp = s.k === "snare" ? snareSprite(s.stage > 0 ? 1 : 0, s.caught ? 1 : 0) : structSprite(s); if (sp) dyn.push({ y: s.y + (s.k === "fireRing" ? -.05 : .3), f: () => g.drawImage(sp.img, Math.round(s.x * TS) - sx - sp.ox, Math.round(s.y * TS) - sy + 5 - sp.oy) });
-      let k = 0; for (const m in s.onsite || {}) if (s.onsite[m] > 0) { const pl = pileSprite(m, s.onsite[m]), ox = (k++ - .5) * 14; dyn.push({ y: s.y + .45, f: () => g.drawImage(pl.img, Math.round(s.x * TS + ox + 16) - sx - pl.ox, Math.round(s.y * TS) - sy + 6 - pl.oy) }); }
+      const visible = { ...s, open: !!world.man && Math.abs(s.x - world.man.x) < .7 && Math.abs(s.y - world.man.y) < .7 };
+      const sp = s.k === "snare" ? snareSprite(s.stage > 0 ? 1 : 0, s.caught ? 1 : 0) : snowOnRoof(structSprite(visible), visible, world.surface?.snow || 0); if (sp) dyn.push({ y: s.y + (s.k === "fireRing" ? -.05 : .3), f: () => g.drawImage(sp.img, Math.round(s.x * TS) - sx - sp.ox, Math.round(s.y * TS) - sy + 5 - sp.oy) });
+      let k = 0; for (const m in s.onsite || {}) if (s.onsite[m] > 0) { const pl = pileSprite(m, s.onsite[m]), ox = (k++ - .5) * 9; dyn.push({ y: s.y + .45, f: () => g.drawImage(pl.img, Math.round(s.x * TS + ox - 10) - sx - pl.ox, Math.round(s.y * TS) - sy + 6 - pl.oy) }); }
+    }
+    // Roof drips emerge only where an installed roof is actually shedding rain.
+    if (world.wx.rain > .15 && world.wx.temp > 1) for (const s of world.structs) if (s.props?.rain > .4) {
+      const px=Math.round(s.x*TS)-sx, py=Math.round(s.y*TS)-sy;
+      g.fillStyle='rgba(180,210,200,.55)';
+      for(let k=0;k<3;k++){const fall=(now/650+k/3)%1;g.fillRect(px-12+k*12,py-10+Math.floor(fall*15),1,2);}
     }
     // animals: where they were over the last minute, smoothly; the dog along the way it ran
     const frac = Math.max(0, Math.min(1, (Date.now() - world.born) / 60000 - world.t));
@@ -72,27 +82,30 @@ export function createView(cv, world, terr) {
       if (a.sp === "dog" && a.trail && a.trail.length > 1) { const q = alongTrail(a.trail, frac); ax = q.x; ay = q.y; face = q.face || face; }
       const px = Math.round(ax * TS) - sx, py = Math.round(ay * TS) - sy + 4; if (px < -30 || py < -30 || px > aw + 30 || py > ah + 30) continue;
       let sp, lift = 0;
-      if (a.sp === "dog") sp = a.adrift ? raftSprite(now) : dogSprite(a.curled ? "sleep" : a.act === "shake" ? "stand" : a.act === "shy" ? "walk" : a.act, now);
+      if (a.sp === "dog") sp = a.adrift ? raftSprite(now) : jointedDog(a, now);
       else if (a.sp === "gull") { sp = gullSprite(a.act === "fly" || a.air ? "fly" : a.act, now, a.id); if (a.air) lift = 10 + Math.round(Math.sin(now / 500 + a.id) * 2); }
       else sp = rabbitSprite(a.act, now, a.id);
+      if (world.ter[Math.floor(ay + 1) * world.MW + Math.floor(ax)] <= 1) {
+        g.save(); g.globalAlpha=.12; g.translate(px,py+6); g.scale(face<0?-1:1,-.35); g.drawImage(sp.img,-sp.ox,-sp.oy); g.restore();
+      }
       dyn.push({ y: ay + (lift ? 3 : 0), f: () => {
         if (lift) { g.globalAlpha = .18; g.fillStyle = "#1b120c"; g.fillRect(px - 3, py - 1, 6, 1); g.globalAlpha = 1; }
         if (face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(sp.img, -sp.ox, py - lift - sp.oy); g.restore(); } else g.drawImage(sp.img, px - sp.ox, py - lift - sp.oy);
       } });
     }
-    for (const it of world.items) if (it.k === "scraps") { const sp = scrapsSprite(); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy) }); }
+    for (const it of world.items) if (it.k === "scraps" || it.k === "quarry") { const sp = scrapsSprite(); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy) }); }
     for (const F of world.fires) dyn.push({ y: F.y, f: () => { const fx = Math.round(F.x * TS) - sx, fy = Math.round(F.y * TS) - sy + 3; drawFire(g, F, fx, fy, now, windX); if (M && M.boiling && world.t - M.boiling < 2) drawPot(g, fx + 5, fy + 1, now, true); } });
     // the shore at low water: beds the tide has uncovered
     for (const b of world.shore) if (world.wx.tide < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - world.wx.tide) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy); g.globalAlpha = 1; }
     if (M) {
-      const p = V.manPos(now), pose = M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now);
+      const p = V.manPos(now), pose = M.pose === "walk" && (M.inv.stones || 0) > 0 ? "stonewalk" : M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now, M);
       const inside = world.structs.find(q => (q.k === "leanto" || q.k === "debrisHut" || q.k === "roundhouse") && q.stage > 0 && Math.abs(q.x - p.x) < .6 && Math.abs(q.y - p.y) < .6);
       const px = Math.round(p.x * TS) - sx, py = Math.round(p.y * TS) - sy + (inside ? 5 : 4);
       const drawMan = () => { if (p.face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(ms.img, -ms.ox, py - ms.oy); g.restore(); } else g.drawImage(ms.img, px - ms.ox, py - ms.oy); };
-      const hidden = inside && inside.k !== "leanto" && inside.stage >= 3;          // inside the hut: out of sight
+      const hidden = false; // A gentle cutaway reveals him inside his own home.          // inside the hut: out of sight
       const zzz = () => { if (M.pose !== "sleep") return; for (let k = 0; k < 3; k++) { const l = ((now / 1600 + k / 3) % 1); g.globalAlpha = 1 - l; g.fillStyle = "#f6e4b0"; const zx = px + 4 + Math.round(l * 6 + Math.sin(now / 500 + k) * 1.5), zy = py - 16 - Math.round(l * 14); g.fillRect(zx, zy, 3, 1); g.fillRect(zx + 1, zy + 1, 1, 1); g.fillRect(zx, zy + 2, 3, 1); } g.globalAlpha = 1; };
       dyn.push({ y: inside ? inside.y + .35 : p.y + .02, f: () => { if (!hidden) { const sh = shadow(12, 4); g.globalAlpha = .3; g.drawImage(sh, px - 6, py - 2); g.globalAlpha = 1; drawMan(); } } });
-      V.xray = () => { if (!hidden) { g.globalAlpha = .38; drawMan(); g.globalAlpha = 1; } zzz(); };      // a ghost of him through whatever stands in front
+      V.xray = () => { if (!hidden) { g.globalAlpha = .16; drawMan(); g.globalAlpha = 1; } zzz(); };      // a ghost of him through whatever stands in front
     } else V.xray = null;
     dyn.sort((a, b) => a.y - b.y); let di = 0;
     const focus = [];                                    // who we must be able to see: Tomas and the dog
@@ -105,17 +118,19 @@ export function createView(cv, world, terr) {
       while (di < dyn.length && dyn[di].y < e.y) dyn[di++].f();
       const px = Math.round(e.x * TS) - sx, py = Math.round(e.y * TS) - sy; if (px < -40 || px > aw + 40) continue;
       if (TREES.has(e.k)) {
-        const s = tree(e.k, e.size, e.id, { autumn: e.aut || 0, fall: e.fall || 0 }), sh = shadow(s.shadowW * 2, 7);
-        g.globalAlpha = .32; g.drawImage(sh, px - (sh.width >> 1), py - 4); g.globalAlpha = 1;
+        const s = tree(e.k, e.size, e.id, { autumn: e.aut || 0, fall: e.fall || 0, snow: world.surface?.snow || 0 }), sh = shadow(s.shadowW * 2, 7);
+        const shadowLen = Math.round(5 + Math.max(0, .6 - world.wx.elev) * 12), shadowDx = Math.round(Math.sin(world.t / 1440 * Math.PI * 2) * shadowLen);
+        g.globalAlpha = .19; g.drawImage(sh, px - (sh.width >> 1) + shadowDx, py - 3, sh.width, shadowLen); g.globalAlpha = 1;
         g.drawImage(s.trunk, px - Math.round(s.cx), py - s.trunk.height + 1);
         if (s.crown) {
           const sway = Math.round((wind + hash3(e.id, 0, 9) * 2 - 1) * .55 * (e.k === "pine" ? .6 : 1)), cx0 = px - Math.round(s.cx) + sway, cy0 = py - s.trunk.height - s.crown.height + 6;
           // a crown standing in front of Tomas (or the dog) turns see-through, so you never lose him in the woods
           const hide = focus.some(q => q.y < e.y && q.sx > cx0 - 2 && q.sx < cx0 + s.crown.width + 2 && q.sy > cy0 - 2 && q.sy - 14 < cy0 + s.crown.height);
-          if (hide) g.globalAlpha = .42; g.drawImage(s.crown, cx0, cy0); g.globalAlpha = 1;
+          if (hide) g.globalAlpha = .23; g.drawImage(s.crown, cx0, cy0); g.globalAlpha = 1;
         }
       } else if (SHRUBS.has(e.k)) {
-        const s = shrub(e.k, e.size, e.id, { autumn: e.aut || 0, fruit: e.fruit || 0, flower: V.flower });
+        if (e.n != null && e.n <= 0) continue;
+        const s = shrub(e.k, e.size * (e.n != null ? Math.min(1, .45 + e.n * .15) : 1), e.id, { autumn: e.aut || 0, fruit: e.fruit || 0, flower: V.flower });
         if (e.k !== "fern" && e.k !== "reeds") { const sh = shadow(s.img.width * .9, 5); g.globalAlpha = .28; g.drawImage(sh, px - (sh.width >> 1), py - 3); g.globalAlpha = 1; }
         g.drawImage(s.img, px - (s.img.width >> 1), py - s.img.height + s.ay);
       } else {

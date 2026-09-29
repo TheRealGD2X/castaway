@@ -38,7 +38,7 @@ export function bodyStep(B, ctx) {
   const A = ctx.lying ? 1.35 : 1.8;                          // curled on the ground less skin faces the air
   let loss = A * (Ts - ctx.airT) / (Rcl + Rair);
   loss += B.wet * 38 * (1 + wind / 6) * (ctx.airT < 20 ? 1 : .5);          // evaporation from wet clothes
-  if (ctx.lying) loss += .45 * (Ts - (ctx.airT + 1.5)) * 4 * (1 - (ctx.bedding || 0) * .85);   // the ground draws heat
+  if (ctx.lying) loss += .45 * (Ts - (ctx.groundT ?? ctx.airT + 1.5)) * 4 * (1 - (ctx.bedding || 0) * .85);   // the ground draws heat
   loss += 10 + (met > 3 ? met * 4 : 0);                                     // breath
   const gain = (ctx.fireW || 0) + (ctx.sun || 0) * .3 * (1 - (ctx.rainBlock || 0));
   // thermoregulation: sweat when hot, shiver when cold (less when exhausted or out of fuel)

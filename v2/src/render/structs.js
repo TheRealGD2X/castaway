@@ -3,7 +3,7 @@
 // round the hearth, logs stack on the woodpile as he brings them. Fires are drawn from their fuel and heat, with
 // flames, glowing embers and smoke that drifts with the wind. Materials he's brought but not used lie in piles.
 import { R, OUT } from "./palette.js";
-import { sprite } from "./pix.js";
+import { sprite, canvas } from "./pix.js";
 import { hash3 } from "../core/rng.js";
 
 const cache = new Map();
@@ -17,7 +17,7 @@ const coverOf = (s, k) => Object.keys(s.stages[k]?.need || {}).find(m => COVERC[
 
 // ------------------------------------------------------------ the lean-to, in four orientations
 function leanto(s) {
-  const fr = done(s, 0), rf = done(s, 1), bd = done(s, 2), cov = COVERC[coverOf(s, 1)], bed = COVERC[coverOf(s, 2)] || R.pine;
+  const fr = done(s, 0), rf = done(s, 1) * (s.integrity ?? 1), bd = done(s, 2), cov = COVERC[coverOf(s, 1)], bed = COVERC[coverOf(s, 2)] || R.pine;
   return memo(`lt:${s.dir}:${q(fr)}:${q(rf)}:${q(bd)}:${coverOf(s, 1)}`, () => {
     const w = 30, h = 28, ox = 15, oy = 24;                                    // (ox, oy) = the ground under the middle
     const img = sprite(w, h, P => {
@@ -61,8 +61,8 @@ function leanto(s) {
 }
 // ------------------------------------------------------------ the debris hut: a long mound of leaves over a ridge pole
 function debrisHut(s) {
-  const a = done(s, 0), b = done(s, 1), c = done(s, 2);
-  return memo(`dh:${s.dir}:${q(a)}:${q(b)}:${q(c)}`, () => {
+  const a = done(s, 0), b = done(s, 1), c = done(s, 2) * (s.integrity ?? 1);
+  return memo(`dh:${s.dir}:${q(a)}:${q(b)}:${q(c)}:${s.open}`, () => {
     const w = 30, h = 18, ox = 15, oy = 15;
     const img = sprite(w, h, P => {
       const side = s.dir === 0 || s.dir === 2, flip = s.dir === 2, X = x => flip ? w - 1 - x : x;
@@ -72,7 +72,7 @@ function debrisHut(s) {
         const dx = (x - 15) / 14, dy = (y - oy) / (11 * (side ? 1 : .8)), r = dx * dx + dy * dy; if (r > c * 1.05 || y > oy) continue;
         P.set(x, y, COVERC.debris[Math.min(3, ((1 - r) * 3 + hash3(x, y, 9) * 1.2) | 0)]);
       }
-      if (c > .8 && (s.dir === 1)) for (let y = oy - 4; y <= oy; y++) for (let x = 13; x <= 17; x++) P.set(x, y, "#2e2119");   // the way in
+      if (c > .8 && (s.dir === 1 || s.open)) for (let y = oy - 4; y <= oy; y++) for (let x = 13; x <= 17; x++) P.set(x, y, "#2e2119");   // the way in
     });
     return { img, ox, oy };
   });
@@ -104,16 +104,33 @@ function woodpile(s) {
   }), ox: 11, oy: 14 }));
 }
 function roundhouse(s) {
-  const st = done(s, 0), we = done(s, 1), da = done(s, 2), ra = done(s, 3), th = done(s, 4);
-  return memo(`rh:${q(st)}:${q(we)}:${q(da)}:${q(ra)}:${q(th)}`, () => ({ img: sprite(44, 40, P => {
-    const cx = 22, base = 36, wallH = 9;
-    const nst = Math.round(st * 14);
-    for (let k = 0; k < nst; k++) { const a = Math.PI * (k / 13); const x = Math.round(cx - Math.cos(a) * 17); line(P, x, base - wallH - 1, x, base - Math.round(Math.sin(a) * 4), R.bark[2]); }
-    for (let y = base - wallH; y <= base; y++) for (let x = cx - 17; x <= cx + 17; x++) { const f = (y - (base - wallH)) / wallH; if (hash3(x, y, 2) < we) P.set(x, y, (x + y) & 1 ? R.bark[3] : R.bark[2]); if (hash3(x, y, 4) < da) P.set(x, y, ["#8a6a4a", "#9e7c58", "#b38e66"][(f * 2.5 | 0)]); }
-    if (ra > 0) for (let k = 0; k <= Math.round(ra * 8); k++) line(P, cx - 18 + k * 4.5, base - wallH - 1, cx, 4, R.bark[3]);
-    if (th > 0) for (let y = 4; y <= base - wallH + 1; y++) { const hw = (y - 4) / (base - wallH - 3) * 21; if ((base - wallH + 1 - y) / (base - wallH - 3) > th) continue; for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) P.set(x, y, R.reed[((y >> 1) + (x & 1)) % 4]); }
-    if (da > .9) for (let y = base - 6; y <= base; y++) for (let x = cx - 3; x <= cx + 2; x++) P.set(x, y, "#2e2119");
-  }), ox: 22, oy: 36 }));
+  const st = done(s, 0), we = done(s, 1), da = done(s, 2), ra = done(s, 3), th = done(s, 4) * (s.integrity ?? 1);
+  return memo(`rh:${q(st)}:${q(we)}:${q(da)}:${q(ra)}:${q(th)}:${s.open}`, () => ({ img: sprite(60, 52, P => {
+    const cx = 30, base = 47, wallTop=30;
+    // A shaded foundation under curved wattle walls.
+    if(st>.2)for(let x=8;x<53;x++)P.set(x,base,'#8b8066');
+    for(let k=0;k<Math.floor(st*14);k++){const a=Math.PI*k/13,x=Math.round(cx-Math.cos(a)*21);line(P,x,wallTop,x,base-Math.round(Math.sin(a)*4),R.bark[2]);}
+    for(let y=wallTop;y<base;y++)for(let x=9;x<52;x++){
+      const curve=Math.abs(x-cx)/22, row=y-wallTop;
+      if(row/17<we)P.set(x,y,(row%3===0)?'#8b6b42':(x%4===0)?'#a88650':'#b39663');
+      if(row/17<da)P.set(x,y,curve>.65?'#9c7952':x<cx?'#d2b483':'#b99562');
+    }
+    for(let k=0;k<Math.floor(ra*10);k++)line(P,7+k*5,31,cx,5,'#8b6a40');
+    for(let y=5;y<33;y++){
+      const half=(y-4)/28*28, course=Math.floor((32-y)/4);
+      if((32-y)/28>th)continue;
+      for(let x=Math.round(cx-half);x<=cx+half;x++){
+        if(s.open&&y>21&&x>cx-13&&x<cx+12)continue;
+        const shade=x<cx?'#d6bd82':'#b39962';P.set(x,y,y%4===0?'#8f774b':(x+course*2)%7===0?'#e0c992':shade);
+      }
+    }
+    if(th>.2)line(P,3,33,57,33,'#8a7044');
+    if(da>.8){for(let y=base-12;y<base;y++)for(let x=cx-5;x<cx+5;x++)P.set(x,y,'#51432f');line(P,cx-6,base-13,cx+5,base-13,'#88623e');}
+    if(s.open){for(let y=35;y<46;y++)for(let x=17;x<43;x++)P.set(x,y,'#635439');for(let x=19;x<40;x++)P.set(x,46,'#b0a077');}
+    // Smoke vent, bound reed ridge and the uneven thatch fringe.
+    if(th>.85){line(P,27,5,32,5,'#705736');P.set(29,6,'#50422d');}
+    for(let x=5;x<56;x+=3)if(th>.7)P.set(x,34+(x%2),'#c6ab72');
+  }), ox:30, oy:47 }));
 }
 // a funnel basket of withies lying in the water, weighted with stones
 function fishTrap(s) {
@@ -142,6 +159,7 @@ export function drawPot(g, px, py, now, boiling) {
   if (boiling) for (let i = 0; i < 3; i++) { const l = ((now / 900 + i / 3) % 1); g.fillStyle = `rgba(240,240,236,${(1 - l) * .6})`; g.fillRect(px - 1 + Math.round(Math.sin(now / 400 + i) * 1.5), py - 6 - Math.round(l * 10), 2, 2); }
 }
 export function structSprite(s) {
+  if (["workbench", "dryingRack", "foodStore", "bedding"].includes(s.k)) return household(s);
   switch (s.k) {
     case "fishTrap": return fishTrap(s);
     case "leanto": return leanto(s);
@@ -152,6 +170,50 @@ export function structSprite(s) {
     case "roundhouse": return roundhouse(s);
   }
   return null;
+}
+
+export function snowOnRoof(sp, s, snow) {
+  const n=Math.min(3,Math.floor(snow/2));
+  if(!n||!sp||!['leanto','roundhouse','foodStore','woodpile'].includes(s.k))return sp;
+  const roof=s.k==='roundhouse'?done(s,4):done(s,1);if(roof<.2)return sp;
+  return memo(`snowroof:${s.k}:${s.dir}:${s.stage}:${q(s.prog)}:${s.open}:${n}:${q(s.integrity??1)}`,()=>{
+    const cv=canvas(sp.img.width,sp.img.height),g=cv.getContext('2d');g.drawImage(sp.img,0,0);
+    const im=g.getImageData(0,0,cv.width,cv.height),d=im.data;
+    for(let y=1;y<cv.height*.68;y++)for(let x=1;x<cv.width-1;x++){
+      const o=(y*cv.width+x)*4,up=o-cv.width*4;
+      if(!d[o+3]||d[up+3]||((x+y)%4)>=n)continue;
+      for(let j=0;j<n;j++){const p=o+j*cv.width*4;if(d[p+3]){d[p]=j?210:238;d[p+1]=j?225:239;d[p+2]=j?215:224;}}
+    }g.putImageData(im,0,0);return{...sp,img:cv};
+  });
+}
+
+// Objects become recognisable as the actual legs, rails, woven shelves and covers go in.
+function household(s) {
+  const a = done(s, 0), b = done(s, 1), damage = Math.floor((1 - (s.integrity ?? 1)) * 6), stock = Math.min(6, Math.floor((s.stock || 0) / 500));
+  return memo(`home:${s.k}:${q(a)}:${q(b)}:${damage}:${stock}`, () => ({ img: sprite(34, 29, P => {
+    const wood = (x,y,X,Y) => { line(P,x,y,X,Y,R.bark[3]); line(P,x+1,y,x===X?X+1:X,Y,R.bark[1]); };
+    if (s.k === 'workbench') {
+      for (const x of [5,24]) if (a>.3) wood(x,15,x,25);
+      if (a>.7) wood(6,22,24,18);
+      const n=Math.floor(b*22); for(let x=4;x<4+n;x++){P.set(x,13,'#c5a470');P.set(x,14,'#a58554');P.set(x,15,'#6c5133');}
+      if(b>.7){line(P,8,10,15,11,'#66543d');P.set(8,9,'#c3beb0');P.set(9,9,'#8c897d');line(P,20,11,24,10,'#b9a07b');}
+    } else if (s.k === 'dryingRack') {
+      if(a>.2)wood(5,7,4,25);if(a>.6)wood(27,7,28,25);if(a>.9)wood(4,7,28,7);
+      for(let k=0;k<Math.floor(b*4);k++)line(P,5,11+k*3,27,11+k*3,'#bda276','#795b38');
+      if(b>.8)for(let k=0;k<3;k++){const x=10+k*6;line(P,x,12,x,17,'#caa07c');P.set(x+1,13,'#e4c6a0');P.set(x+1,15,'#a07753');}
+    } else if(s.k === 'foodStore') {
+      if(a>.2)wood(5,14,5,25);if(a>.6)wood(25,14,25,25);
+      for(let y=14;y<22;y++)for(let x=6;x<26;x++)if((x-6)/20<a)P.set(x,y,(x+y)%4===0?'#bda275':'#91754e');
+      for(let k=0;k<stock;k++)P.set(10+k*2,17,'#dfc59b');
+      for(let y=4;y<13;y++)for(let x=3;x<29;x++)if((13-y)/9<b&&x>damage*2)P.set(x,y,y%3===0?'#98794b':'#c4a775');
+      if(b>0)line(P,3,13,29,13,'#6e5538');
+    } else {
+      for(let x=3;x<30;x++)if((x-3)/27<a){P.set(x,23,'#6b5137');P.set(x,24,'#886744');}
+      if(a>.6)for(const x of [5,27])wood(x,24,x,27);
+      for(let y=18;y<23;y++)for(let x=4;x<30;x++)if((x-4)/26<b)P.set(x,y,y===18?'#c5be87':(x+y)%5===0?'#9a9d65':'#83905d');
+      if(b>.7){for(let x=5;x<11;x++){P.set(x,17,'#d7ce9d');P.set(x,18,'#b8ac77');}}
+    }
+  }), ox:17, oy:25 }));
 }
 // ------------------------------------------------------------ piles of materials waiting on a site
 export function pileSprite(m, n) {

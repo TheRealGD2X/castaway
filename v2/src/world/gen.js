@@ -1,7 +1,7 @@
 // The island, generated from its seed. Terrain fields at tile resolution (1 tile = 2 m) and the first living things.
 import { makeRng, hash3 } from "../core/rng.js";
 import { fbm, vnoise } from "../core/noise.js";
-import { clamp } from "../core/dmath.js";
+import { dround, dsq, clamp } from "../core/dmath.js";
 
 export const MW = 112, MH = 84, N = MW * MH;
 export const T = { DEEP: 0, SEA: 1, SAND: 2, GRASS: 3, MEADOW: 4, WOOD: 5, ROCK: 6, LAKE: 7, MARSH: 8, STREAM: 9, SHINGLE: 10 };
@@ -22,7 +22,7 @@ export function generate(seed) {
     wet[idx(x, y)] = fbm(x * .05 + 40, y * .05, seed + 71, 4);
   }
   // keep only the main landmass (flood from the centre), everything else goes back to sea
-  const land = new Uint8Array(N), q = [idx(Math.round(cx), Math.round(cy))];
+  const land = new Uint8Array(N), q = [idx(dround(cx), dround(cy))];
   const SEA_LVL = .12;
   if (h[q[0]] < SEA_LVL) h[q[0]] = SEA_LVL + .2;
   land[q[0]] = 1;
@@ -52,7 +52,7 @@ export function generate(seed) {
     const lx = tx(lake), ly = ty(lake), rx = 4 + rng.int(3), ry = 3 + rng.int(2);
     for (let y = ly - ry - 2; y <= ly + ry + 2; y++) for (let x = lx - rx - 2; x <= lx + rx + 2; x++) {
       if (x < 1 || y < 1 || x >= MW - 1 || y >= MH - 1) continue;
-      const i = idx(x, y), d = ((x - lx) / rx) ** 2 + ((y - ly) / ry) ** 2, j = vnoise(x * .4, y * .4, seed + 21) * .6;
+      const i = idx(x, y), d = dsq((x - lx) / rx) + dsq((y - ly) / ry), j = vnoise(x * .4, y * .4, seed + 21) * .6;
       if (d < 1 + j - .3 && land[i] && dsea[i] > 3) { ter[i] = T.LAKE; lakeTiles.push(i); }
       else if (d < 1.9 + j && land[i] && ter[i] !== T.LAKE && dsea[i] > 2 && wet[i] > .45) ter[i] = T.MARSH;
     }

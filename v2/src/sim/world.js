@@ -1,3 +1,4 @@
+import { dceil, dsq } from "../core/dmath.js";
 // The running world: generation + physical processes, one real minute per step, and save/load.
 // Static things (terrain, where the trees stand) regenerate from the seed; only what changes is saved.
 import { generate } from "../world/gen.js";
@@ -15,18 +16,21 @@ import { fishInit, fishTen } from "./fish.js";
 import { animalsInit, animalsStep, animalsDay, theDog } from "./animals.js";
 import { shipsInit, shipsStep, shipsWatch } from "./ships.js";
 import { thoughtsFrom, applyThoughts } from "./mindlink.js";
+import { seasonsInit, seasonsStep } from "./seasons.js";
+import { heritageInit, heritageTen, observeLife } from "./heritage.js";
+import { equipmentStep } from "../mind/crafts.js";
 import { MW, MH, SP } from "../world/gen.js";
 
 export function createWorld(seed, born, opt) {
   const W = generate(seed);
   W.born = born; W.t = 0;
   W.rng = makeRng(seed ^ 0x5eed);
-  envInit(W); ecoInit(W); shoreInit(W); waterInit(W); fishInit(W);
+  envInit(W); seasonsInit(W); heritageInit(W); ecoInit(W); shoreInit(W); waterInit(W); fishInit(W);
   W.fires = []; W.structs = []; W.camp = null;
   // where the trees stand (shade, rain cover, slower walking) and a spatial index of everything rooted in place
   W.treeAt = new Uint8Array(MW * MH); W.grid = Array.from({ length: MW * MH }, () => []);
   for (const e of W.ents) { const i = Math.floor(e.y) * MW + Math.floor(e.x); W.grid[i].push(e); if (SP[e.k] && SP[e.k].kind === "tree") W.treeAt[i] = 1; }
-  W.near = (cx, cy, r) => { const out = []; for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(MH - 1, Math.ceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(MW - 1, Math.ceil(cx + r)); x++) for (const e of W.grid[y * MW + x]) if ((e.x - cx) ** 2 + (e.y - cy) ** 2 <= r * r) out.push(e); return out; };
+  W.near = (cx, cy, r) => { const out = []; for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(MH - 1, dceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(MW - 1, dceil(cx + r)); x++) for (const e of W.grid[y * MW + x]) if (dsq(e.x - cx) + dsq(e.y - cy) <= r * r) out.push(e); return out; };
   animalsInit(W); shipsInit(W);
   W.thoughtQ = thoughtsFrom(opt && opt.thoughts, 0);
   if (!opt || opt.man !== false) arrive(W);
@@ -34,8 +38,9 @@ export function createWorld(seed, born, opt) {
 }
 export function step(W) {
   W.t++;
-  envStep(W);
-  if (W.t % 10 === 0) { ecoTen(W); waterTen(W); fishTen(W); }
+  envStep(W); seasonsStep(W);
+  const logFrom = W.man?.log.length || 0;
+  if (W.t % 10 === 0) { ecoTen(W); waterTen(W); fishTen(W); heritageTen(W); }
   if (cal(W.born, W.t).mod === 360) { ecoDay(W); shoreDay(W); animalsDay(W, cal(W.born, W.t).doy); }
   animalsStep(W); shipsStep(W); shipsWatch(W);
   for (const F of W.fires) fireStep(F, W.wx);
@@ -45,19 +50,22 @@ export function step(W) {
   if (M && M.B.alive) {
     look(W);
     applyThoughts(W);
+    equipmentStep(W);
     think(W);
     healthStep(W, M);
     // food he's carrying: bacteria multiply with the warmth
     if (M.inv.raw > 0) M.rawLoad = (M.rawLoad || 0) * growthPerMin(W.wx.temp);
-    if (M.inv.food > 0 && M.foodLoad) M.foodLoad *= growthPerMin(W.wx.temp);
+    if (M.inv.food > 0 && M.foodLoad) M.foodLoad *= 1 + (growthPerMin(W.wx.temp) - 1) * (1 - (M.preserved || 0) * .7);
     bodyStep(M.B, bodyContext(W, M, M.met));
     if (!M.B.alive) M.log.push([W.t, "died", M.B.cause]);
+    observeLife(W, logFrom);
   }
 }
-const DYN = ["deadKg", "aut", "fall", "fruit", "n"];
+const DYN = ["deadKg", "aut", "fall", "fruit", "n", "shoots"];
 export function save(W) {
   return JSON.stringify({ v: 2, seed: W.seed, born: W.born, t: W.t, rng: W.rng.save(), wx: W.wx, nextId: W.nextId,
     ents: W.ents.map(e => DYN.map(k => e[k] ?? null)), litter: Array.from(W.litter), litterWet: W.litterWet, items: W.items, fires: W.fires, structs: W.structs, camp: W.camp, shore: W.shore.map(b => b.kg), water: W.water, fish: W.fish, animals: W.animals, warrens: W.warrens, runs: W.runs || {}, events: W.events || [], ships: W.ships, nextShip: W.nextShip,
+    surface: W.surface, traces: W.traces, scent: W.scent, story: W.story, storyKeys: W.storyKeys,
     man: W.man ? Object.assign({}, W.man, { known: Array.from(W.man.known).join("") }) : null });
 }
 export function load(s, thoughts) {
@@ -66,6 +74,18 @@ export function load(s, thoughts) {
   W.t = o.t; W.rng.load(o.rng); W.wx = o.wx; W.nextId = o.nextId; W.litterWet = o.litterWet; W.items = o.items;
   o.ents.forEach((v, i) => DYN.forEach((k, j) => { if (v[j] != null) W.ents[i][k] = v[j]; }));
   W.litter = Float32Array.from(o.litter); W.fires = o.fires; W.structs = o.structs; W.camp = o.camp; o.shore.forEach((kg, i) => { W.shore[i].kg = kg; }); W.water = o.water; W.fish = o.fish; W.animals = o.animals; W.warrens = o.warrens; W.runs = o.runs; W.events = o.events; W.ships = o.ships; W.nextShip = o.nextShip;
+  W.surface = o.surface || { ...W.surface, temp: o.wx.temp }; W.traces = o.traces || {}; W.scent = o.scent || {}; W.story = o.story || []; W.storyKeys = o.storyKeys || {};
   if (o.man) { W.man = Object.assign(o.man, { known: Uint8Array.from(o.man.known, c => +c) }); }
+  // Existing memories are already part of his past; the first future fire or sighting is not his first ever.
+  if (!o.storyKeys && W.man) {
+    if (W.man.log.some(l => l[1] === "fire")) W.storyKeys["first-fire"] = 1;
+    if (W.man.log.some(l => l[1] === "fish" && l[2] > 0)) W.storyKeys["first-fish"] = 1;
+    if (W.man.mem.dog) {
+      W.storyKeys["met-dog"] = 1;
+      const dog = W.animals.find(a => a.sp === "dog" && !a.adrift && !a.dead);
+      if ((dog?.trust || 0) > .6) W.storyKeys["dog-trust"] = 1;
+    }
+    if (Object.keys(W.man.mem).length > 30) W.storyKeys["knows-island"] = 1;
+  }
   return W;
 }

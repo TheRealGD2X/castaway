@@ -4,7 +4,7 @@
 // Whether he sees one depends on how far it is, the visibility (clear air, haze, rain, fog), the light, and whether
 // he's anywhere he can see the sea on that side. From a ship's deck at that range a man is invisible; smoke from a
 // fire can be seen, and a lookout might notice it, and take it for what smoke on an island usually is.
-import { clamp } from "../core/dmath.js";
+import { dhypot, clamp } from "../core/dmath.js";
 import { MW, MH } from "../world/gen.js";
 
 const KINDS = [["fishing boat", 4, .5], ["coaster", 6, .35], ["yacht", 3, .15]];   // [kind, speed m/s, share]
@@ -23,7 +23,7 @@ export function shipsStep(W) {
 }
 // where a ship is relative to the island centre (metres), and how far from a point on the island
 export function shipXY(W, sh) { const d = [[0, -1], [1, 0], [0, 1], [-1, 0]][sh.side]; return d[0] ? { x: d[0] * sh.off, y: sh.s } : { x: sh.s, y: d[1] * sh.off }; }
-export function shipDist(W, sh, px, py) { const p = shipXY(W, sh); return Math.hypot(p.x - (px - W.cx) * 2, p.y - (py - W.cy) * 2); }
+export function shipDist(W, sh, px, py) { const p = shipXY(W, sh); return dhypot(p.x - (px - W.cx) * 2, p.y - (py - W.cy) * 2); }
 // can he see the sea on that side from where he stands? The island is a couple of hundred metres across: from any
 // open ground he sees the horizon (less well on the far side); under trees or in the woods he sees nothing of it
 export function seaView(W, M, side) {

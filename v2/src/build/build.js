@@ -7,7 +7,7 @@
 // stops the ground drawing the heat out of him. The renderer draws the parts as they are, so building shows on the fly.
 // Stages become ordinary planner goals: gather these parts, then put them up (over hours, or days for bigger work).
 import { MW, MH, T, idx } from "../world/gen.js";
-import { clamp, dexp } from "../core/dmath.js";
+import { dceil, clamp, dexp } from "../core/dmath.js";
 
 // what each material is and how much of it one trip brings (an armful, a pair of poles dragged, a load of stones)
 export const MATERIALS = {
@@ -26,10 +26,38 @@ const OCT = [[1, 0], [.7071, .7071], [0, 1], [-.7071, .7071], [-1, 0], [-.7071, 
 // ------------------------------------------------------------------ families
 // each: minSkill (build skill needed to attempt it), make(brief) -> stages, props(struct) -> what it does now
 export const FAMILIES = {
+  workbench: {
+    label: "workbench", minSkill: .3, beside: true,
+    make: b => [
+      { name: "legs", need: { poles: 3 }, mins: 30, say: "Forked legs and cross braces, firm enough to work on." },
+      { name: "top", need: { poles: 4, withies: 3 }, mins: 45, say: "A flat working surface, lashed tight. His hands can work accurately here." },
+    ], props: s => ({ bench: done(s, 1) }),
+  },
+  dryingRack: {
+    label: "drying rack", minSkill: .35, beside: true,
+    make: b => [
+      { name: "frame", need: { poles: 4 }, mins: 35, say: "A frame beside the hearth, above the smoke and warmth." },
+      { name: "rails", need: { withies: 6 }, mins: 30, say: "Thin rails for fish and meat to dry slowly over the coals." },
+    ], props: s => ({ drying: done(s, 1) }),
+  },
+  foodStore: {
+    label: "food store", minSkill: .4, beside: true,
+    make: b => [
+      { name: "shelf", need: { poles: 4, withies: 5 }, mins: 55, say: "Food on a woven shelf off the damp ground." },
+      { name: "cover", need: { [b.cover]: 6 }, mins: 30, say: "An overlapping cover to keep food dry, with air beneath it." },
+    ], props: s => ({ store: done(s, 0), dry: frac(s, 1) }),
+  },
+  bedding: {
+    label: "raised bed", minSkill: .4, furnishing: true,
+    make: b => [
+      { name: "base", need: { poles: 4, withies: 4 }, mins: 45, say: "A woven bed raised clear of the cold earth." },
+      { name: "mattress", need: { [b.bedMat]: 8 }, mins: 30, say: "Dry boughs and leaves packed thickly over the bed." },
+    ], props: s => ({ bed: done(s, 0) * frac(s, 1) * .92 }),
+  },
   leanto: {
     label: "lean-to", minSkill: 0, shelter: true,
     make: b => {
-      const cover = b.cover, n = Math.ceil(2.9 / COVER[cover].rain), bed = b.bedMat;          // thick enough to keep off 95% of the rain
+      const cover = b.cover, n = dceil(2.9 / COVER[cover].rain), bed = b.bedMat;          // thick enough to keep off 95% of the rain
       return [
         { name: "frame", need: { poles: 3 }, mins: 40, say: "Two forked uprights driven in, a ridge pole across them." },
         { name: "roof", need: { poles: 4, [cover]: n }, mins: 70, say: `Rafters from the ridge to the ground, ${MATERIALS[cover].label} laid over them like shingles, from the bottom up.` },
@@ -110,7 +138,7 @@ export const FAMILIES = {
     ],
     props: s => {
       const walls = done(s, 0) * (frac(s, 1) * .5 + frac(s, 2) * .5), roof = done(s, 3) * frac(s, 4);
-      return { rain: roof * .98, wind: walls * .95, side: 0, bed: bedOf(s, 5), fire: 1, indoorFire: 1 };
+      return { rain: roof * .98, wind: walls * .95, side: 0, bed: bedOf(s, 5), fire: 1, indoorFire: walls * roof, workspace: walls * roof };
     },
   },
 };
@@ -118,7 +146,11 @@ const done = (s, k) => s.stage > k ? 1 : 0;
 const frac = (s, k) => s.stage > k ? 1 : s.stage === k ? s.prog : 0;
 const coverOf = (s, k) => Object.keys(s.stages[k].need).find(m => COVER[m]) || "bracken";
 const bedOf = (s, k) => { const m = coverOf(s, k); return clamp(frac(s, k) * (s.stages[k].need[m] || 0) * COVER[m].bed * 2, 0, .95); };
-export const propsOf = s => FAMILIES[s.k].props(s);
+export const propsOf = s => {
+  const p = FAMILIES[s.k].props(s), integrity = s.integrity ?? 1;
+  for (const k of ["rain", "wind", "bed", "dry", "reflect", "bench", "drying"]) if (p[k] != null) p[k] *= integrity;
+  return p;
+};
 
 // ------------------------------------------------------------------ what structures do, where he is
 // the shelter over a point: rain kept off, wind kept off (a lean-to only from behind), bedding underfoot
@@ -126,6 +158,7 @@ export function shelterAt(W, x, y) {
   const o = { rain: 0, wind: 0, bed: 0, fire: 1, reflect: 0 }, wd = OCT[W.wx.windDir | 0] || OCT[0];
   for (const s of W.structs) {
     const p = s.props || propsOf(s);
+    if (s.k === "bedding" && Math.abs(s.x - x) < .95 && Math.abs(s.y - y) < .95) o.bed = Math.max(o.bed, p.bed);
     if (p.reflect && Math.abs(s.x - x) < 3.5 && Math.abs(s.y - y) < 3.5) o.reflect = Math.max(o.reflect, p.reflect);
     if (!FAMILIES[s.k].shelter || Math.abs(s.x - x) > .95 || Math.abs(s.y - y) > .95) continue;
     // a one-sided shelter blocks wind blowing toward its open side (coming over its back), less from the side
@@ -180,6 +213,18 @@ export function site(W, M, fam, b, campTile) {
   // the open side should face where the wind blows to (so it comes over the back): the best of the four
   const wv = OCT[b.wind]; let order = [0, 1, 2, 3].sort((a, c) => (wv[0] * DIRV[c][0] + wv[1] * DIRV[c][1]) - (wv[0] * DIRV[a][0] + wv[1] * DIRV[a][1]) || a - c);
   const sh = bestShelter(W);
+  if (F.furnishing) return sh && !W.structs.some(s => s.k === fam && Math.abs(s.x - sh.x) < .5 && Math.abs(s.y - sh.y) < .5) ? { tile: idx(Math.floor(sh.x), Math.floor(sh.y)), dir: sh.dir } : null;
+  if (F.beside) {
+    let best = null, score = 1e9;
+    for (let y = Math.max(1, cy - 5); y <= Math.min(MH - 2, cy + 5); y++) for (let x = Math.max(1, cx - 5); x <= Math.min(MW - 2, cx + 5); x++) {
+      const i = idx(x, y); if (!M.known[i] || !buildable(W, i)) continue;
+      const dx = x - cx, dy = y - cy, d = dx * dx + dy * dy;
+      if (d < 4 || d > 20) continue;
+      const spacing = W.structs.reduce((n, s) => n + (Math.abs(s.x - x - .5) < 1.8 && Math.abs(s.y - y - .5) < 1.8 ? 4 : 0), 0);
+      const v = d + spacing; if (v < score) { score = v; best = { tile: i, dir: sh?.dir || 0 }; }
+    }
+    return best;
+  }
   for (const dir of order) {
     const [dx, dy] = DIRV[dir];
     let x, y;
@@ -189,6 +234,12 @@ export function site(W, M, fam, b, campTile) {
     if (x < 1 || y < 1 || x >= MW - 1 || y >= MH - 1) continue;
     const i = idx(x, y); if (buildable(W, i)) return { tile: i, dir };
     if (F.beyondFire || F.beside) break;
+  }
+  if (F.shelter && sh) {
+    for (let r = 2; r <= 4; r++) for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
+      if (x < 1 || y < 1 || x >= MW - 1 || y >= MH - 1) continue;
+      const i = idx(x, y); if (M.known[i] && buildable(W, i)) return { tile: i, dir: order[0] };
+    }
   }
   return null;
 }

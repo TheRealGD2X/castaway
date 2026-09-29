@@ -3,7 +3,7 @@
 // showery polar air behind it), with British seasonal odds and durations; within a regime, temperature, cloud,
 // wind, humidity and rain relax smoothly toward what that air mass brings at this hour, and showers and gusts
 // come from smooth deterministic noise (they cost no random numbers). Fog forms on calm, humid, cool dawns.
-import { dsin, dcos, clamp, relax, PI, TAU } from "../core/dmath.js";
+import { dround, dsin, dcos, clamp, relax, PI, TAU } from "../core/dmath.js";
 import { vnoise } from "../core/noise.js";
 import { cal } from "../core/time.js";
 
@@ -49,7 +49,7 @@ export function envStep(W) {
     let opts = NEXT[x.reg], r = W.rng.f(), acc = 0;
     if (c.winter > .6 && x.reg === "ridge") opts = [["front", .85], ["high", .15]];   // winters are stormier
     for (const [k, p] of opts) { acc += p; if (r < acc) { x.reg = k; break; } }
-    const R = REG[x.reg]; x.until = t + Math.round((R.hrs[0] + W.rng.f() * (R.hrs[1] - R.hrs[0])) * 60);
+    const R = REG[x.reg]; x.until = t + dround((R.hrs[0] + W.rng.f() * (R.hrs[1] - R.hrs[0])) * 60);
     x.windDir = (x.windDir + (x.reg === "front" ? 1 : x.reg === "showery" ? 2 : W.rng.int(3) - 1) + 8) % 8;
   }
   const R = REG[x.reg], sun = sunAt(W.born + t * 60000);

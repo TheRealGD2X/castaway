@@ -17,6 +17,28 @@ html,body{margin:0;height:100%;background:#174b66;overflow:hidden;touch-action:n
 #journal{display:none;position:fixed;left:12px;right:12px;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(70px + env(safe-area-inset-bottom,0px));overflow:auto;padding:14px 16px;border-radius:14px;background:rgba(246,228,176,.96);color:#2b1d16;font:15px/1.5 Georgia,serif;border:2px solid #2b1d16;-webkit-overflow-scrolling:touch}
 #journal h3{margin:0 0 8px;font:700 16px ui-rounded,system-ui}#journal p{margin:0 0 12px}
 #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#f6e4b0;font:600 16px ui-rounded,system-ui;background:#174b66}
+
+/* Calm paper journal; broad tap targets and normal finger scrolling on a phone. */
+#journal{color-scheme:light;left:10px;right:10px;top:calc(62px + env(safe-area-inset-top,0px));bottom:calc(72px + env(safe-area-inset-bottom,0px));padding:0;border:1px solid #a69267;border-radius:18px;background:#f4efda;box-shadow:0 12px 40px #27352d66;font:16px/1.55 Georgia,serif;touch-action:pan-y;user-select:text;-webkit-user-select:text;overscroll-behavior:contain}
+.journal-head{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 10px}
+.eyebrow{font:700 10px system-ui;letter-spacing:.18em;color:#827050}
+.journal-head h2{font:500 24px/1.15 Georgia,serif;letter-spacing:-.03em;margin:5px 0;color:#433925}
+.journal-close{width:44px;height:44px;flex-shrink:0;border:0;border-radius:50%;background:#e7dfc5;color:#68553b;font:26px system-ui;cursor:pointer}
+.journal-intro{padding:0 22px 18px;color:#817359;font:13px/1.5 system-ui}
+.journal-tabs{display:flex;padding:0 14px;border-bottom:1px solid #d6cdb0;gap:3px;position:sticky;top:0;background:#f4efda;z-index:1}
+.journal-tabs button{flex:1;min-height:47px;background:none;border:0;border-bottom:3px solid transparent;color:#8a7b5d;font:600 12px system-ui;cursor:pointer}
+.journal-tabs button[aria-pressed=true]{border-bottom-color:#778658;color:#46533a}
+.journal-body{padding:20px 22px 26px}.story-card{display:grid;grid-template-columns:24px 1fr;gap:12px;padding-bottom:23px;position:relative}
+.story-mark{color:#7f8c61;font:21px Georgia}.story-card time,.diary-card time{font:600 11px system-ui;letter-spacing:.04em;color:#978464}
+#journal .story-card p{margin:5px 0 12px;font-size:16px;color:#524632}
+.camp-picture{width:100%;max-width:360px;aspect-ratio:1.8;display:block;image-rendering:pixelated;border-radius:8px;border:1px solid #d2c7a5;margin:8px 0 4px}
+.diary-card{padding:0 0 24px}.diary-card p{white-space:normal;margin-top:9px!important;color:#584b36}
+#journal h3{font:600 13px system-ui;margin:24px 0 12px;color:#6e7852}.home-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #ded6bb;font:13px system-ui}.home-row strong{font-weight:500;text-transform:capitalize}.home-row span{font-size:11px;color:#8b7d61;text-align:right}
+#hud{background:rgba(49,55,43,.88);border:1px solid #b6b18b55;color:#f3ebce;box-shadow:0 2px 12px #24302733;padding:9px 12px;border-radius:13px;font-size:12px}
+#jbtn,#snd,#follow{width:44px;height:44px;border:1px solid #b6b18b55;background:rgba(49,55,43,.88);border-radius:50%;color:#f3ebce}#jbtn{right:61px}#snd{right:10px}
+#act{border:1px solid #b6b18b55;background:rgba(49,55,43,.9);box-shadow:0 3px 12px #24302733;color:#f3ebce;padding:11px 17px;border-radius:16px;font-size:14px}
+#why{color:#ded5b4;line-height:1.5;margin-top:10px}
+
 </style></head>
 <body><canvas id="c"></canvas><div id="load">The tide is bringing you in…</div><div id="hud"><span id="clk">…</span></div>
 <div id="act"><span>…</span><div id="why"></div></div><button id="follow" aria-label="Find Tomas">◎</button><button id="snd" aria-label="Sound">♪̸</button><button id="jbtn" aria-label="Journal">✎</button><div id="journal"></div>

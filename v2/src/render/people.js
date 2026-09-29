@@ -24,8 +24,16 @@ export const ANIM = {
   rest:      { stance: "sit", work: [5, -6], motion: "rest", lean: .05 },
   warm:      { stance: "sit", work: [9, -8], motion: "warm", period: 3000, frames: 4, lean: .1 },           // hands to the fire
   eat:       { stance: "sit", work: [5, -6], motion: "mouth", period: 2600, frames: 8, lean: .05 },
+  weave:     { stance: "sit", work: [7,-6], motion: "saw", tool: "cord", two: true, period: 1700, frames: 8, lean: .1 },
+  potter:    { stance: "sit", work: [7,-5], motion: "stir", tool: "clay", period: 2200, frames: 8, lean: .15 },
+  fish:      { stance: "sit", work: [7,-8], motion: "rest", tool: "rod", period: 3000, frames: 8, lean: .05 },
+  carry:     { stance: "stand", work: [5,-10], motion: "lift", tool: "basket", two: true, period: 1400, frames: 4 },
+  stonewalk: { stance: "walk", work: [5,-9], tool: "stone", period: 900, frames: 8 },
   sleep:     { stance: "lie" },
   lie:       { stance: "lie" },                                                                         // conserving heat while awake
 };
 for (const k in ANIM) ANIM[k].key = k;
-export function manSprite(pose, t) { return rigSprite(ANIM[pose] || ANIM.stand, t); }
+export function manSprite(pose, t, M) {
+  const mood = M?.B.ill > .2 ? 'ill' : M?.B.fatigue > .7 || M?.B.sleepP > .8 ? 'tired' : 'calm';
+  return rigSprite({ ...(ANIM[pose] || ANIM.stand), mood }, t);
+}

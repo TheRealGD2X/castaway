@@ -15,12 +15,14 @@ function crown(P, blobs, ramps, opt) {
     let k1 = 0, b1 = null, k2 = 0;
     for (const b of blobs) { const dx = (x - b.x) / b.r, dy = (y - b.y) / (b.r * (b.sq || .92)), k = 1 - Math.sqrt(dx * dx + dy * dy); if (k > k1) { k2 = k1; k1 = k; b1 = b; } else if (k > k2) k2 = k; }
     if (k1 <= 0) continue;
-    const hh = hash3(x, y, seed);
+    const hh = hash3(Math.floor(x / 3), Math.floor(y / 3), seed);
     if (fall > 0 && hh < fall) continue;                                            // leaves gone
     const nx = (x - b1.x) / b1.r, ny = (y - b1.y) / b1.r;
     let i = shadeIdx(nx, ny, n, b1.lift || 0);
     if (k2 > 0 && k1 < .2 && ny > .1) i = Math.max(0, i - 2);                      // shadow under the clump in front
-    if (hh > .93 && i < n - 1 && ny < .2) i++; else if (hh < .06 && i > 0) i--;     // a little leaf texture
+    // Leaves form readable groups; a few deliberate two-pixel glints follow the clump's light.
+    if ((x + y * 2 + seed) % 11 < 2 && ny < -.15 && k1 > .22 && i < n - 1) i++;
+    if (ny > .42 && k1 < .3 && i > 0) i--;     // a little leaf texture
     P.set(x, y, (b1.ramp || ramps[0])[i]);
   }
 }
@@ -31,9 +33,12 @@ function trunk(P, x0, yTop, yBot, w, ramp, opt = {}) {
       const u = (x - x0 + flare) / (w + 2 * flare - 1 || 1);
       let c = ramp[u < .25 ? 3 : u < .6 ? 2 : 1];
       if (opt.birch) c = hash3(x, y, 7) < .12 ? OUT : ramp[u < .3 ? 3 : u < .7 ? 2 : 1];
+      if (!opt.birch && x === x0 + 1 && y % 7 < 4) c = ramp[1];
       P.set(x, y, c);
     }
+    if (!opt.birch && y === yBot - 5) { P.set(x0+1,y,ramp[0]); P.set(x0+2,y-1,ramp[3]); }
   }
+  P.set(x0-2,yBot,ramp[1]);P.set(x0+w+1,yBot,ramp[2]);
 }
 function branches(P, x, y, ang, len, w, ramp, depth, seed) {         // bare winter limbs
   if (depth <= 0 || len < 2) return;
@@ -47,19 +52,20 @@ function branches(P, x, y, ang, len, w, ramp, depth, seed) {         // bare win
 
 // season: 0 = leaf, 1 = full autumn colour; fall: fraction of leaves gone
 export function tree(sp, size, v, season) {
-  const sc = q3(size), aut = Math.round((season.autumn || 0) * 4) / 4, fall = Math.round((season.fall || 0) * 4) / 4;
-  return memo(`t:${sp}:${sc}:${v & 7}:${aut}:${fall}`, () => {
+  const sc = q3(size), aut = Math.round((season.autumn || 0) * 4) / 4, fall = Math.round((season.fall || 0) * 4) / 4, snow = Math.min(3, Math.floor((season.snow || 0) / 2));
+  return memo(`t:${sp}:${sc}:${v & 7}:${aut}:${fall}:${snow}`, () => {
     const S = [.72, .86, 1][sc], seed = v * 17 + sc;
     if (sp === "pine") {
       const w = Math.round(30 * S) | 1, h = Math.round(46 * S), cx = w >> 1;
       const cr = sprite(w + 2, h, P => {
         const tiers = 4;
         for (let t = 0; t < tiers; t++) {
-          const top = Math.round(t * h * .2), bot = Math.round(top + h * .36), half = (w / 2) * (.45 + t * .18);
-          for (let y = top; y <= bot; y++) { const f = (y - top) / (bot - top), hw = half * f; for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) { const u = (x - (cx - hw)) / (2 * hw + .001); let i = u < .35 ? 3 : u < .7 ? 2 : 1; if (f > .82) i = Math.max(0, i - 1); if (hash3(x, y, seed) > .9) i = Math.min(4, i + 1); P.set(x + 1, y, R.pine[i]); } }
+          const top = Math.round(t * h * .2), bot = Math.round(top + h * .36), half = (w / 2) * (.40 + t * .18);
+          for (let y = top; y <= bot; y++) { const f = (y - top) / (bot - top), hw = half * f; for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) { const u = (x - (cx - hw)) / (2 * hw + .001); let i = u < .35 ? 3 : u < .7 ? 2 : 1; if (f > .82) i = Math.max(0, i - 1); if ((x + y * 2 + seed) % 13 === 0 && f < .6) i = Math.min(4, i + 1); P.set(x + 1, y, R.pine[i]); } }
         }
+        if (snow > 0) for(let y=1;y<P.h-1;y++)for(let x=1;x<P.w-1;x++)if(P.has(x,y)&&!P.has(x,y-1)&&(x+seed)%4<snow){P.set(x,y,'#e6ead9');if(snow>1&&P.has(x,y+1))P.set(x,y+1,'#cdded3');}
       });
-      const tr = sprite(8, 10, P => trunk(P, 2, 0, 8, 3, R.bark));
+      const tr = sprite(w + 2, 10, P => trunk(P, cx, 0, 8, 3, R.bark));
       return { crown: cr, trunk: tr, cx: cx + 1, crownY: h - 4, trunkY: 10, shadowW: w * .5 };
     }
     const kind = { oak: [R.oak, R.oakAut, 34, 40, 5], birch: [R.birchL, R.birchAut, 24, 42, 3], rowan: [R.rowan, R.oakAut, 24, 32, 3], hazel: [R.hazel, R.birchAut, 26, 22, 0] }[sp] || [R.oak, R.oakAut, 30, 36, 4];
@@ -79,6 +85,7 @@ export function tree(sp, size, v, season) {
     const bare = fall >= 1;
     const cr = bare ? null : sprite(w, ch + 2, P => {
       crown(P, blobs, [sum], { fall: fall * .8, seed });
+      if (snow > 0) for(let y=1;y<P.h-1;y++)for(let x=1;x<P.w-1;x++)if(P.has(x,y)&&!P.has(x,y-1)&&(x+seed)%4<snow){P.set(x,y,'#e6ead9');if(snow>1&&P.has(x,y+1))P.set(x,y+1,'#cdded3');}
       if (sp === "rowan" && aut > 0) for (let k = 0; k < 7; k++) { const x = Math.round(cx + (hash3(k, v, 31) - .5) * r * 1.4), y = Math.round(cy + hash3(k, v, 32) * r * .6); if (P.has(x, y)) { P.set(x, y, R.berry[2]); P.set(x + 1, y, R.berry[1]); P.set(x, y + 1, R.berry[1]); P.set(x + 1, y + 1, R.berry[0]); P.set(x, y - 1, R.berry[3]); } }
     });
     const trH = th + (bare ? ch * .7 : 0) | 0;

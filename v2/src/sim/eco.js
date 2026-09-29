@@ -5,7 +5,8 @@
 //  * Wood takes up rain and dries in sun and wind toward the air's equilibrium moisture (fraction of dry mass).
 //  * Leaves turn as nights get cold and short, and fall with frost and gales; they come back when spring warms.
 //  * Fruit swells in its season on each plant, then rots on the plant if nobody takes it.
-import { clamp } from "../core/dmath.js";
+import { liquidRain } from "./seasons.js";
+import { dsin, dcos, clamp } from "../core/dmath.js";
 import { hash3 } from "../core/rng.js";
 import { SP, MW, MH, idx, T } from "../world/gen.js";
 import { cal } from "../core/time.js";
@@ -24,6 +25,7 @@ export function ecoInit(W) {
   for (const e of W.ents) {
     const sp = SP[e.k];
     if (sp && sp.deadKgDay) { e.deadKg = +(sp.maxKg * e.size * (.3 + hash3(e.id, 1, W.seed) * .4)).toFixed(3); W.litter[idx(e.x | 0, e.y | 0)] += +(sp.maxKg * e.size * .3).toFixed(3); }
+    if (e.k === "hazel" || e.k === "birch") e.shoots = 16 * e.size;
     if (LEAF[e.k]) { e.aut = C.doy > 250 ? clamp((C.doy - 250) / 55, 0, 1) : 0; e.fall = C.doy < 110 ? 1 : C.doy > 295 ? clamp((C.doy - 295) / 30, 0, 1) : 0; }
     const F = FRUIT[e.k]; if (F) e.fruit = fruitTarget(F, C.doy) * (.6 + hash3(e.id, 2, W.seed) * .4);
   }
@@ -36,10 +38,10 @@ const eqMoist = hum => .1 + hum * .12;                  // wood's equilibrium mo
 export function ecoTen(W) {
   const x = W.wx, dt = 10;
   const dry = (x.sun / 700 + x.wind / 18 + (1 - x.hum)) * .0009 * dt;
-  const wetUp = x.rain * .004 * dt;
-  const moist = m => x.rain > 0 ? Math.min(.6, m + wetUp) : m > eqMoist(x.hum) ? Math.max(eqMoist(x.hum), m - dry) : m + (eqMoist(x.hum) - m) * .02;
+  const rain = liquidRain(W), wetUp = rain * .004 * dt;
+  const moist = m => rain > 0 ? Math.min(.6, m + wetUp) : m > eqMoist(x.hum) ? Math.max(eqMoist(x.hum), m - dry) : m + (eqMoist(x.hum) - m) * .02;
   W.litterWet = moist(W.litterWet);
-  for (const it of W.items) it.moist = moist(it.moist);
+  for (const it of W.items) if (it.moist != null) it.moist = moist(it.moist);
   // a gale snaps dead limbs: the stronger the gust and the more dead wood aloft, the likelier
   if (x.gust > 14) for (const e of W.ents) {
     if (!e.deadKg || e.deadKg < .4) continue;
@@ -48,7 +50,7 @@ export function ecoTen(W) {
       const kg = +Math.min(e.deadKg, .6 + W.rng.f() * 1.8).toFixed(2);
       e.deadKg = +(e.deadKg - kg).toFixed(3);
       const a = W.rng.f() * 6.283, d = .6 + W.rng.f() * 1.2;
-      addItem(W, { k: "branch", x: clamp(e.x + Math.cos(a) * d, 1, MW - 2), y: clamp(e.y + Math.sin(a) * d * .7 + .3, 1, MH - 2), kg, moist: .3, len: kg > 1.2 ? 2 : 1, from: e.id, t: W.t });
+      addItem(W, { k: "branch", x: clamp(e.x + dcos(a) * d, 1, MW - 2), y: clamp(e.y + dsin(a) * d * .7 + .3, 1, MH - 2), kg, moist: .3, len: kg > 1.2 ? 2 : 1, from: e.id, t: W.t });
       W.log && W.log.push([W.t, "branch", e.id, kg]);
     }
   }
@@ -59,6 +61,12 @@ export function ecoDay(W) {
   for (let i = 0; i < W.litter.length; i++) if (W.litter[i] > 0) W.litter[i] = +(W.litter[i] * .992).toFixed(3);   // rot
   for (const e of W.ents) {
     const sp = SP[e.k];
+    const tile = idx(Math.floor(e.x), Math.floor(e.y)), trace = W.traces?.[tile];
+    if (e.shoots != null) e.shoots = Math.min(16 * e.size, e.shoots + Math.max(0, x.temp - 5) * .012 * e.size);
+    if ((e.k === 'fern' || e.k === 'reeds') && e.n != null) {
+      const regrowth = Math.max(0, x.temp - 6) * .006 * (1 - Math.min(.9, (trace?.wear || 0) / 30)) * (1 + Math.min(.3, trace?.nutrient || 0));
+      e.n = Math.min(3, e.n + regrowth);
+    }
     if (sp && sp.deadKgDay) {
       const grow = sp.deadKgDay * e.size, cap = sp.maxKg * e.size;
       e.deadKg = +Math.min(cap, e.deadKg + grow * .6).toFixed(3);
@@ -70,7 +78,7 @@ export function ecoDay(W) {
       if (spring && x.temp > 7) { e.fall = clamp(e.fall - .05, 0, 1); if (e.fall < .3) e.aut = clamp(e.aut - .1, 0, 1); }
     }
     const F = FRUIT[e.k];
-    if (F) { const tg = fruitTarget(F, C.doy) * (.7 + hash3(e.id, 2, W.seed) * .3); e.fruit = +(tg >= e.fruit ? Math.min(tg, e.fruit + .08) : Math.max(tg, e.fruit - .06)).toFixed(3); }
+    if (F) { const tg = fruitTarget(F, C.doy) * (.7 + hash3(e.id, 2, W.seed) * .3); e.fruit = +(tg >= e.fruit ? Math.min(tg, e.fruit + .08 * Math.max(0, Math.min(1, (x.temp - 3) / 8))) : Math.max(tg, e.fruit - .06)).toFixed(3); }
   }
 }
 export function addItem(W, it) {
