@@ -105,8 +105,8 @@ export function hydroTen(W,dt=10) {
     const kg=Math.min(.002,W.litter[j]*h.flow*.03);if(kg<.00001)continue;W.litter[j]-=kg;h.debris.push({id:h.debrisId++,prev:k,at:k,kg});
   }
   // Installed collecting area supplies a real, finite basin. Clay leaks; roof debris can carry germs.
-  for(const s of W.structs)if(s.props?.capacity) {
-    const p=s.props,old=(s.waterL||0)/1000,capacity=p.capacity/1000;
+  for(const s of W.structs)if(s.props?.capacity||(s.waterL||0)>0) {
+    const p=s.props||{},old=(s.waterL||0)/1000,capacity=(p.capacity||0)/1000;
     // Rain intercepted by its collecting surface is taken from the tile's incoming surface water.
     const i=Math.floor(s.y)*W.MW+Math.floor(s.x),capture=captured.get(s.id)||0;
     const all=old+capture,overflow=Math.max(0,all-capacity),leak=Math.min(Math.max(0,all-overflow),dt*(p.leakL??.002)/1000);

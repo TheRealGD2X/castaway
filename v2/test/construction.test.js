@@ -69,6 +69,8 @@ hydroTen(W);assert(tank.waterL<water);near(total(),volumes);
 tank.props=propsOf(tank);tank.waterL=3;M.x=tank.x;M.y=tank.y;M.path=null;M.B.waterDef=1;const target=ACTIONS.drinkCollected.find(W,M);assert(target);let state={};for(let k=0;k<8;k++)ACTIONS.drinkCollected.exec(W,M,target,state);assert(tank.waterL<3);
 W.camp=Math.floor(combo.y)*W.MW+Math.floor(combo.x);const picture=campSnapshot(W).find(s=>s.label===combo.label),savedCondition=picture.assembly.parts[0].condition;combo.assembly.parts[0].condition=0;assert.equal(picture.assembly.parts[0].condition,savedCondition);
 console.log('ok   invented basins supply finite water and leak into the island; journal pictures preserve historical parts');
+const filled=full({capacity:12,catchArea:1.1});filled.waterL=8;const balance=total(),lining=filled.assembly.parts.find(p=>p.kind==='shell');reclaimPart(filled,lining.id);assert.equal(filled.props.capacity,0);hydroTen(W);assert.equal(filled.waterL,0);near(total(),balance);
+console.log('ok   dismantling a filled basin spills its water into the island and conserves the total');
 
 const oldWorld=createWorld(SEED,BORN),stages=FAMILIES.workbench.make({}),legacy={id:oldWorld.nextId++,k:'workbench',x:60,y:42,dir:0,stages,stage:1,prog:.5,have:{poles:3},onsite:{poles:4,withies:3}};
 oldWorld.structs=[legacy];const migrated=load(save(oldWorld)),ms=migrated.structs[0];assert(ms.assembly);for(const m of ['poles','withies'])near(ms.have[m]+ms.onsite[m],(legacy.have[m]||0)+(legacy.onsite[m]||0));assert.equal(save(load(save(migrated))),save(migrated));
