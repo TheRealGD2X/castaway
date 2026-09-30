@@ -273,3 +273,25 @@ Equation references: [USACE Manning flow](https://www.hec.usace.army.mil/conflue
 `waterworks.test.js` checks independent equations, scaling, crest thresholds, water and mineral
 conservation, lost pool capacity, removal and exact checkpoint replay. Settling is additionally
 compared with its analytic solution at different intervals. New typed arrays have old-save defaults.
+
+
+## Tools from working geometry
+
+`sim/tools.js` stores cutting edges, handles, bindings and fibres in kilograms and metres.
+Axe strike energy is m v^2/2; handle capacity follows cantilever bending strength; binding
+and fishing-line strength follow fibre cross-sectional area, tensile strength, knot quality,
+wetness and condition. Wood separation uses edge contact area and an assumed shear resistance.
+Only the useful cutting power improves the cutting share of gathering/building work; carrying,
+gathering and assembly labour still take time. Axe presence gives no fixed multiplier.
+Archard abrasion transfers a finite volume from the edge into retained dust, widening its
+radius. Overload damages bindings/handles; a parted tool remains saved as broken material.
+Fishing fights exert force against the actual fibre strength. Tool parts, offcuts, broken
+fragments and abrasion dust conserve the charged input mass. Older tools retain their original
+charged mass; migrated fishing cord retains its excess as stock rather than inventing an edge.
+Small collected branches yield their actual available wood mass, including fractional poles.
+
+Swing speed (4 m/s), cadence (.6 Hz), stopping distance (.03 m), wood shear resistance,
+fibre quality and abrasion coefficient are engineering assumptions, not a calibrated cutting
+experiment. This does not simulate detailed fracture, individual fibre strands or hand contact.
+`tools.test.js` checks independent energy/strength equations, wear, overload, mass accounting,
+interrupted construction, short-branch yield and save/load. No new natural random draws are added.

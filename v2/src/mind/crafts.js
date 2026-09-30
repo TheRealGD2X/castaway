@@ -1,4 +1,5 @@
 // Useful equipment, made from gathered materials. Planning and execution use the same recipes.
+import {ensureTools,makeTool,useLine,toolProps} from '../sim/tools.js';
 import { MET } from '../sim/body.js';
 import { MW, idx, T } from '../world/gen.js';
 import { clamp, dceil } from '../core/dmath.js';
@@ -50,8 +51,8 @@ export function craftActions(work) {
       }, done: (W,M) => {
         delete M.workpieces[r.out];
         M.inv[r.out] = (M.inv[r.out] || 0) + r.qty;
-        if (r.out === 'line') M.lineStrength = clamp(.5 + M.skill.build * .12, .5, .95);
-        if (r.out === 'axe') M.axeWear = 1;
+        if(r.out==='line'){const t=makeTool(M,'line');M.lineStrength=toolProps(t).tension/30;}
+        if(r.out==='axe'){makeTool(M,'axe');M.axeWear=1;}
         if (r.out === 'greenPot') M.potDry = 0;
         M.log.push([W.t,'crafted',r.name]);
       } });
@@ -81,12 +82,12 @@ export function craftActions(work) {
       const water=W.ter[t.tile]===T.STREAM?"stream":"lake", population=fish[water] || 0, density=population/Math.max(1,W.fishK[water]);
       if(W.rng.f()<Math.min(.08, density * .05 * (.7+M.skill.forage*.1))&&population>=1) {
         const pull=.3+W.rng.f()*.55;
-        if(pull>(M.lineStrength||.5)){M.inv.line=0;M.say='The cord parted under the pull.';return 'fail';}
+        if(!useLine(M,0,pull*30)){M.inv.line=0;M.say='The cord parted under the pull.';return 'fail';}
         fish[water]=Math.max(0,fish[water]-1);
         const old=M.inv.raw||0,k=FISH.kcal; M.rawLoad=((M.rawLoad||0)*old+W.water.stream*.004*k)/(old+k);
         M.inv.raw=old+k;M.rawWhat='fish';M.skill.forage+=.04;M.log.push([W.t,'caught fish']);
       }
-      M.lineStrength=Math.max(.15,(M.lineStrength||.5)-.00012);
+      useLine(M,1);
     }}) };
   A.repairHome = {r:['poles','cord','debris','repaired'],w:['repaired','poles','cord','debris'],
     find:(W,M)=>{let s=null,v=.94;for(const q of W.structs)if(!q.assembly&&(q.integrity??1)<v&&dist(M,q)<25){v=q.integrity;s=q;}return s?point(s):null;},
@@ -141,7 +142,7 @@ export function craftGoals(W,M,S) {
 }
 function A_REPAIR(W,M){return W.structs.find(s=>!s.assembly&&(s.integrity??1)<.88&&Math.abs(s.x-M.x)<25&&Math.abs(s.y-M.y)<25);}
 export function equipmentStep(W) {
-  const M=W.man;if(!M)return;
+  const M=W.man;if(!M)return;ensureTools(M);
   if(M.inv.greenPot)M.potDry=clamp((M.potDry||0)+Math.max(0,W.wx.temp)*.00007*(1-W.wx.hum*.65)-W.wx.rain*.00008,0,1);
   if(M.inv.wrap) {M.wrapWet=clamp((M.wrapWet||0)+W.wx.rain*.0004-.0004,0,1);}
 }

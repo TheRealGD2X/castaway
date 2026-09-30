@@ -3,6 +3,7 @@
 //    what it costs in minutes, including the walk to the nearest place he KNOWS of (from memory, not the truth);
 //  * for doing: the physical steps in the world, minute by minute (exec), which can fail (the branch he remembered
 //    is gone, the drill won't take, the tinder's damp), and then he rethinks.
+import {woodWorkRate,useAxe,ensureTools} from '../sim/tools.js';
 import { MW, MH, idx, T } from "../world/gen.js";
 import { here, goTo, walk } from "../sim/man.js";
 import { newFire, addFuel, ignite } from "../sim/fire.js";
@@ -267,7 +268,8 @@ const warmSheltered = work({ adjacent: false, mins: 30, met: MET.sit, pose: "lie
 // where each material comes from (as he remembers the island), what it needs, and what taking it does to the world
 const MATSRC = {
   poles: { find: (W, M) => nearestMem(M, (m, k) => (k[0] === "i" && m.k === "branch" && m.kg > 1) || (m.deadKg > 3)), mins: 12, pose: "snap", met: MET.carry, say: "Long straight dead limbs, dragged back two at a time.",
-    take: (W, M, t) => { if (t.key[0] === "i") { const k = W.items.findIndex(it => "i" + it.id === t.key); if (k < 0) return "fail"; W.items.splice(k, 1); } else { const e = W.ents.find(q => "e" + q.id === t.key); if (!e || e.deadKg < 2) return "fail"; e.deadKg -= 3; } } },
+    take:(W,M,t)=>{let source,index;if(t.key[0]==='i'){index=W.items.findIndex(it=>'i'+it.id===t.key);source=W.items[index];}else source=W.ents.find(e=>'e'+e.id===t.key);
+      if(!source)return 'fail';const field=t.key[0]==='i'?'kg':'deadKg',kg=Math.min(source[field]||0,3);if(kg<=0)return 'fail';source[field]-=kg;if(index!=null&&source.kg<.000001)W.items.splice(index,1);return {qty:kg/1.5};} },
   bracken: { find: (W, M) => nearestMem(M, (m, k) => m.k === "fern" && (m.n ?? 1) >= 1), mins: 15, pose: "pull", met: MET.gather, say: "Armfuls of bracken. It'll thatch a roof and make a bed.",
     take: (W, M, t) => { const e = W.ents.find(q => "e" + q.id === t.key); if (!e || (e.n ?? 1) < 1) return "fail"; e.n = (e.n ?? 1) - 1; } },
   boughs: { find: (W, M) => nearestMem(M, m => m.k === "pine"), mins: 15, pose: "snap", met: MET.gather, say: "Green pine boughs: they shed rain, and they're soft to lie on." },
@@ -282,8 +284,8 @@ for (const m of MATS) {
   const src = MATSRC[m], trip = MATERIALS[m].trip, n = "get_" + m;
   ACTIONS[n] = {
     r: [m, ...(src.needs || [])], w: [m], find: src.find,
-    pre: S => S[m] < 60 && (src.needs || []).every(v => S[v]), eff: S => { S[m] += trip; }, cost: (W, M, t) => walkMin(M, t) + src.mins / (M.inv.axe && (m === "poles" || m === "withies") ? 1.35 : 1),
-    exec: work({ adjacent: true, mins: (W, M) => src.mins / (M.inv.axe && (m === "poles" || m === "withies") ? 1.35 : 1), met: src.met, pose: src.pose, done: (W, M, t) => { if (src.take && src.take(W, M, t) === "fail") return "fail"; M.inv[m] = (M.inv[m] || 0) + trip; if (M.inv.axe && (m === "poles" || m === "withies")) { M.axeWear = Math.max(0, (M.axeWear ?? 1) - .025); if (!M.axeWear) M.inv.axe = 0; } } }),
+    pre: S => S[m] < 60 && (src.needs || []).every(v => S[v]), eff: S => { S[m] += trip; }, cost: (W, M, t) => walkMin(M, t) + src.mins / ((m === "poles" || m === "withies") ? woodWorkRate(M) : 1),
+    exec: work({ adjacent: true, mins: (W, M) => src.mins / ((m === "poles" || m === "withies") ? woodWorkRate(M) : 1), met: src.met, pose: src.pose, done: (W, M, t) => { const taken=src.take?.(W,M,t);if(taken==="fail")return "fail";M.inv[m]=(M.inv[m]||0)+(taken?.qty??trip);if(m==="poles"||m==="withies")useAxe(M,src.mins,W.wx); } }),
     say: src.say,
   };
 }
@@ -301,7 +303,8 @@ export function buildExec(W, M, t, st) {
   }
   M.pose = "build"; M.met = MET.build; M.face = s.x > M.x ? 1 : -1;
   const bench = W.structs.some(q => (q.props?.bench||0)>.5 && Math.abs(q.x - M.x) < 3 && Math.abs(q.y - M.y) < 3);
-  const speed = (.8 + Math.min(.6, M.skill.build * .3)) * (bench ? 1.15 : 1) * (M.inv.axe ? 1.12 : 1);          // practice makes him quicker
+  const speed = (.8 + Math.min(.6, M.skill.build * .3)) * (bench ? 1.15 : 1) * woodWorkRate(M,.12);          // practice makes him quicker
+  if(Object.keys(stage.need).some(k=>k==="poles"||k==="withies"))useAxe(M,1,W.wx);
   M.skill.build += .0015; hazard(W, M, .0002, M.skill.build);
   if (buildWork(W, s, speed / stage.mins)) { M.log.push([W.t, "built", s.k, stage.name]); if (s.k === "fireRing") for (const F of W.fires) if (Math.abs(F.x - s.x) < .6 && Math.abs(F.y - s.y) < .6) F.ring = true; return "done"; }
   return "work";

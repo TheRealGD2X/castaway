@@ -24,6 +24,7 @@ import {waterDesign} from '../build/waterworks.js';
 import { homeAssembly } from '../build/homes.js';
 import { legacyAssembly } from '../build/designer.js';
 import { installed } from '../build/assembly.js';
+import {ensureTools} from './tools.js';
 import { propsOf } from '../build/build.js';
 import { MW, MH, SP } from "../world/gen.js";
 
@@ -40,6 +41,7 @@ export function createWorld(seed, born, opt) {
   animalsInit(W); shipsInit(W);
   W.thoughtQ = thoughtsFrom(opt && opt.thoughts, 0);
   if (!opt || opt.man !== false) arrive(W);
+  if(W.man)ensureTools(W.man);
   return W;
 }
 export function step(W) {
@@ -96,5 +98,6 @@ export function load(s, thoughts) {
     }
     if (Object.keys(W.man.mem).length > 30) W.storyKeys["knows-island"] = 1;
   }
+  if(W.man)ensureTools(W.man);
   return W;
 }
