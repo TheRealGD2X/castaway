@@ -3,6 +3,7 @@
 import { T } from '../world/gen.js';
 import { clamp,dcbrt,dexp } from '../core/dmath.js';
 import { liquidRain } from './seasons.js';
+import { elevation, moveRelief, erosionMass,beginRelief,endRelief,touchRelief } from './geomorph.js';
 
 // SI units: rectangular-channel Manning flow and broad-crested overflow.
 export function channelDischarge(width,depth,length,head,roughness=.06){
@@ -19,7 +20,7 @@ export function hydroInit(W) {
     const x=i%W.MW,y=Math.floor(i/W.MW);let best=1e9;
     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
       if(x+dx<0||x+dx>=W.MW||y+dy<0||y+dy>=W.MH)continue;
-      const j=i+dx+dy*W.MW,h=W.ter[j]<=1?0:(W.h[j]-.12)*18;
+      const j=i+dx+dy*W.MW,h=W.ter[j]<=1?0:elevation(W,j);
       if(h<best){best=h;down[i]=j;}
     }
   }
@@ -33,7 +34,7 @@ export function hydroInit(W) {
   const solid=new Float64Array(n),silt=new Float64Array(n);for(const i of land)solid[i]=4*.3*1600;
   W.hydro={soil,pool,ice,solid,silt,lakeSilt:0,streamSilt:0,lakeBed:0,siltOut:0,siltUsed:0,ground:land.length*.4,lake:lake.length*4*.65,stream:stream.length*4*.14,
     snow:0,freshIce:0,flow:0,streamDepth:.14,lakeDepth:.65,temp:W.wx.temp,oxygen:9,sediment:0,wave:.08,
-    rain:0,evap:0,sea:0,used:0,runoff:0,debris:[],debrisId:0,debrisOut:0};
+    rain:0,evap:0,sea:0,used:0,runoff:0,mineralHarvested:0,debris:[],debrisId:0,debrisOut:0};
 }
 export function hydroLoad(W,o) {
   if(!o)return;
@@ -51,6 +52,7 @@ const addSurface=(W,i,v)=>{
 };
 // Integrate the same physical rates over ten minutes, like existing water quality and vegetation processes.
 export function hydroTen(W,dt=10) {
+  beginRelief(W);
   const h=W.hydro,m=W.hydroMap,x=W.wx,area=(m.land.length+m.lake.length+m.stream.length)*4;
   const rain=liquidRain(W)*dt/60000,solid=Math.max(0,x.rain-liquidRain(W))*dt/60000;
   h.rain+=(rain+solid)*area;h.snow+=solid*area;
@@ -67,7 +69,8 @@ export function hydroTen(W,dt=10) {
     const earth=earths.get(i),ep=earth?.props||{};
     if(earth){const moved=earth.earthMovedM3||0,need=Math.max(0,(ep.excavatedM3||0)-moved)*1600,kg=Math.min(h.solid[i],need);h.solid[i]-=kg;earth.spoilKg=(earth.spoilKg||0)+kg;earth.earthMovedM3=moved+kg/1600;}
     if(ep.retention){const room=Math.max(0,ep.capacity/1000-(earth.waterL||0)/1000-(captured.get(earth.id)||0)),v=Math.min(h.pool[i],room,dt*.0005*ep.earthArea);const kg=h.silt[i]*v/Math.max(.000001,h.pool[i]);h.silt[i]-=kg;earth.suspendedKg=(earth.suspendedKg||0)+kg;h.pool[i]-=v;captured.set(earth.id,(captured.get(earth.id)||0)+v);}
-    const wear=W.traces?.[i]?.wear||0,cap=W.ter[i]===T.ROCK?.03:W.ter[i]===T.SAND?.14:.22;
+    const wear=W.traces?.[i]?.wear||0,cap=Math.min(W.ter[i]===T.ROCK?.03:W.ter[i]===T.SAND?.14:.22,h.solid[i]/1600*.19);
+    const expelled=Math.max(0,h.soil[i]-cap);h.soil[i]-=expelled;h.pool[i]+=expelled;
     const infiltration=Math.min(h.pool[i],Math.max(0,cap-h.soil[i]),dt*.00022*(ep.infiltration??1)/(1+wear*.06));
     h.pool[i]-=infiltration;h.soil[i]+=infiltration;
     const percolate=Math.max(0,h.soil[i]-cap*.55)*dt*.0009;h.soil[i]-=percolate;h.ground+=percolate;
@@ -75,29 +78,29 @@ export function hydroTen(W,dt=10) {
     const freeze=Math.min(h.pool[i],Math.max(0,-W.surface.temp)*dt*.000072),thaw=Math.min(h.ice[i],Math.max(0,W.surface.temp)*dt*.0001);
     h.pool[i]+=thaw-freeze;h.ice[i]+=freeze-thaw;
     const j=m.down[i];if(j<0)continue;
-    const headAt=(i)=>{const e=earths.get(i)?.props||{},base=(W.h[i]-.12)*18,cut=e.excavatedM3||0,pool=h.pool[i]||0;return cut?base-(e.channelDepth||0)+Math.min(pool,cut)/Math.max(.01,e.earthArea)+Math.max(0,pool-cut)/4:base+pool/4;};
-    let target=W.ter[j]<=1?0:(W.ter[j]===T.STREAM||W.ter[j]===T.LAKE?(W.h[j]-.12)*18:headAt(j));
-    if(ep.crest)target=Math.max(target,(W.h[i]-.12)*18+ep.crest);
+    const headAt=(i)=>{const e=earths.get(i)?.props||{},base=elevation(W,i),cut=e.excavatedM3||0,pool=h.pool[i]||0;return cut?base-(e.channelDepth||0)+Math.min(pool,cut)/Math.max(.01,e.earthArea)+Math.max(0,pool-cut)/4:base+pool/4;};
+    let target=W.ter[j]<=1?0:(W.ter[j]===T.STREAM||W.ter[j]===T.LAKE?elevation(W,j):headAt(j));
+    if(ep.crest)target=Math.max(target,elevation(W,i)+ep.crest);
     const head=headAt(i)-target,drain=drains.get(i)||0,hold=(W.ter[i]===T.MARSH?.04:.004)*(1-drain*.95);
-    const sourceBase=(W.h[i]-.12)*18,cut=ep.excavatedM3||0;
+    const sourceBase=elevation(W,i),cut=ep.excavatedM3||0;
     const equilibrium=target>=sourceBase?cut+(target-sourceBase)*4:Math.max(0,target-sourceBase+(ep.channelDepth||0))*(ep.earthArea||4);
     const available=Math.max(0,h.pool[i]-equilibrium),wetDepth=Math.min(ep.channelDepth||0,h.pool[i]/Math.max(.01,ep.earthArea||4));
     const engineered=ep.crest?weirDischarge(earth.earthwork.width,head):ep.drainage?channelDischarge(ep.channelWidth,wetDepth,earth.earthwork.length,head):0;
     const v=ep.crest||ep.drainage?Math.min(Math.max(0,h.pool[i]-hold),available,engineered*dt*60):Math.min(Math.max(0,h.pool[i]-hold)*.35,dt*Math.sqrt(Math.max(0,head))*.004);
     if(earth)earth.flow=v/dt;
-    const eroded=Math.min(h.solid[i],v*Math.sqrt(Math.max(0,head))*.002),silt=h.silt[i]*v/Math.max(.000001,h.pool[i])+eroded;
-    h.solid[i]-=eroded;h.silt[i]-=silt-eroded;moveSilt(j,silt);
+    const eroded=Math.min(h.solid[i],v*20,erosionMass(h.pool[i]/4,head,2,dt*60,W.treeAt?.[i]?1:W.ter[i]===T.MEADOW?.4:0,wear)),silt=h.silt[i]*v/Math.max(.000001,h.pool[i])+eroded;
+    h.solid[i]-=eroded;moveRelief(W,i,-eroded);h.silt[i]-=silt-eroded;moveSilt(j,silt);
     h.pool[i]-=v;runoff+=v;
     if(drainStructs.has(i))drainStructs.get(i).flow=v/dt;
     if(W.ter[j]>1&&W.ter[j]!==T.LAKE&&W.ter[j]!==T.STREAM)m.delta[j]+=v;else addSurface(W,j,v);
   }
-  for(const i of m.land){h.pool[i]+=m.delta[i];h.silt[i]+=m.siltDelta[i];}
+  for(const i of m.land){h.pool[i]+=m.delta[i];h.silt[i]+=m.siltDelta[i];const kg=h.silt[i]*(1-dexp(-SILT_V*dt*60/Math.max(.001,h.pool[i]/4)));h.silt[i]-=kg;h.solid[i]+=kg;moveRelief(W,i,kg);}
   h.runoff=runoff/dt;
   h.lake+=wet*m.lake.length*4;h.stream+=wet*m.stream.length*4;
   const baseflow=Math.min(h.ground,h.ground*dt*.000006);h.ground-=baseflow;
   if(m.lake.length)h.lake+=baseflow;else if(m.stream.length)h.stream+=baseflow;else h.sea+=baseflow;
   const la=Math.max(4,m.lake.length*4),sa=Math.max(4,m.stream.length*4);
-  const lakeHead=Math.max(0,h.lake/la-.5),out=Math.min(h.lake,lakeHead*Math.sqrt(lakeHead)*.12*dt);
+  const lakeHead=Math.max(0,h.lake/la+h.lakeBed/(1600*la)-.5),out=Math.min(h.lake,lakeHead*Math.sqrt(lakeHead)*.12*dt);
   const lakeSilt=h.lakeSilt*out/Math.max(.000001,h.lake);h.lakeSilt-=lakeSilt;if(m.stream.length)h.streamSilt+=lakeSilt;else h.siltOut+=lakeSilt;
   h.lake-=out;if(m.stream.length)h.stream+=out;else h.sea+=out;
   const le=Math.min(h.lake,evaporation*la),se=Math.min(h.stream,evaporation*sa);h.lake-=le;h.stream-=se;h.evap+=le+se;
@@ -118,7 +121,7 @@ export function hydroTen(W,dt=10) {
   h.oxygen+=(oxygenTarget-h.oxygen)*dt/180;
   // Incoming runoff carries silt; settling and outgoing water remove it from the freshwater reservoirs.
   const freshVolume=Math.max(1,h.lake+h.stream);
-  const settled=h.lakeSilt*(1-dexp(-SILT_V*dt*60/Math.max(.02,h.lakeDepth)));h.lakeSilt-=settled;h.lakeBed+=settled;h.sediment=clamp((h.lakeSilt+h.streamSilt)/freshVolume/.2,0,1);
+  const settled=h.lakeSilt*(1-dexp(-SILT_V*dt*60/Math.max(.02,h.lakeDepth)));h.lakeSilt-=settled;h.lakeBed+=settled;if(settled)for(const i of m.lake)touchRelief(W,i);h.sediment=clamp((h.lakeSilt+h.streamSilt)/freshVolume/.2,0,1);
   h.wave+=(Math.min(1.8,.06+x.wind*x.wind*.0025)-h.wave)*dt/120;
   const travel=h.flow/Math.max(.025,h.streamDepth*1.2)/2*dt;
   for(const q of h.debris){q.prev=q.at;q.at+=travel;}
@@ -147,6 +150,7 @@ export function hydroTen(W,dt=10) {
     s.waterL=Math.max(0,all-overflow-leak-evaporated)*1000;addSurface(W,i,overflow+leak);h.evap+=evaporated;
     s.waterLoad=clamp((s.waterLoad??.8)+x.rain*.003+(Math.max(0,h.temp-4)*.0003)*(s.waterL>0?1:0),.3,20);
   }
+  endRelief(W);
 }
 export function availableWater(W,tile) {
   if(!W.hydro)return 1e6;
@@ -165,4 +169,4 @@ export function takeCollectedWater(W,s,litres){
   const L=Math.min(s.waterL||0,Math.max(0,litres)),kg=(s.suspendedKg||0)*L/Math.max(.000001,s.waterL||0);
   s.suspendedKg=Math.max(0,(s.suspendedKg||0)-kg);s.waterL=Math.max(0,(s.waterL||0)-L);W.hydro.used+=L/1000;W.hydro.siltUsed+=kg;return L;
 }
-export function mineralMass(W){const h=W.hydro;return h.solid.reduce((a,b)=>a+b,0)+h.silt.reduce((a,b)=>a+b,0)+h.lakeSilt+h.streamSilt+h.lakeBed+h.siltOut+h.siltUsed+W.structs.reduce((v,s)=>v+(s.spoilKg||0)+(s.suspendedKg||0)+(s.depositedKg||0),0);}
+export function mineralMass(W){const h=W.hydro;return h.solid.reduce((a,b)=>a+b,0)+h.silt.reduce((a,b)=>a+b,0)+h.lakeSilt+h.streamSilt+h.lakeBed+h.siltOut+h.siltUsed+(h.mineralHarvested||0)+W.structs.reduce((v,s)=>v+(s.spoilKg||0)+(s.suspendedKg||0)+(s.depositedKg||0),0);}

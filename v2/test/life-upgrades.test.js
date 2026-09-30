@@ -38,7 +38,7 @@ console.log('ok   installed bedding and storm damage change real shelter protect
 M.inv={withies:3};st={};
 for(let n=0;n<12;n++){W.t++;ACTIONS.twistCord.exec(W,M,{x:null},st);}
 assert.equal(M.inv.withies,0);assert(M.workpieces.cord.progress>0);st={};
-for(let n=0;n<50;n++){W.t++;if(ACTIONS.twistCord.exec(W,M,{x:null},st)==='done')break;}
+for(let n=0;n<120;n++){W.t++;if(ACTIONS.twistCord.exec(W,M,{x:null},st)==='done')break;}
 assert.equal(M.inv.cord,6);assert.equal(M.inv.withies,0);
 const replay=load(save(W));assert.equal(save(replay),save(W));
 const beforeInv=JSON.stringify(M.inv);st={};ACTIONS.haftAxe.exec(W,M,{x:null},st);assert.equal(ACTIONS.haftAxe.exec(W,M,{x:null},st),'fail');assert.equal(JSON.stringify(M.inv),beforeInv);

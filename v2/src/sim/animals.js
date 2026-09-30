@@ -9,6 +9,7 @@
 //    man at first and learns to trust him from his being near and quiet and, above all, from food thrown to it. Once
 //    it trusts him it follows him, lies by the fire, and sleeps curled against him (and he's warmer for it).
 // Everything moves in real time and every chance is the seeded RNG. Nothing is placed or timed by hand.
+import {caughtBatch} from './food.js';
 import { MW, MH, T, idx, WATER } from "../world/gen.js";
 import { hash3 } from "../core/rng.js";
 import { liquidRain } from "./seasons.js";
@@ -47,7 +48,7 @@ function mk(W, sp, x, y, o) { return Object.assign({ id: W.nextId++, sp, x, y, p
 // ------------------------------------------------------------ one minute
 export function animalsStep(W) {
   const M = W.man, x = W.wx, night = x.elev < -.05, dusk = x.elev > -.12 && x.elev < .18;
-  if (W.t % 60 === 0) W.items = W.items.filter(it => it.k !== "scraps" || W.t - (it.t ?? 0) < 1440 && it.kcal > 1);   // gulls and rot take what's left
+  if (W.t % 60 === 0) W.items = W.items.filter(it => it.k !== "scraps" || it.kcal > 1);   // gulls and rot take what's left
   for (const a of W.animals) { a.px = a.x; a.py = a.y; a.trail = null; if (a.sp === "gull") gull(W, a, M, night); else if (a.sp === "rabbit") rabbit(W, a, M, night, dusk); else if (a.sp === "dog") dog(W, a, M, night); }
 }
 // move toward (tx,ty) at speed (tiles/min) over any ground the species can cross
@@ -91,7 +92,7 @@ function rabbit(W, a, M, night, dusk) {
     (W.runs || (W.runs = {}))[i] = (W.runs[i] || 0) + 1;                                  // the runs they wear
   }
   // snares: a rabbit passing through a set snare's tile is caught (a noose that tightens as it pushes on)
-  for (const s of W.structs) if (s.k === "snare" && s.stage >= s.stages.length && !s.caught && Math.abs(s.x - a.x) < .5 && Math.abs(s.y - a.y) < .5 && W.rng.f() < .35) { s.caught = 1; a.dead = 1; }
+  for (const s of W.structs) if (s.k === "snare" && s.stage >= s.stages.length && !s.caught && Math.abs(s.x - a.x) < .5 && Math.abs(s.y - a.y) < .5 && W.rng.f() < .35) { s.caught = 1;s.catchBatch=caughtBatch(W); a.dead = 1; }
 }
 // once a day: rabbits breed toward what the grazing will carry; the dead are gone
 export function animalsDay(W, doy) {

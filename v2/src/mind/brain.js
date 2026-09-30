@@ -15,7 +15,9 @@ import { here, walk, goTo } from "../sim/man.js";
 import { MW, MH, idx } from "../world/gen.js";
 import { intent } from "../sim/mindlink.js";
 import { dround, dhypot, clamp } from "../core/dmath.js";
-import { craftGoals, salvageActions } from "./crafts.js";
+import { craftGoals, salvageActions, RECIPES } from "./crafts.js";
+import { estimateCost, learnCost } from './experience.js';
+import { forecastAir } from '../sim/microclimate.js';
 import { exposure } from "./exposure.js";
 const FOOD_WORK = new Set(["forage", "shellfish", "checkTrap", "checkSnares", "lineFish", "collectQuarry"]);
 
@@ -39,7 +41,7 @@ export function predictNight(W, M, withFire, sh) {
   const C = cal(W.born, W.t), cl = climateAt(C.doy), B = Object.assign(newBody(), JSON.parse(JSON.stringify(M.B)));
   const home = bestShelter(W), cur = home ? shelterAt(W, home.x, home.y) : { rain: 0, wind: 0, bed: 0, fire: 1, reflect: 0 };
   const p = sh ? { rain: sh.rain ?? cur.rain, wind: sh.wind ?? cur.wind, bed: sh.bed ?? cur.bed, fire: sh.fire ?? cur.fire, reflect: sh.reflect ?? cur.reflect } : cur;
-  const airT = Math.min(W.wx.temp, cl.tmean - cl.trange * .45), wind = W.wx.wind, fireW = withFire ? 90 * p.fire * (1 + p.reflect) : 0, rain = W.wx.rain > 0 ? W.wx.rain : 0;
+  const outside = Math.min(W.wx.temp, cl.tmean - cl.trange * .45),airT=sh?outside:forecastAir(home,outside,W.wx.wind,withFire?120:0), wind = W.wx.wind, fireW = withFire ? 90 * p.fire * (1 + p.reflect) : 0, rain = W.wx.rain > 0 ? W.wx.rain : 0;
   B.asleep = true; let min = B.core;
   for (let m = 0; m < 480; m += 5) { for (let k = 0; k < 5; k++) bodyStep(B, { met: MET.sleep, airT, wind, windBlock: p.wind, rain, rainBlock: p.rain, sun: 0, fireW, lying: true, blanket: M.inv.wrap ? .35 * (1 - (M.wrapWet || 0) * .6) : 0, bedding: p.bed, groundT: W.surface?.temp }); min = Math.min(min, B.core); if (!B.alive) break; }
   return min;
@@ -193,7 +195,7 @@ export function plan(W, M, goal, S0) {
     const target = pool[n].find(W, M); if (!target) continue;
     targets[n] = target;
     const learned = M.yields?.[n], efficiency = FOOD_WORK.has(n) && learned ? Math.min(8, 600 / Math.max(75, learned.kcal)) : 1;
-    costs[n] = Math.max(1, pool[n].cost(W, M, target) * efficiency); available[n] = pool[n];
+    costs[n] = Math.max(1, estimateCost(M,n,pool[n].cost(W, M, target)) * efficiency); available[n] = pool[n];
   }
   // A recipe whose destination is unknown cannot supply a prerequisite. Recompute the graph after perception.
   const names = relevant(goal.vars, available, false);
@@ -271,8 +273,9 @@ export function think(W) {
     else if (pick) { M.why = pick.why; if (!M.act) M.plan = pick.steps; }
     if (!pick && !M.act) { M.idleSince = W.t; M.goal = null; M.why = S.fire === 2 ? "Resting by the fire" : "Catching his breath"; M.pose = "sit"; M.met = MET.sit; return; }
   }
-  if (!M.act && M.plan && M.plan.length) { const s = M.plan[0]; M.act = { a: s.a, t: s.t, st: {}, supply: (M.inv.raw || 0) + (M.inv.food || 0), begun: W.t }; M.doing = s.a === "warmUp" && s.t.key === "shelter" ? "Warming up in the shelter" : LABEL[s.a] || (s.a.startsWith("build_") ? "Building the " + (s.t.d?.label||W.structs.find(q=>q.id===s.t.sid)?.label||FAMILIES[s.a.slice(6)].label) : s.a.startsWith('salvage_')?'Recovering useful materials':s.a); }
+  if (!M.act && M.plan && M.plan.length) { const s = M.plan[0]; M.act = { a: s.a, t: s.t, st: {}, supply: (M.inv.raw || 0) + (M.inv.food || 0), begun: W.t,expected: ACTIONS[s.a]?.cost(W,M,s.t)??(s.a.startsWith("build_")?(s.t.d||W.structs.find(q=>q.id===s.t.sid))?.stages[(W.structs.find(q=>q.id===s.t.sid)?.stage)||0]?.mins:0) }; M.doing = s.a === "warmUp" && s.t.key === "shelter" ? "Warming up in the shelter" : LABEL[s.a] || (s.a.startsWith("build_") ? "Building the " + (s.t.d?.label||W.structs.find(q=>q.id===s.t.sid)?.label||FAMILIES[s.a.slice(6)].label) : s.a.startsWith('salvage_')?'Recovering useful materials':s.a); }
   if (!M.act) return;
+  if(M.act.prior==null){M.act.prior=M.act.expected||0;M.act.expected=estimateCost(M,M.act.a,M.act.prior);M.act.resumed=(M.workpieces?.[RECIPES[M.act.a]?.out]?.progress||0)>0;}
   const A = ACTIONS[M.act.a] || (M.act.a.startsWith("build_") ? { exec: (W, M, t, st) => { if (t.d) { const n = place(W, t.d); if (W.camp == null && FAMILIES[n.k].shelter) W.camp = idx(Math.floor(n.x + DIRV[n.dir][0]), Math.floor(n.y + DIRV[n.dir][1])); t.sid = n.id; delete t.d; M.projCache = null; } return buildExec(W, M, t, st); } } : null);
   const r = M.act.a === "explore" ? exploreExec(W, M, M.act.t, M.act.st) : M.act.a.startsWith('salvage_')?ACTIONS.salvagePart.exec(W,M,M.act.t,M.act.st):A ? A.exec(W, M, M.act.t, M.act.st) : "fail";
   if ((r === "done" || r === "fail") && FOOD_WORK.has(M.act.a) && M.act.supply != null) {
@@ -280,7 +283,7 @@ export function think(W) {
     M.yields ||= {}; const old = M.yields[M.act.a];
     M.yields[M.act.a] = { kcal: old ? old.kcal * .65 + got * .35 : got, minutes: old ? old.minutes * .65 + elapsed * .35 : elapsed };
   }
-  if (r === "done") { M.plan.shift(); M.act = null; if (!M.plan.length) { M.goal = null; M.idleSince = 0; } }   // finished: think again straight away
+  if (r === "done") { if(!M.act.resumed&&M.act.a!=="sleep"&&M.act.a!=="warmUp")learnCost(M,M.act.a,M.act.prior,Math.max(1,W.t-M.act.begun),M.act.expected); M.plan.shift(); M.act = null; if (!M.plan.length) { M.goal = null; M.idleSince = 0; } }   // finished: think again straight away
   else if (r === "fail") { M.idleSince = 0; M.log.push([W.t, "failed", M.act.a]); (M.cool || (M.cool = {}))[M.act.a] = W.t + (COOL[M.act.a] || 10); M.act = null; M.plan = null; M.goal = null; }
 }
 function exploreExec(W, M, t, st) {

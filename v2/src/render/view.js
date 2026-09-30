@@ -120,7 +120,7 @@ export function createView(cv, world, terr) {
       while (di < dyn.length && dyn[di].y < e.y) dyn[di++].f();
       const px = Math.round(e.x * TS) - sx, py = Math.round(e.y * TS) - sy; if (px < -40 || px > aw + 40) continue;
       if (TREES.has(e.k)) {
-        const s = tree(e.k, e.size, e.id, { autumn: e.aut || 0, fall: e.fall || 0, snow: world.surface?.snow || 0 }), sh = shadow(s.shadowW * 2, 7);
+        const s = tree(e.k, e.size, e.id, { autumn: e.aut || 0, fall: Math.max(e.fall||0,e.leafKg!=null?1-e.leafKg/Math.max(.01,(e.k==='hazel'?1:5)*e.size):0), snow: world.surface?.snow || 0 }), sh = shadow(s.shadowW * 2, 7);
         const shadowLen = Math.round(5 + Math.max(0, .6 - world.wx.elev) * 12), shadowDx = Math.round(Math.sin(world.t / 1440 * Math.PI * 2) * shadowLen);
         g.globalAlpha = .19; g.drawImage(sh, px - (sh.width >> 1) + shadowDx, py - 3, sh.width, shadowLen); g.globalAlpha = 1;
         g.drawImage(s.trunk, px - Math.round(s.cx), py - s.trunk.height + 1);

@@ -24,3 +24,10 @@ On a phone, tap Tomas or a construction to inspect it. The journal's **His home*
 **Inspect camp & belongings**. Materials, damage, water, tools and design estimates come from the
 current simulated state. Models are simplified and use documented assumptions; they are not
 calibrated predictions of real-world structures or survival.
+
+Vegetation now grows from finite reserves, sunlight, soil water and nutrients. Shelters
+retain heat and moisture; meals keep their own weight, temperature, age and preparation
+progress. Loads and hills affect effort, flowing water erodes and deposits actual soil,
+and Tomas adjusts his estimates after completed work. Tap him to see separate meals and
+carrying weight, or tap his shelter to see its inside conditions. See the six process models
+and their conservation tests in `v2/DESIGN.md`.

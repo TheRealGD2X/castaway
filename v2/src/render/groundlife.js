@@ -22,6 +22,8 @@ export function drawGroundLife(g,V,W,sx,sy,terr) {
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
     const i=y*W.MW+x,t=W.ter[i],q=W.traces?.[i],px=x*TS-sx,py=y*TS-sy,h=hash3(x,y,W.seed);
     if(t<=1||t===T.LAKE||t===T.STREAM)continue;
+    const relief=W.relief?.[i]||0;
+    if(Math.abs(relief)>.002){g.globalAlpha=Math.min(.65,Math.abs(relief)*12);g.fillStyle=relief<0?'#79694e':'#b5a27d';g.fillRect(px+3,py+8,10,3);g.fillStyle=relief<0?'#b1a27b':'#d0bb91';g.fillRect(px+4,py+7,8,1);g.globalAlpha=1;}
     if(q?.wear>.5){const a=Math.min(.65,q.wear*.045),r=Math.min(4,1+q.wear*.13);g.globalAlpha=a;g.fillStyle=t===T.SAND?'#bfa884':'#a89870';
       g.beginPath();g.ellipse(px+8,py+9,r+1,r*.65,0,0,Math.PI*2);g.fill();
       for(const [dx,dy] of [[1,0],[0,1]])if((W.traces?.[i+dx+dy*W.MW]?.wear||0)>.5){g.lineWidth=Math.round(r*1.4);g.beginPath();g.moveTo(px+8,py+9);g.lineTo(px+8+dx*TS,py+9+dy*TS);g.strokeStyle=g.fillStyle;g.stroke();}

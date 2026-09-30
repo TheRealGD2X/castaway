@@ -9,6 +9,9 @@ import { findPath, SLOW } from "../mind/path.js";
 import { groundCost, liquidRain } from "./seasons.js";
 import { footfall } from "./heritage.js";
 import { shelterAt } from "../build/build.js";
+import { climateAtHome } from './microclimate.js';
+import { loadFactor, effortMet } from './effort.js';
+import { elevation } from './geomorph.js';
 
 export function arrive(W) {
   // he washes up on a sandy beach, the nearest to the middle of the island's southern shore
@@ -34,7 +37,7 @@ export function look(W) {
   const seen = (k, o) => { M.mem[k] = Object.assign(M.mem[k] || {}, o, { t: W.t }); };
   for (const e of W.near(cx, cy, r)) {
     if (e.fruit != null) seen("e" + e.id, { k: e.k, x: e.x, y: e.y, fruit: e.fruit, shoots: e.shoots });
-    else if (e.deadKg != null) seen("e" + e.id, { k: e.k, x: e.x, y: e.y, deadKg: e.deadKg, shoots: e.shoots });
+    else if (e.deadKg != null) seen("e" + e.id, { k: e.k, x: e.x, y: e.y, deadKg: e.deadKg, shoots: e.shoots, leafKg:e.leafKg });
     else if (e.k === "flint" || e.k === "fern" || e.k === "boulder" || e.k === "stones" || e.k === "reeds") seen("e" + e.id, { k: e.k, x: e.x, y: e.y, n: e.n ?? 1 });
   }
   for (const it of W.items) if (dsq(it.x - cx) + dsq(it.y - cy) <= r2) seen("i" + it.id, { k: it.k, x: it.x, y: it.y, kg: it.kg, moist: it.moist });
@@ -52,6 +55,7 @@ export function look(W) {
 // the conditions his body is in this minute (shelter he stands in, the fire beside him, the weather)
 export function bodyContext(W, M, met) {
   const x = W.wx, i = here(M), sh = shelterAt(W, M.x, M.y);
+  const indoor=climateAtHome(W,M.x,M.y);met=effortMet(W,M,met);
   // standing under a big tree keeps some rain off and some wind
   const underTree = W.treeAt && W.treeAt[i] ? .45 : 0;
   let fireW = 0;
@@ -59,16 +63,18 @@ export function bodyContext(W, M, met) {
   fireW *= sh.fire * (1 + sh.reflect);
   // a dog asleep against him is a hot-water bottle (a dog's body gives off about 50 W; he gets some of it)
   if (M.B.asleep) for (const a of W.animals) if (a.sp === "dog" && a.curled) fireW += 22;                    // a debris hut shuts the fire out; a reflector wall throws it back in
-  return { met, airT: x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: liquidRain(W), blanket: M.inv.wrap ? .35 * (1 - (M.wrapWet || 0) * .6) : 0, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: x.hum, fireW, lying: M.B.asleep || M.pose === "lie", bedding: sh.bed, groundT: W.surface?.temp, sleepQ: 1 };
+  return { met, airT: indoor?.airT??x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: liquidRain(W), blanket: M.inv.wrap ? .35 * (1 - (M.wrapWet || 0) * .6) : 0, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: indoor?.hum??x.hum, fireW, lying: M.B.asleep || M.pose === "lie", bedding: sh.bed, groundT: indoor?.wallT??W.surface?.temp, sleepQ: 1 };
 }
 // walk along the path: real speed (about 1.2 m/s on firm grass), slower on rough ground, when tired or cold
 export function walk(W, M, minutes = 1) {
   if (!M.path || M.path.length < 2) { M.path = null; return true; }
   const B = M.B, tired = 1 - B.fatigue * .35 - (B.core < 35.5 ? .3 : 0);
-  let budget = 72 * minutes * tired * (M.carry > 12 ? .75 : 1);   // metres this minute
+  let budget = 72 * minutes * tired / loadFactor(M);M.walkedM=0;M.climbedM=0;
   while (budget > 0 && M.path.length > 1) {
     const a = M.path[0], b = M.path[1], bx = b % MW + .5, by = ((b / MW) | 0) + .5;
-    const dx = bx - M.x, dy = by - M.y, dist = dhypot(dx, dy) * 2 * (SLOW[W.ter[b]] || 1) * groundCost(W, b);
+    const dx = bx - M.x, dy = by - M.y, metres=dhypot(dx,dy)*2,full=dhypot(b%MW-a%MW,Math.floor(b/MW)-Math.floor(a/MW))*2;
+    const rise=(elevation(W,b)-elevation(W,a))*Math.min(1,metres/Math.max(.001,full)),slope=1+Math.max(0,rise)/Math.max(.2,metres)*1.8;
+    const dist = metres * (SLOW[W.ter[b]] || 1) * groundCost(W, b)*slope,share=Math.min(1,budget/Math.max(.000001,dist));M.walkedM+=metres*share;M.climbedM+=Math.max(0,rise)*share;
     if (dist <= budget) { M.x = bx; M.y = by; budget -= dist; M.path.shift(); footfall(W, M.x, M.y, 1 + M.carry / 20); if (M.trail) M.trail.push([M.x, M.y]); }
     else { const f = budget / dist; M.x += dx * f; M.y += dy * f; budget = 0; }
     if (Math.abs(dx) > .01) M.face = dx > 0 ? 1 : -1;

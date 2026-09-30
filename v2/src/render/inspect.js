@@ -1,4 +1,4 @@
-import {structureDetails,toolDetails,inventoryRows} from './inspection.js';
+import {structureDetails,toolDetails,inventoryRows,batchRows,effortRows} from './inspection.js';
 import {structSprite} from './structs.js';
 import {manSprite} from './people.js';
 import {rigSprite} from './rig.js';
@@ -23,6 +23,7 @@ export function setupInspection(cv,V,getWorld){
     }else if(target.tool){const d=toolDetails(M,target.tool);title=d.title;body=rows(d.fields)+'<h3>The working parts</h3>'+materials(d.materials)+`<p class="inspect-note">${target.tool==='line'?'The pull limit describes a steady load. A sudden tug can break a line sooner.':'Wear blunts the stone edge. Damp fibres weaken its binding.'}</p>`;sp=rigSprite({stance:'stand',tool:target.tool,work:[6,-14],motion:'rest',period:1000,frames:1,key:'inspect:'+target.tool,toolLength:M.tools?.[target.tool]?.parts.find(p=>p.kind==='handle')?.length},0);
     }else{title=target.camp?'Camp & belongings':'With Tomas';sp=manSprite('stand',0,M);const items=inventoryRows(M);
       body=`<p class="inspect-note">${target.camp?'His constructions and the things he has with him.':'The things he has with him now.'}</p><div class="inspect-list">`+items.map(q=>q.tool?`<button data-tool="${q.key}"><span>${esc(q.label)}</span><span>Inspect →</span></button>`:`<div class="inspect-row"><span>${esc(q.label)}</span><span>${esc(q.value)}</span></div>`).join('')+(items.length?'':'<p>His hands are empty for now.</p>')+'</div>';
+      body+='<h3>Carrying and experience</h3>'+rows(effortRows(M));if(M.foodBatches?.length)body+='<h3>His food batches</h3>'+rows(batchRows(M));
       if(target.camp)body+='<h3>Made on the island</h3><div class="inspect-list">'+W.structs.map(s=>`<button data-sid="${s.id}"><span>${esc(structureDetails(s).title)}</span><span>${s.stage>=s.stages.length?'Complete':'Under way'} →</span></button>`).join('')+'</div>';
       else body+='<p><button class="inspect-link" data-camp>See his camp</button></p>';
     }

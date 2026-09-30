@@ -1,4 +1,6 @@
 // Useful equipment, made from gathered materials. Planning and execution use the same recipes.
+import { addBatch, heatFood, finishFood, moveFood, syncFood } from '../sim/food.js';
+import {workRate} from '../sim/effort.js';
 import {ensureTools,makeTool,useLine,toolProps} from '../sim/tools.js';
 import { MET } from '../sim/body.js';
 import { MW, idx, T } from '../world/gen.js';
@@ -46,8 +48,9 @@ export function craftActions(work) {
         const bench = W.structs.find(s => (s.props?.bench||0)>.2 && Math.abs(s.x-M.x) < 2 && Math.abs(s.y-M.y) < 2);
         const room = W.structs.find(s => (s.props?.workspace || 0) > .5 && Math.abs(s.x-M.x) < 1 && Math.abs(s.y-M.y) < 1);
         const rain = W.wx.rain * (1-Math.max(room?.props.rain||0,bench?.props.dry||0));
-        piece.progress += (1+(bench?.props.bench||0)*.2) / (1 + rain * .08); st.left = Math.max(1, r.mins - piece.progress + 1);
+        piece.progress += workRate(W,M) / (1 + rain * .08); st.left = Math.max(1, r.mins - piece.progress + 1);
         M.skill.build += .0006;
+        if(piece.progress>=r.mins)return 'done';
       }, done: (W,M) => {
         delete M.workpieces[r.out];
         M.inv[r.out] = (M.inv[r.out] || 0) + r.qty;
@@ -84,8 +87,7 @@ export function craftActions(work) {
         const pull=.3+W.rng.f()*.55;
         if(!useLine(M,0,pull*30)){M.inv.line=0;M.say='The cord parted under the pull.';return 'fail';}
         fish[water]=Math.max(0,fish[water]-1);
-        const old=M.inv.raw||0,k=FISH.kcal; M.rawLoad=((M.rawLoad||0)*old+W.water.stream*.004*k)/(old+k);
-        M.inv.raw=old+k;M.rawWhat='fish';M.skill.forage+=.04;M.log.push([W.t,'caught fish']);
+        addBatch(M,FISH.kcal,W.water.stream*.004,'fish',true);M.skill.forage+=.04;M.log.push([W.t,'caught fish']);
       }
       useLine(M,1);
     }}) };
@@ -101,22 +103,22 @@ export function craftActions(work) {
   A.repairPart={r:[],w:['repaired'],find:()=>null,pre:()=>false,eff:()=>{},cost:()=>1,
     exec:work({adjacent:true,mins:120,met:MET.build,pose:'build',tick:(W,M,t,st)=>{
       const s=W.structs.find(s=>s.id===t.sid),p=s?.assembly.parts.find(p=>p.id===t.pid);if(!s||!p)return 'fail';
-      const piece=startRepair(s,p.id,M.inv);if(!piece)return 'fail';piece.progress+=.8+Math.min(.6,M.skill.build*.3);st.left=Math.max(1,12+p.amount*6-piece.progress+1);M.skill.build+=.0012;
+      const piece=startRepair(s,p.id,M.inv);if(!piece)return 'fail';piece.progress+=(.8+Math.min(.6,M.skill.build*.3))*workRate(W,M);st.left=Math.max(1,12+p.amount*6-piece.progress+1);M.skill.build+=.0012;if(piece.progress>=12+p.amount*6)return 'done';
     },done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s||!finishRepair(s,t.pid,M.inv))return 'fail';M.log.push([W.t,'repaired',s.k]);M.projCache=null;}})};
   A.salvagePart={r:[],w:[],find:()=>null,pre:()=>false,eff:()=>{},cost:()=>1,
     exec:work({adjacent:true,mins:18,met:MET.craft,pose:'build',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid),got=s&&reclaimPart(s,t.pid);if(!got)return 'fail';M.inv[got.mat]=(M.inv[got.mat]||0)+got.amount;M.log.push([W.t,'salvaged',got.mat]);M.projCache=null;}})};
   A.storeFood={r:['food','stored'],w:['stored','food'],find:(W)=>{const s=W.structs.find(s=>(s.props?.store||0)>.4&&((s.props.storageKg||0)*1800>(s.stock||0)+200));return s?point(s):null;},
     pre:S=>S.food>1800&&!S.stored,eff:S=>{S.stored=1;S.food-=1000;},cost:(W,M,t)=>minutes(M,t)+6,
-    exec:work({adjacent:true,mins:6,met:MET.carry,pose:'carry',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s)return 'fail';const k=Math.min(1800,Math.max(0,(M.inv.food||0)-900),Math.max(0,(s.props.storageKg||0)*1800-(s.stock||0))),old=s.stock||0;s.load=(old+k)>0?((s.load||0)*old+(M.foodLoad||0)*k)/(old+k):0;s.stock=old+k;M.inv.food-=k;}})};
+    exec:work({adjacent:true,mins:6,met:MET.carry,pose:'carry',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s)return 'fail';moveFood(M,s,Math.min(1800,Math.max(0,(M.inv.food||0)-900)),true);}})};
   A.takeStored={r:['food'],w:['food'],find:W=>{const s=W.structs.find(s=>s.stock>150);return s?point(s):null;},
     pre:S=>S.food<1200,eff:S=>{S.food+=1000;},cost:(W,M,t)=>minutes(M,t)+4,
-    exec:work({adjacent:true,mins:4,met:MET.carry,pose:'carry',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s?.stock)return 'fail';const k=Math.min(1200,s.stock),old=M.inv.food||0;M.foodLoad=((M.foodLoad||0)*old+(s.load||0)*k)/(old+k);M.inv.food=old+k;s.stock-=k;M.foodWhat='stored food';}})};
+    exec:work({adjacent:true,mins:4,met:MET.carry,pose:'carry',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s?.stock)return 'fail';moveFood(M,s,Math.min(1200,s.stock),false);}})};
   A.dryFood={r:['raw','fire'],w:['raw','food','preservedFood'],find:W=>{const s=W.structs.find(s=>(s.props?.drying||0)>.5&&W.fires.some(f=>f.lit&&f.heat>1200&&dist(f,s)<4));return s?point(s):null;},
     pre:S=>S.raw>200&&S.fire===2,eff:S=>{S.food+=S.raw;S.raw=0;S.preservedFood=1;},cost:(W,M,t)=>minutes(M,t)+100,
-    exec:work({adjacent:true,mins:100,met:MET.sit,pose:'weave',tick:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid),f=W.fires.find(f=>f.lit&&f.heat>1200&&dist(f,s)<4);if(!f)return 'fail';M.rawLoad=(M.rawLoad||0)*.96;},done:(W,M)=>{const old=M.inv.food||0,k=M.inv.raw||0;M.foodLoad=((M.foodLoad||0)*old+(M.rawLoad||0)*k)/(old+k);M.preserved=old+k>0?((M.preserved||0)*old+k)/(old+k):0;M.inv.food=old+k;M.inv.raw=0;M.foodWhat='dried fish or meat';}})};
+    exec:work({adjacent:true,mins:100,met:MET.sit,pose:'weave',tick:(W,M,t,st)=>{const s=W.structs.find(s=>s.id===t.sid),f=W.fires.find(f=>f.lit&&f.heat>1200&&dist(f,s)<4);if(!f)return 'fail';st.left=heatFood(M,f,true)?0:2;},done:(W,M)=>{finishFood(M,true);}})};
   A.collectQuarry={r:['raw'],w:['raw'],find:(W,M)=>{const it=W.items.find(it=>it.k==='quarry'&&dist(M,it)<25);return it?{...it,key:it.id,tile:idx(Math.floor(it.x),Math.floor(it.y))}:null;},
     pre:S=>S.raw<2500,eff:S=>{S.raw+=500;},cost:(W,M,t)=>minutes(M,t)+6,
-    exec:work({adjacent:true,mins:6,met:MET.gather,pose:'crouch',done:(W,M,t)=>{const i=W.items.findIndex(it=>it.id===t.key);if(i<0)return 'fail';const it=W.items[i],old=M.inv.raw||0;M.rawLoad=((M.rawLoad||0)*old+W.water.stream*.01*it.kcal)/(old+it.kcal);M.inv.raw=old+it.kcal;M.rawWhat='rabbit';W.items.splice(i,1);}})};
+    exec:work({adjacent:true,mins:6,met:MET.gather,pose:'crouch',done:(W,M,t)=>{const i=W.items.findIndex(it=>it.id===t.key);if(i<0)return 'fail';const it=W.items[i];if(it.foodBatches){for(const b of it.foodBatches)M.foodBatches.push(b);syncFood(M);}else addBatch(M,it.kcal,W.water.stream*.01,'rabbit',true);W.items.splice(i,1);}})};
   const positive = { fireClay:['clayPot','pot'], lineFish:['raw'], repairHome:['repaired'], storeFood:['stored'], takeStored:['food'], dryFood:['food','preservedFood'], collectQuarry:['raw'] };
   for (const [k, vars] of Object.entries(positive)) A[k].provides = vars;
   return A;

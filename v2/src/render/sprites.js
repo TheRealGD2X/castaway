@@ -61,7 +61,7 @@ export function tree(sp, size, v, season) {
         const tiers = 4;
         for (let t = 0; t < tiers; t++) {
           const top = Math.round(t * h * .2), bot = Math.round(top + h * .36), half = (w / 2) * (.40 + t * .18);
-          for (let y = top; y <= bot; y++) { const f = (y - top) / (bot - top), hw = half * f; for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) { const u = (x - (cx - hw)) / (2 * hw + .001); let i = u < .35 ? 3 : u < .7 ? 2 : 1; if (f > .82) i = Math.max(0, i - 1); if ((x + y * 2 + seed) % 13 === 0 && f < .6) i = Math.min(4, i + 1); P.set(x + 1, y, R.pine[i]); } }
+          for (let y = top; y <= bot; y++) { const f = (y - top) / (bot - top), hw = half * f; for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) { const u = (x - (cx - hw)) / (2 * hw + .001); let i = u < .35 ? 3 : u < .7 ? 2 : 1; if (f > .82) i = Math.max(0, i - 1); if ((x + y * 2 + seed) % 13 === 0 && f < .6) i = Math.min(4, i + 1); if(hash3(Math.floor(x/3),Math.floor(y/3),seed)>=fall)P.set(x + 1, y, R.pine[i]); } }
         }
         if (snow > 0) for(let y=1;y<P.h-1;y++)for(let x=1;x<P.w-1;x++)if(P.has(x,y)&&!P.has(x,y-1)&&(x+seed)%4<snow){P.set(x,y,'#e6ead9');if(snow>1&&P.has(x,y+1))P.set(x,y+1,'#cdded3');}
       });

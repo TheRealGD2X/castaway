@@ -12,6 +12,8 @@ import { assemblyProps, assemblyWork, installed } from './assembly.js';
 import { waterDesign,waterProps } from './waterworks.js';
 import { homeAssembly } from './homes.js';
 import { ASSEMBLED, TARGETS, propose, legacyAssembly } from './designer.js';
+import { loadFactor } from '../sim/effort.js';
+import { estimateCost } from '../mind/experience.js';
 
 // what each material is and how much of it one trip brings (an armful, a pair of poles dragged, a load of stones)
 export const MATERIALS = {
@@ -198,13 +200,14 @@ export const woodpile = W => W.structs.find(s => s.k === "woodpile" && s.stage >
 export function prevailing(M) { const c = M.windSeen || [0, 0, 0, 0, 0, 0, 0, 1]; let b = 0; for (let k = 1; k < 8; k++) if (c[k] > c[b]) b = k; return b; }
 // the brief: what he knows of materials nearby, his skill, his camp
 export function brief(W, M) {
-  const has = k => Object.values(M.mem).some(m => m.k === k && (m.n ?? 1) > 0);
+  const memory=Object.values(M.mem),present=new Set();for(const m of memory)if((m.n??1)>0&&(m.k!=='pine'||(m.leafKg??2)>=1.2))present.add(m.k);
+  const has = k => present.has(k);
   const autumn = W.ents.length && has("fern");
   const cover = autumn ? "bracken" : has("pine") ? "boughs" : "debris";
   const bedMat = has("pine") ? "boughs" : autumn ? "bracken" : "debris";
   const sources={poles:['branch','oak','birch','pine','hazel'],withies:['hazel','birch'],bracken:['fern'],boughs:['pine'],reeds:['reeds'],debris:['oak','birch','pine','rowan','hazel']},gatherMins={};
-  const metresPerMinute=72*Math.max(.2,1-M.B.fatigue*.35-(M.B.core<35.5?.3:0))*(M.carry>12?.75:1);
-  for(const m in sources){let nearest=1e9;for(const q of Object.values(M.mem))if(sources[m].includes(q.k)&&(q.n??1)>0){const dx=q.x-M.x,dy=q.y-M.y;nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));}if(nearest<1e9)gatherMins[m]=5+nearest*4*1.25/(metresPerMinute*MATERIALS[m].trip);}
+  const metresPerMinute=72*Math.max(.2,1-M.B.fatigue*.35-(M.B.core<35.5?.3:0))/loadFactor(M);
+  for(const m in sources){let nearest=1e9;for(const q of memory)if(sources[m].includes(q.k)&&(q.n??1)>0){const dx=q.x-M.x,dy=q.y-M.y;nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));}if(nearest<1e9)gatherMins[m]=estimateCost(M,'get_'+m,5+nearest*4*1.25/(metresPerMinute*MATERIALS[m].trip));}
   return { cover, bedMat, skill: M.skill.build, wind: prevailing(M), beliefs:M.materialBeliefs||{},stock:M.inv,gatherMins, knows: { stones: has("stones") || knowsTile(W, M, T.SHINGLE), withies: has("hazel") || has("birch"), reeds: has("reeds"), mud: knowsTile(W, M, T.MARSH) || knowsTile(W, M, T.STREAM), pine: has("pine"),boughs:has('pine'),debris:has('oak')||has('birch')||has('pine')||has('rowan')||has('hazel') } };
 }
 function knowsTile(W, M, t) { for (let i = 0; i < MW * MH; i++) if (M.known[i] && W.ter[i] === t) return true; return false; }

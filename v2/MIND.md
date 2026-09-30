@@ -72,3 +72,12 @@ design estimates, not proof of completion or guaranteed strength. Comparisons us
 cover materials, remembered gathering locations, owned stock, felt weather and witnessed
 component strain. Successful use records the largest witnessed load, rather than repeatedly
 counting a stationary load as new experiments. Existing input and brief keys are unchanged.
+
+Optional `meals` now lists actual carried lots, their calories, age, uncooked state and
+visible decay. Appearance cannot reveal hidden contamination; do not infer sterility.
+Optional `shelterAir` describes the shelter Tomas is currently inside: approximate air
+temperature, dampness and condensation. Optional `workExperience` reports completed
+tries and last expected/actual minutes. These are observations and estimates, not commands
+or scheduled tests. Growth requires finite reserves, water, nutrients and daylight; harvested
+materials must exist. Preparation retains actual heat/moisture progress when interrupted.
+All existing intention keys, input fields and command interfaces remain compatible.

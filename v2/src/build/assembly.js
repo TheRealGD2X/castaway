@@ -79,7 +79,8 @@ export function analyse(s) {
   for(const q of panels){q.support=q.z<.06?1:clamp((q.p.nodes?.reduce((v,k)=>Math.min(v,reach[k]),1e9)||0)/20,0,1);q.f*=q.support;q.seal*=q.support;}
   const supports=bars.filter(b=>(b.u[2]<=.001)!==(b.v[2]<=.001)),supportCapacity=supports.reduce((v,b)=>v+Math.min(b.cap,reach[b.u[2]<=.001?b.p.b:b.p.a]),0);
   const frameCapacity=Math.min(supportCapacity,jointCapacity+(mass-groundMass)*9.81*.3);
-  const carried=(s.stock||0)/1800+(s.waterL||0)+(s.contactLoad||0),total=mass+carried;
+  const foodKg=s.foodBatches?s.foodBatches.reduce((v,b)=>v+b.dryKg+b.waterKg+(b.shellKg||0),0):(s.stock||0)/1800;
+  const carried=foodKg+(s.waterL||0)+(s.contactLoad||0)+(s.climate?.boundWaterKg||0)+(s.climate?.condensateKg||0),total=mass+carried;
   const cx=total?(mx+(s.assembly.loadAt?.[0]||0)*carried)/total:0,cy=total?(my+(s.assembly.loadAt?.[1]||0)*carried)/total:0;
   const stable=inside(footprint(anchors),cx,cy)?1:0;
   let surfaceCapacity=0;

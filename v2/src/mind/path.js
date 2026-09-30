@@ -1,5 +1,6 @@
 // Walking the island: A* over tiles with the real cost of each kind of ground (time per tile), 8 directions,
 // no cutting corners past obstacles. Deterministic (fixed neighbour order, integer-keyed tie breaks).
+import { elevation } from '../sim/geomorph.js';
 import { T, MW, MH, WATER } from "../world/gen.js";
 
 // minutes per metre are what matter; these are relative slowness factors (1 = firm grass)
@@ -26,7 +27,8 @@ export function findPath(W, from, to, opt = {}) {
       const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= MW || ny >= MH) continue;
       const j = ny * MW + nx; if (closed[j] || !walkable(W, j)) continue;
       if (dx && dy && (!walkable(W, y * MW + nx) || !walkable(W, ny * MW + x))) continue;   // no squeezing past corners
-      const c = g[i] + dl * ((SLOW[W.ter[i]] || 1) * groundCost(W, i) + (SLOW[W.ter[j]] || 1) * groundCost(W, j)) * .5 + (W.treeAt && W.treeAt[j] ? .6 : 0);
+      const slope=1+Math.max(0,elevation(W,j)-elevation(W,i))/(dl*2)*1.8;
+      const c = g[i] + dl * slope * ((SLOW[W.ter[i]] || 1) * groundCost(W, i) + (SLOW[W.ter[j]] || 1) * groundCost(W, j)) * .5 + (W.treeAt && W.treeAt[j] ? .6 : 0);
       if (c < g[j]) { g[j] = c; came[j] = i; push(c + h(j), j); }
     }
   }

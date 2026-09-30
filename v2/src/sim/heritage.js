@@ -52,7 +52,7 @@ export function heritageTen(W) {
   const x = W.wx, grow = Math.max(0, x.temp - 4) * .000015 * (1 + W.litterWet);
   for (const k in W.traces) { const q = W.traces[k]; q.wear = Math.max(0, q.wear - grow); q.ash *= .9997; q.nutrient *= .9999; }
   for (const k in W.scent) { W.scent[k] *= clamp(1 - .025 - x.rain * .04 - x.wind * .001, 0, 1); if (W.scent[k] < .01) delete W.scent[k]; }
-  for (const it of W.items) if (it.k === 'scraps' && it.kcal > 0) {
+  for (const it of W.items) if (it.k === 'scraps' && !it.foodBatches && it.kcal > 0) {
     const rot = Math.min(it.kcal, it.kcal * (.002 + Math.max(0, x.temp) * .0003)); it.kcal -= rot;
     const i = idx(Math.floor(it.x), Math.floor(it.y)), q = W.traces[i] || (W.traces[i] = { wear: 0, ash: 0, nutrient: 0 }); q.nutrient += rot * .0001;
   }
@@ -76,7 +76,7 @@ export function heritageTen(W) {
     if (loss > 0 && s.integrity < .82 && W.man && Math.abs(s.x - W.man.x) < 9 && Math.abs(s.y - W.man.y) < 9)
       record(W, 'damage:' + s.id, 'storm', 'Wind and rain damaged his ' + FAMILIES[s.k].label + '.', { camp: campSnapshot(W) });
     }
-    if (s.stock > 0) s.load = (s.load || 0) * (1 + Math.max(0, x.temp - 3) * .0006 * (1 - (s.props?.dry || 0) * .5));
+    if (!s.foodBatches && s.stock > 0) s.load = (s.load || 0) * (1 + Math.max(0, x.temp - 3) * .0006 * (1 - (s.props?.dry || 0) * .5));
   }
   // Wave run-up transports loose beach wood only while the water physically reaches it.
   const oct = [[1,0],[.7071,.7071],[0,1],[-.7071,.7071],[-1,0],[-.7071,-.7071],[0,-1],[.7071,-.7071]][x.windDir];

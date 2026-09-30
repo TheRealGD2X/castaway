@@ -11,7 +11,7 @@ import { arrive, look, bodyContext } from "./man.js";
 import { bodyStep } from "./body.js";
 import { think } from "../mind/brain.js";
 import { shoreInit, shoreDay } from "./shore.js";
-import { waterInit, waterTen, healthStep, growthPerMin } from "./health.js";
+import { waterInit, waterTen, healthStep } from "./health.js";
 import { fishInit, fishTen } from "./fish.js";
 import { animalsInit, animalsStep, animalsDay, theDog } from "./animals.js";
 import { shipsInit, shipsStep, shipsWatch } from "./ships.js";
@@ -26,6 +26,11 @@ import { legacyAssembly } from '../build/designer.js';
 import { installed } from '../build/assembly.js';
 import {ensureTools} from './tools.js';
 import { propsOf } from '../build/build.js';
+import { biomassInit } from './biomass.js';
+import { ensureFood, foodStep } from './food.js';
+import { microclimateStep } from './microclimate.js';
+import { reliefInit, reroute,touchRelief } from './geomorph.js';
+import { carriedMass } from './effort.js';
 import { MW, MH, SP } from "../world/gen.js";
 
 export function createWorld(seed, born, opt) {
@@ -34,6 +39,7 @@ export function createWorld(seed, born, opt) {
   W.rng = makeRng(seed ^ 0x5eed);
   envInit(W); seasonsInit(W); heritageInit(W); ecoInit(W); shoreInit(W); waterInit(W); fishInit(W); hydroInit(W);
   W.fires = []; W.structs = []; W.camp = null;
+  biomassInit(W); reliefInit(W);
   // where the trees stand (shade, rain cover, slower walking) and a spatial index of everything rooted in place
   W.treeAt = new Uint8Array(MW * MH); W.grid = Array.from({ length: MW * MH }, () => []);
   for (const e of W.ents) { const i = Math.floor(e.y) * MW + Math.floor(e.x); W.grid[i].push(e); if (SP[e.k] && SP[e.k].kind === "tree") W.treeAt[i] = 1; }
@@ -42,6 +48,7 @@ export function createWorld(seed, born, opt) {
   W.thoughtQ = thoughtsFrom(opt && opt.thoughts, 0);
   if (!opt || opt.man !== false) arrive(W);
   if(W.man)ensureTools(W.man);
+  ensureFood(W);
   return W;
 }
 export function step(W) {
@@ -52,6 +59,7 @@ export function step(W) {
   if (cal(W.born, W.t).mod === 360) { ecoDay(W); shoreDay(W); animalsDay(W, cal(W.born, W.t).doy); }
   animalsStep(W); shipsStep(W); shipsWatch(W);
   for (const F of W.fires) fireStep(F, W.wx);
+  microclimateStep(W);foodStep(W);
   // the woodpile: wood under its cover dries toward seasoned; uncovered it follows the weather
   if (W.t % 10 === 0) for (const s of W.structs) if (s.k === "woodpile" && s.kg > 0) { const target = (s.props?.dry || 0) > .5 ? .14 : W.litterWet; s.moist = (s.moist ?? .25) + (target - (s.moist ?? .25)) / 300; }
   const M = W.man;
@@ -60,20 +68,18 @@ export function step(W) {
     applyThoughts(W);
     equipmentStep(W);
     think(W);
+    M.carry=carriedMass(M);
     healthStep(W, M);
-    // food he's carrying: bacteria multiply with the warmth
-    if (M.inv.raw > 0) M.rawLoad = (M.rawLoad || 0) * growthPerMin(W.wx.temp);
-    if (M.inv.food > 0 && M.foodLoad) M.foodLoad *= 1 + (growthPerMin(W.wx.temp) - 1) * (1 - (M.preserved || 0) * .7);
     bodyStep(M.B, bodyContext(W, M, M.met));
     if (!M.B.alive) M.log.push([W.t, "died", M.B.cause]);
     observeLife(W, logFrom);
   }
 }
-const DYN = ["deadKg", "aut", "fall", "fruit", "n", "shoots"];
+const DYN = ["deadKg", "aut", "fall", "fruit", "n", "shoots", "liveKg", "reserveKg", "leafKg"];
 export function save(W) {
   return JSON.stringify({ v: 2, seed: W.seed, born: W.born, t: W.t, rng: W.rng.save(), wx: W.wx, nextId: W.nextId,
     ents: W.ents.map(e => DYN.map(k => e[k] ?? null)), litter: Array.from(W.litter), litterWet: W.litterWet, items: W.items, fires: W.fires, structs: W.structs, camp: W.camp, shore: W.shore.map(b => b.kg), water: W.water, fish: W.fish, animals: W.animals, warrens: W.warrens, runs: W.runs || {}, events: W.events || [], ships: W.ships, nextShip: W.nextShip,
-    surface: W.surface, hydro: hydroSave(W), traces: W.traces, scent: W.scent, story: W.story, storyKeys: W.storyKeys,
+    surface: W.surface, hydro: hydroSave(W), bio:W.bio,soilN:Array.from(W.soilN),relief:Array.from(W.relief),traces: W.traces, scent: W.scent, story: W.story, storyKeys: W.storyKeys,
     man: W.man ? Object.assign({}, W.man, { known: Array.from(W.man.known).join("") }) : null });
 }
 export function load(s, thoughts) {
@@ -81,11 +87,13 @@ export function load(s, thoughts) {
   W.thoughtQ = thoughtsFrom(thoughts, o.t);
   W.t = o.t; W.rng.load(o.rng); W.wx = o.wx; W.nextId = o.nextId; W.litterWet = o.litterWet; W.items = o.items;
   o.ents.forEach((v, i) => DYN.forEach((k, j) => { if (v[j] != null) W.ents[i][k] = v[j]; }));
-  W.litter = Float32Array.from(o.litter); W.fires = o.fires; W.structs = o.structs; W.camp = o.camp; o.shore.forEach((kg, i) => { W.shore[i].kg = kg; }); W.water = o.water; W.fish = o.fish; W.animals = o.animals; W.warrens = o.warrens; W.runs = o.runs; W.events = o.events; W.ships = o.ships; W.nextShip = o.nextShip;
+  W.litter = Float64Array.from(o.litter); W.fires = o.fires; W.structs = o.structs; W.camp = o.camp; o.shore.forEach((kg, i) => { W.shore[i].kg = kg; }); W.water = o.water; W.fish = o.fish; W.animals = o.animals; W.warrens = o.warrens; W.runs = o.runs; W.events = o.events; W.ships = o.ships; W.nextShip = o.nextShip;
   for(const s of W.structs)if(!s.assembly){const a=homeAssembly(s)||legacyAssembly(s);if(a){s.onsite||={};s.have||={};s.assembly=a;s.label=a.label;const used=installed(s,s.stage);for(const m in used){const v=Math.min(s.onsite[m]||0,used[m]);s.onsite[m]=Math.max(0,(s.onsite[m]||0)-v);s.have[m]=(s.have[m]||0)+v;}s.props=propsOf(s);}}
   for(const s of W.structs)if(!s.earthwork){const e=waterDesign(s,W);if(e){s.earthwork=e;s.props=propsOf(s);}}
   W.surface = o.surface || { ...W.surface, temp: o.wx.temp }; W.traces = o.traces || {}; W.scent = o.scent || {}; W.story = o.story || []; W.storyKeys = o.storyKeys || {};
   hydroLoad(W,o.hydro);
+  W.soilN=o.soilN;biomassInit(W,o.bio);reliefInit(W,o.relief);for(let i=0;i<W.relief.length;i++)if(W.relief[i]){reroute(W,i);for(const j of [i-1,i+1,i-W.MW,i+W.MW])if(j>=0&&j<W.relief.length)reroute(W,j);}
+  if(W.hydro.lakeBed)for(const i of W.hydroMap.lake)touchRelief(W,i);
   if (o.man) { W.man = Object.assign(o.man, { known: Uint8Array.from(o.man.known, c => +c) }); }
   // Existing memories are already part of his past; the first future fire or sighting is not his first ever.
   if (!o.storyKeys && W.man) {
@@ -99,5 +107,6 @@ export function load(s, thoughts) {
     if (Object.keys(W.man.mem).length > 30) W.storyKeys["knows-island"] = 1;
   }
   if(W.man)ensureTools(W.man);
+  ensureFood(W);
   return W;
 }

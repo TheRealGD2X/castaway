@@ -337,3 +337,144 @@ Object previews use the existing physical-part sprites; none are invented catalo
 Small tool masses use grams, and engineering estimates are labelled as estimates. Looking
 never creates items, changes Tomas's knowledge, advances work or consumes random numbers.
 `inspection.test.js` verifies physical values, wear and unchanged checkpoint state.
+
+## Six connected physical processes
+
+These models have conservation checks and declared units. They are simplified numerical
+models, not a calibrated reconstruction of a particular island or person. Initial stocks,
+material coefficients, thermal conductances and biological rates are assumptions. Passing
+tests establishes internal consistency, replay and the tested equations; it does not establish
+real-world predictive accuracy. No new random draws, scripted rewards or scheduled experiments
+are used by these six processes.
+
+### Finite vegetation and material flow
+
+`sim/biomass.js` tracks live matter, stored reserves, foliage, dead wood, shoots, crops,
+ground litter and floating litter in dry kilograms. Initial live stocks are 300 kg times
+size for trees, 24 kg for shrubs and 2 kg for small plants. Their initial reserves and
+foliage are explicit stocks, rather than a future source of unlimited harvests.
+
+Accumulated daylight supplies chemical growth energy at an assumed 1.2% conversion and
+18 MJ/kg dry matter. Rooted entities occupy separate generated tiles, each intercepting at
+most that tile's 4 square metres. Temperature, available soil water and finite soil nitrogen
+bound growth; 500 litres of transpired water and 0.01 kg nitrogen are charged per kg of growth.
+Transpiration debits the actual hydrology soil reservoir and credits its evaporation ledger.
+Reserves pay for shoots, new cover and fruit. Aging transfers living wood to dead wood and
+litter; leaf and fruit losses transfer to litter. Temperature-dependent exponential decay
+records respired matter and returns nitrogen. The daily integration is deliberately coarse;
+it does not resolve individual roots, stomata or within-day growth. Seasonal phenology still
+uses the existing calendar and temperature approximation.
+
+The vegetation boundary obeys `remaining dry kg + respired kg + net harvested kg -
+assimilated kg = initial dry kg`. Harvested kg is a boundary transfer to camp inventory,
+not destruction of material. Pine cover, leaf litter, reeds, bracken, shoots, fuel and bark
+now debit actual stocks. Signal fires convert their charged construction mass to fuel;
+relaying a damp fire returns its exact log mass. Mud and stone collection debit the finite
+mineral reservoir, retain a mineral-transfer ledger and lower the surface. Camp assemblies,
+tools, offcuts and fire processing retain their existing separate accounting. This is not
+a closed molecular budget for all animal bodies, atmospheric gases, marine ecology or ash.
+Decaying food left on land returns measured nitrogen, recorded as an external input to the
+vegetation nutrient boundary; it does not apply an unlimited fertility multiplier.
+
+### Air, contents and moisture inside a shelter
+
+`sim/microclimate.js` derives volume, solid heat capacity and conductances from installed
+geometry, mass and enclosure. Air capacity is volume times 1.2 kg/m3 times 1005 J/(kg K);
+solid contents use an assumed 1500 J/(kg K), plus 4180 J/(kg K) for absorbed water.
+Coupled air/wall temperatures solve a two-node backward-Euler heat balance every minute.
+Infiltration depends on enclosure and wind. Nearby fires allocate bounded fractions of their
+emitted heat among shelters; distant or open shelters retain little warmth. The body reads
+the actual indoor air, humidity and contents temperature. The night forecast uses the same
+heat equations, held anticipated weather and assumed fire input; it cannot inspect future weather.
+
+Rain wets a finite cover reservoir. Ventilation exchanges actual vapour; breathing supplies
+vapour already represented by the body's ongoing water loss. Condensation moves vapour to
+surface water and releases latent heat; drying reverses the transfer and consumes heat.
+Surfaces retain an assumed 20-micrometre film; excess drips leave the shelter volume and
+are recorded in its moisture output, rather than accumulating without limit.
+Each shelter records its initial water and atmospheric/body inputs and outputs, with a
+local moisture conservation check. Shelter vapour and bound organic water are an open
+atmospheric boundary, outside the existing soil/lake/stream water ledger. They are not
+counted a second time as available drinking water; shelter drips are an output at this
+boundary, not an additional input to the coarse ground-water model. Moist thermal exchange is an approximate
+split process, not a full psychrometric, radiation, freezing or air-flow solver; bedding and
+walls share one effective contents temperature. Tapping a shelter reveals these conditions.
+
+### Physical food lots
+
+`sim/food.js` keeps separate lots with dry matter, water, shells where relevant, kcal,
+temperature, contamination, harvest time, visible decay and accumulated heat exposure.
+Consecutive gathering in one hour groups a harvest; unrelated older meals stay separate.
+Trout retain the existing 250 g / 330 kcal profile. Shellfish include their shell mass and
+discard it separately when prepared. Other foods use declared approximate dry energy and
+water ratios. Collections, consumption, sharing and storage split actual lots; storage
+capacity and structure loads use kilograms, rather than a fixed kcal-to-weight conversion.
+Cooking no longer supplies a full meal plus an additional free 8% of scraps.
+
+Food cooling uses exponential lumped heat transfer. A bounded 8% share of emitted fire
+heat is apportioned by exposed area; dry matter, water and shells have different heat
+capacities. Evaporation costs 2.3 MJ/kg. Larger portions heat more slowly. Cooking and drying
+finish on accumulated heat and remaining water, not the original action timer; interruption
+retains the actual lot temperature, water and dose. Temperature and moisture affect growth,
+heat loss of contamination, and nutrient decay. The moisture ratio is a water-activity
+surrogate, not a laboratory measurement; 0.85 is used as an approximate bacterial-growth
+boundary. This single-organism model does not resolve spores, toxins, cross-contamination,
+specific pathogens or validate food safety. Tomas chooses by age and visible decay, never
+by reading the hidden organism count. Actual consumed lots supply his exposure dose.
+Snares and loose quarry retain their harvest time and decay; shared scraps no longer vanish
+because exactly one day elapsed. The marine and animal population models remain aggregate.
+
+### Carrying and effort
+
+`sim/effort.js` totals actual material, tool, equipment, water and food mass. Weight and
+awkward poles/boughs continuously reduce walking speed; baskets reduce awkwardness, not
+gravity. Real route ascent costs `total kg * 9.81 * climbed metres` in mechanical energy,
+with an assumed 25% conversion efficiency. Added load work increases the body's metabolic
+cost. Work progress depends on load, fatigue and supported posture at a usable surface;
+crafting and gathering scale actual progress, rather than awarding a fixed bench bonus.
+These are effective effort estimates, not a musculoskeletal or balance simulation. A*
+and walking both use actual elevation and terrain resistance; design collection estimates
+use the same continuous load factor and observed work costs.
+
+### Water changes the ground
+
+`sim/geomorph.js` converts eroded/deposited kg to surface change using 1600 kg/m3 bulk
+density and 4 m2 tiles. Excess boundary shear entrains a finite soil stock; roots and
+compaction raise its resistance. The assumed erodibility is 0.00001 kg/(m2 s Pa), with
+a base critical stress of 0.4 Pa and a finite 20 kg/m3 transport bound. Existing Stokes
+settling deposits transported mass back into the ground. Saved double-precision relief
+changes water heads, neighbour drainage, walking slopes and soil pore capacity. Lake-bed
+deposition raises the effective bed and alters outflow. Renderer marks expose eroded and
+deposited patches from that state. Drainage is rebuilt once per affected tile after each
+hydrology interval; derived caches do not enter saves. Checkpoint loading rebuilds the same
+drainage from saved relief. Terrain classes and the marine coastline remain coarse static
+tiles; channel flooding, cliff failure and full coastal sediment transport are not resolved.
+
+### Learning from actual work
+
+`mind/experience.js` compares completed observed minutes against the action's original
+estimate, storing its mean ratio, Welford variance and last prediction error. Confidence
+increases with observations; personal estimates blend with the original prior. The planner
+and design comparison use these estimates without changing physical effort or supplying
+resources. Interrupted episodes are not scored as completed work; resumed paid crafts are
+excluded from full-task cost learning. Age/decay observations, prior food yield learning
+and witnessed construction loads continue to have their own meaning. No forced trials
+are scheduled, and future weather or hidden material state does not become knowledge.
+
+Old checkpoints reconstruct missing living stocks, nutrient pools, relief and food lots
+from declared defaults, preserving existing calorie totals and preserved-food fractions.
+Legacy lots cannot recover a detailed historical moisture or temperature history. New
+fields are saved; `advance.js` and `think.js` interfaces and existing brief keys are unchanged.
+`processes.test.js` adds independent heat/steady-state equations, timestep convergence,
+finite growth limits, dry/water/mineral conservation, physical food weights and fire energy
+limits, interrupted food handling, carrying cost, learning and production checkpoint replay.
+
+Primary references for the equations and model boundaries:
+
+- [FAO biomass production and resource limitations](https://www.fao.org/4/t1804e/t1804e04.htm).
+- [EnergyPlus air heat balance](https://energyplus.readthedocs.io/en/latest/guides/engineering-reference/2.1-basis-for-the-zone-and-air-system-integration.html).
+- [FAO saturation vapour pressure](https://www.fao.org/4/x0490e/x0490e07.htm).
+- [FDA water activity](https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/inspection-technical-guides/water-activity-aw-foods).
+- [USGS boundary shear and sediment mobility](https://pubs.usgs.gov/sir/2008/5093/section6.html).
+
+These sources motivate the model form; they do not calibrate this island's chosen constants.

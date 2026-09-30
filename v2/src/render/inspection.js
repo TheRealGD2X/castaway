@@ -2,6 +2,9 @@
 import {MAT,fitted} from '../build/assembly.js';
 import {FAMILIES,propsOf} from '../build/build.js';
 import {toolProps} from '../sim/tools.js';
+import {carriedMass} from '../sim/effort.js';
+import {foodMass,waterActivity} from '../sim/food.js';
+import {LABEL} from '../mind/brain.js';
 const names={poles:'Wooden poles',withies:'Withies',bracken:'Bracken',boughs:'Pine boughs',reeds:'Reeds',debris:'Leaf litter',mud:'Clay and mud',stones:'Stone',axe:'Stone axe',line:'Fishing line',basket:'Woven basket',cord:'Cordage',wrap:'Woven cape',greenPot:'Unfired pot',clayPot:'Fired clay pot',pot:'Bark pot',flake:'Stone flake',drill:'Hand drill',food:'Ready-to-eat food',raw:'Uncooked food',clean:'Boiled water',fuel:'Firewood',kindling:'Kindling',tinder:'Tinder'};
 export const objectName=k=>names[k]||k;
 const number=n=>Number((n||0).toFixed(1)).toLocaleString('en-GB'),percent=n=>`${Math.round(Math.max(0,Math.min(1,n||0))*100)}%`;
@@ -17,12 +20,15 @@ export function structureDetails(s){
   if(p.channelDepth>0)add('Cut depth',`${number(p.channelDepth*100)} cm`);if(p.crest>0)add('Stone crest',`${number(p.crest*100)} cm`);
   if(s.spoilKg>0)add('Excavated soil',kg(s.spoilKg));if(s.depositedKg>0)add('Settled sediment',kg(s.depositedKg));
   if(s.stock>0)add('Stored food',`${Math.round(s.stock)} kcal`);
+  if(s.climate){add('Air inside',`${number(s.climate.airT)} °C`);add('Walls and bedding',`${number(s.climate.wallT)} °C`);add('Humidity inside',percent(s.climate.hum));if(s.climate.condensateKg>.001)add('Condensation',`${number(s.climate.condensateKg*1000)} grams`);if(s.climate.boundWaterKg>.01)add('Water in the cover',kg(s.climate.boundWaterKg));}
   if(p.bench>.1)add('Work surface',p.bench>.8?'Firm and usable':'Partly usable');if(p.drying>.1)add('Drying rails',`${number(p.hangingMetres)} metres`);
   if(s.assembly&&!s.assembly.habitat&&p.maxLoadKg>0)add('Estimated extra load',kg(p.maxLoadKg));
   if(s.assembly){for(const part of s.assembly.parts){const f=fitted(s,part);if(!f)continue;const row=materials[part.mat]||(materials[part.mat]={mass:0,condition:1});row.mass+=part.amount*f*MAT[part.mat].kg;row.condition=Math.min(row.condition,part.condition??1);}}
   else for(const [m,n]of Object.entries(s.have||{}))if(MAT[m])materials[m]={mass:n*MAT[m].kg,condition:s.integrity??1};
   return{title:s.label||FAMILIES[s.k]?.label||s.k,fields,materials:Object.entries(materials).map(([m,q])=>({label:objectName(m),value:kg(q.mass),condition:q.condition<.88?'Strained':'Sound'})),onsite:Object.entries(s.onsite||{}).filter(([,n])=>n>.001).map(([m,n])=>({label:objectName(m),value:kg(n*(MAT[m]?.kg||1))})),comparison:s.assembly?.comparison||null};
 }
+export function batchRows(M){return(M.foodBatches||[]).map(b=>({label:b.kind,value:`${kg(foodMass(b))} · ${Math.round(b.kcal)} kcal · ${b.raw?'uncooked':waterActivity(b)<.85?'dried':'ready'} · ${number(b.temp)} °C${(b.decay||0)>.2?' · smells stale':''}`}));}
+export function effortRows(M){const rows=[{label:'Weight carried',value:kg(carriedMass(M))}];const most=Object.entries(M.experience||{}).filter(([,e])=>e.n>=2).sort((a,b)=>b[1].n-a[1].n).slice(0,3);for(const [key,e]of most)rows.push({label:LABEL[key]||key.replace('get_','Gathering ').replace(/_/g,' '),value:`${e.n} completed tries · last took ${Math.round(e.last.actual)} min (expected ${Math.round(e.last.predicted)})`});return rows;}
 export function toolDetails(M,key){
   const t=M.tools?.[key],p=toolProps(t),fields=[{label:'Material weight',value:kg(p.mass)}];
   if(p.length)fields.push({label:key==='line'?'Line length':'Handle length',value:`${number(p.length)} metres`});
