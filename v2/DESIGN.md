@@ -306,3 +306,18 @@ Hand targets are projected from assembly coordinates and bounded to the characte
 this is a presentation approximation, not a contact or climbing solver. Animation never
 advances work, consumes materials, draws randomness or changes checkpoint state.
 `workpose.test.js` checks physical inputs and that drawing instructions remain read-only.
+
+## Comparing designs through experience
+
+`compareDesigns` ranks the bounded grammar by unmet physical targets, estimated collection
+and assembly time, conservative load capacity, rain exposure and present wind/snow load.
+Known cover materials compete; remembered source distance and already-owned stock alter
+estimated effort without supplying free materials. Estimates retain the top three choices
+and their material budgets on the chosen assembly. Predictions do not alter its mechanics.
+Construction experience records the largest load personally witnessed on each part and
+whether it strained; distant failures remain unknown. Existing material bounds inform
+future designs and invalidate cached proposals when those bounds change. Sheltered workspace
+value follows installed enclosure and roof geometry rather than a roundhouse-name bonus.
+These are practical, approximate estimates; gathering routes, future storms and service
+lifetimes are uncertain. Learning comes from actual use, not scheduled tests or free objects.
+`designer.test.js` checks material knowledge, effort, stock, loads, local observation and replay.

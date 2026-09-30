@@ -1,5 +1,5 @@
 // A bounded search over a construction grammar. Targets describe useful physical outcomes, not abilities.
-import { assemblyProps } from './assembly.js';
+import { assemblyProps, panelGeometry } from './assembly.js';
 import { clamp, dceil } from '../core/dmath.js';
 
 export const TARGETS={workbench:{bench:.9},foodStore:{storageKg:5,dry:.85},dryingRack:{drying:.9},rainCollector:{capacity:12,catchArea:1.1}};
@@ -47,21 +47,30 @@ function grammar(need,b,w,height,gauge,cover) {
   }
   return{version:1,nodes,parts,loadAt:need.capacity?[w/2,0]:[0,0],wanted:{...need},label:labels(need,cover),stages};
 }
-export function propose(need,b,environment={}) {
-  let best=null,score=1e9;
-  for(const w of [.85,1.1,1.35])for(const h of [.55,.8])for(const gauge of [1,1.5])for(const roof of [false,true]){
+export function compareDesigns(need,b,environment={}) {
+  const options=[],covers=[b.cover||'bracken'];
+  for(const m of ['reeds','boughs','debris'])if(b.knows?.[m]&&!covers.includes(m))covers.push(m);
+  for(const w of [.85,1.1,1.35])for(const h of [.55,.8])for(const gauge of [1,1.5])for(const roof of [false,true])for(const cover of roof?covers:[covers[0]]){
     if((need.catchArea||need.dry)&&!roof)continue;
-    const assembly=grammar(need,b,w,h,gauge,roof),s={assembly,stage:assembly.stages.length,prog:0,saturation:environment.rain>1?.35:.1},p=assemblyProps(s);
+    const assembly=grammar(need,{...b,cover,knows:{...b.knows,reeds:cover==='reeds'}},w,h,gauge,roof),s={assembly,stage:assembly.stages.length,prog:0,saturation:environment.rain>1?.35:.1},p=assemblyProps(s);
     const shortfall=Object.keys(need).reduce((v,k)=>v+Math.max(0,need[k]- (p[k]||0))/Math.max(.01,need[k])*240,0);
     // His conservative estimate follows the materials carrying this design, not unrelated failures.
     const doubtful=assembly.parts.some(p=>(b.beliefs?.[p.mat]?.upper??1)<1&&(p.kind==='bar'||p.kind==='joint'));
     const predicted=doubtful?assemblyProps({...s,assembly:{...assembly,parts:assembly.parts.map(p=>({...p,condition:(p.kind==='bar'||p.kind==='joint')?(b.beliefs?.[p.mat]?.upper??1):1}))}}):p;
-    const safety=Math.max(0,18-predicted.maxLoadKg)*3;
-    const labour=assembly.stages.reduce((v,st)=>v+st.mins+Object.values(st.need).reduce((n,q)=>n+q*5,0),0);
+    const materials={};for(const st of assembly.stages)for(const m in st.need)materials[m]=(materials[m]||0)+st.need[m];
+    const labour=assembly.stages.reduce((v,st)=>v+st.mins,0)+Object.entries(materials).reduce((v,[m,q])=>v+Math.max(0,q-(b.stock?.[m]||0))*(b.gatherMins?.[m]??5),0);
+    const snowArea=assembly.parts.filter(p=>p.kind==='panel').reduce((v,p)=>v+panelGeometry(p).projected,0);
+    const requiredKg=Math.max(18,need.capacity||0,need.storageKg||0)+.6*(environment.gust||0)*(environment.gust||0)*p.windArea/9.81+(environment.snowMm||0)*snowArea;
+    const safety=Math.max(0,requiredKg-predicted.maxLoadKg)*3;
     const damp=(environment.rain||0)*Math.max(0,1-p.dry)*(need.bench?8:0),v=shortfall+safety+labour*.16+damp;
-    if(v<score){score=v;best=assembly;}
+    options.push({assembly,score:v,labourMinutes:labour,materials,requiredKg,predictedKg:predicted.maxLoadKg,shortfall,protection:p.dry,cover:roof?cover:null});
   }
-  return best;
+  return options.sort((a,b)=>a.score-b.score);
+}
+export function propose(need,b,environment={}) {
+  const options=compareDesigns(need,b,environment),best=options[0];if(!best)return null;
+  best.assembly.comparison={alternatives:options.length,choices:options.slice(0,3).map(({assembly,score,...q})=>({...q,score,label:assembly.label})),wanted:{...need}};
+  return best.assembly;
 }
 // Preserve already-built objects and their charged material totals. No reconstruction or new resources.
 export function legacyAssembly(s) {

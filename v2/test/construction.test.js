@@ -9,7 +9,7 @@ import { ACTIONS, camp, buildExec } from '../src/mind/actions.js';
 import { projects, plan } from '../src/mind/brain.js';
 import { heritageTen, campSnapshot } from '../src/sim/heritage.js';
 import { hydroTen, waterVolume } from '../src/sim/hydro.js';
-const W=createWorld(SEED,BORN),M=W.man,b={skill:1,cover:'bracken',knows:{reeds:true}};
+const W=createWorld(SEED,BORN),M=W.man,b={skill:1,cover:'reeds',knows:{reeds:true}};
 const copy=x=>JSON.parse(JSON.stringify(x)),near=(a,b)=>assert(Math.abs(a-b)<.000001,`${a} !== ${b}`);
 const make=need=>{const a=propose(need,b,W.wx),stages=a.stages;delete a.stages;return place(W,{k:'invention',x:60.5,y:42.5,dir:0,stages,assembly:a});};
 const full=need=>{const s=make(need);s.stage=s.stages.length;s.props=propsOf(s);return s;};
@@ -24,6 +24,7 @@ for(const e of workshop.ents)maker.mem['e'+e.id]={k:e.k,x:e.x,y:e.y,n:e.n,deadKg
 const c=camp(workshop,maker).tile;workshop.camp=c;const home=place(workshop,{k:'leanto',x:c%workshop.MW+.5,y:Math.floor(c/workshop.MW)+.5,dir:0,stages:FAMILIES.leanto.make({cover:'bracken',bedMat:'boughs'})});home.stage=home.stages.length;home.props=propsOf(home);
 const proposal=projects(workshop,maker,500).find(q=>q.d?.k==='invention');assert(proposal?.v>10);const d=proposal.d;assert(d.assembly.wanted.bench&&d.assembly.wanted.capacity);
 maker.x=d.x;maker.y=d.y;maker.path=null;maker.inv={...maker.inv,poles:30,withies:30,mud:30,stones:30,reeds:30,bracken:30,flake:1};
+for(const st of d.stages)for(const [m,q]of Object.entries(st.need))maker.inv[m]=(maker.inv[m]||0)+q;
 const buildTarget={d,x:d.x,y:d.y,tile:d.tile},first=d.stages[0],mats=Object.keys(first.need),goal={vars:['stageDone'],want:S=>S.stageDone,acts:{build_invention:{r:[...mats,'stageDone'],w:['stageDone',...mats],provides:['stageDone'],find:()=>buildTarget,pre:S=>!S.stageDone&&mats.every(m=>S[m]>=first.need[m]),eff:S=>{S.stageDone=1;for(const m of mats)S[m]-=first.need[m];},cost:()=>first.mins}}};
 assert.equal(plan(workshop,maker,goal,{...maker.inv,stageDone:0})[0].a,'build_invention');const invention=place(workshop,d);
 for(let stage=0;stage<invention.stages.length;stage++){let st={};for(let n=0;n<250&&invention.stage===stage;n++){workshop.t++;assert.notEqual(buildExec(workshop,maker,{sid:invention.id,x:d.x,y:d.y,tile:d.tile},st),'fail');}assert.equal(invention.stage,stage+1);}

@@ -150,6 +150,9 @@ export function assemblyStep(W,s,dt=10) {
       M.materialBeliefs||={};const belief=M.materialBeliefs[p.mat]||(M.materialBeliefs[p.mat]={upper:1,lower:0,observations:0});
       if(q.condition-p.condition>.00001){belief.upper=Math.min(belief.upper,clamp(force/Math.max(.1,nominal),.25,1));belief.observations++;}
       else if(force>0)belief.lower=Math.max(belief.lower,Math.min(belief.upper,force/Math.max(.1,nominal)));
+      // Retain the largest load he personally saw this component carry, rather than
+      // counting the same successful load every ten minutes as a new experiment.
+      q.carriedN=Math.max(q.carriedN||0,force);q.strained=!!(q.strained||p.stress>1);
       q.condition=p.condition;
     }
   }

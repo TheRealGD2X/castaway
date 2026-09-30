@@ -46,7 +46,7 @@ export function predictNight(W, M, withFire, sh) {
 }
 // what he could build next, and how much each would be worth to him: the designer proposes, prediction weighs
 export function projects(W, M, toDusk) {
-  const sig = W.structs.map(q => q.k + q.stage + Math.floor((q.integrity ?? 1) * 10)).join() + "|" + (M.intents || []).filter(q => q.until > W.t).map(q => q.k + q.w).join();
+  const sig = W.structs.map(q => q.k + q.stage + Math.floor((q.integrity ?? 1) * 10)).join() + "|" + (M.intents || []).filter(q => q.until > W.t).map(q => q.k + q.w).join()+'|'+Object.entries(M.materialBeliefs||{}).map(([m,b])=>m+b.upper).join();
   if (M.projCache && W.t - M.projCache.t < 60 && M.projCache.sig === sig) return M.projCache.list;
   const b = brief(W, M), campT = camp(W, M).tile, list = [], base = predictNight(W, M, false), baseF = predictNight(W, M, true);
   const hasFire = W.fires.length > 0 || W.camp != null;
@@ -62,7 +62,8 @@ export function projects(W, M, toDusk) {
     if (F.shelter) {   // how much warmer would tonight be once this stage (or the usable shell) is up?
       const next = Object.assign({}, s, { stage: s.stage + 1, prog: 0 }), p = propsOf(next);
       const gain = Math.max(predictNight(W, M, false, p) - base, (predictNight(W, M, true, p) - baseF) * .7);
-      const workspace = fam === "roundhouse" && !W.structs.some(q => q.k === "roundhouse" && finished(q)) ? 18 : 0;
+      const otherWorkspace=W.structs.reduce((v,q)=>q.id===s.id?v:Math.max(v,(q.props||propsOf(q)).workspace||0),0);
+      const workspace=Math.max(0,(p.workspace||0)-otherWorkspace)*18;
       return workspace + (gain > .05 ? 20 + Math.min(30, gain * 16) + (toDusk > 0 && toDusk < 240 && gain > .3 ? 12 : 0) : 12 + (p.rain - (s.props?.rain || 0)) * 8);
     }
     if (fam === "fireRing") return hasFire ? 19 : 0;

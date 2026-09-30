@@ -65,3 +65,10 @@ reports material failures he personally witnessed, rather than hidden island kno
 strained by their load and the weather; the ordinary planner gathers replacement materials and can recover
 usable material from damaged finished constructions. Do not claim a new invention or repair until the brief
 reports that it happened. The advance and think command interfaces remain unchanged.
+
+Optional `designComparisons` describes estimates retained when Tomas chose a camp assembly:
+the number of alternatives, estimated work minutes and estimated load margin. These are his
+design estimates, not proof of completion or guaranteed strength. Comparisons use known
+cover materials, remembered gathering locations, owned stock, felt weather and witnessed
+component strain. Successful use records the largest witnessed load, rather than repeatedly
+counting a stationary load as new experiments. Existing input and brief keys are unchanged.

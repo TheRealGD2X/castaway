@@ -202,7 +202,9 @@ export function brief(W, M) {
   const autumn = W.ents.length && has("fern");
   const cover = autumn ? "bracken" : has("pine") ? "boughs" : "debris";
   const bedMat = has("pine") ? "boughs" : autumn ? "bracken" : "debris";
-  return { cover, bedMat, skill: M.skill.build, wind: prevailing(M), beliefs:M.materialBeliefs||{}, knows: { stones: has("stones") || knowsTile(W, M, T.SHINGLE), withies: has("hazel") || has("birch"), reeds: has("reeds"), mud: knowsTile(W, M, T.MARSH) || knowsTile(W, M, T.STREAM), pine: has("pine") } };
+  const sources={poles:['branch','oak','birch','pine','hazel'],withies:['hazel','birch'],bracken:['fern'],boughs:['pine'],reeds:['reeds'],debris:['oak','birch','pine','rowan','hazel']},gatherMins={};
+  for(const m in sources){let nearest=1e9;for(const q of Object.values(M.mem))if(sources[m].includes(q.k)&&(q.n??1)>0){const dx=q.x-M.x,dy=q.y-M.y;nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));}if(nearest<1e9)gatherMins[m]=5+nearest*2/MATERIALS[m].trip;}
+  return { cover, bedMat, skill: M.skill.build, wind: prevailing(M), beliefs:M.materialBeliefs||{},stock:M.inv,gatherMins, knows: { stones: has("stones") || knowsTile(W, M, T.SHINGLE), withies: has("hazel") || has("birch"), reeds: has("reeds"), mud: knowsTile(W, M, T.MARSH) || knowsTile(W, M, T.STREAM), pine: has("pine"),boughs:has('pine'),debris:has('oak')||has('birch')||has('pine')||has('rowan')||has('hazel') } };
 }
 function knowsTile(W, M, t) { for (let i = 0; i < MW * MH; i++) if (M.known[i] && W.ter[i] === t) return true; return false; }
 const buildable = (W, i) => { const t = W.ter[i]; return (t === T.GRASS || t === T.MEADOW || t === T.SAND || t === T.WOOD) && !W.treeAt[i] && !W.block?.[i] && !W.structs.some(s => idx(Math.floor(s.x), Math.floor(s.y)) === i); };
@@ -276,7 +278,7 @@ export function design(W, M, fam, campTile) {
       if(has('capacity')<10&&b.knows.mud&&b.knows.stones){wanted.capacity=12;wanted.catchArea=.9;}
       if(!Object.keys(wanted).length||(!wanted.bench&&!wanted.drying))return null;
     }
-    assembly=propose(wanted,b,W.wx);if(!assembly)return null;
+    assembly=propose(wanted,b,{...W.wx,snowMm:W.surface?.snow||0});if(!assembly)return null;
   }
   const d={ k: fam, x: s.tile % MW + .5, y: ((s.tile / MW) | 0) + .5, tile: s.tile, dir: s.dir, stages: assembly?assembly.stages:FAMILIES[fam].make(b), stage: 0, prog: 0 };
   if(assembly){delete assembly.stages;d.assembly=assembly;d.label=assembly.label;}else{d.assembly=homeAssembly(d);if(!d.assembly)delete d.assembly;}const e=waterDesign(d,W);if(e)d.earthwork=e;return d;

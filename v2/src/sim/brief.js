@@ -22,6 +22,7 @@ export function brief(W) {
     skills: Object.fromEntries(Object.entries(M.skill).map(([k, v]) => [k, +v.toFixed(2)])),
     built: W.structs.map(s => ({ what: s.label||FAMILIES[s.k].label, condition: (s.integrity ?? 1) < .88 ? "damaged" : "sound", stage: finished(s) ? "finished" : `${s.stages[s.stage].name} next (${s.stage}/${s.stages.length} stages done)` })),
     constructionExperience: Object.fromEntries(Object.entries(M.materialBeliefs||{}).filter(([,b])=>b.observations).map(([m,b])=>[m,{failuresSeen:b.observations,trust:b.upper<.7?'cautious':'some strain observed'}])),
+    designComparisons: W.structs.filter(s=>s.assembly?.comparison).map(s=>({what:s.label,alternativesConsidered:s.assembly.comparison.alternatives,estimatedWorkMinutes:dround(s.assembly.comparison.choices[0].labourMinutes),loadMarginKg:dround(s.assembly.comparison.choices[0].predictedKg-s.assembly.comparison.choices[0].requiredKg)})),
     canBuild: Object.entries(FAMILIES).map(([k, F]) => ({ k: "build:" + k, what: F.label, able: M.skill.build >= F.minSkill })),
     fire: W.fires.map(F => (F.lit ? "burning" : F.embers > .03 ? "embers" : "cold") + (F.signal ? " (signal fire)" : "")),
     beliefs: M.belief || {},
