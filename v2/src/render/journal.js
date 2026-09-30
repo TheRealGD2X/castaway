@@ -28,7 +28,7 @@ export function paintCamp(cv,structures) {
   for(const s of ordered){const sp=structSprite(s);if(!sp)continue;const px=90+s.x*10,py=57+s.y*8;g.drawImage(sp.img,Math.round(px-sp.ox),Math.round(py-sp.oy));}
   g.fillStyle='#f4efda';g.fillRect(0,0,180,5);g.fillRect(0,95,180,5);
 }
-export function setupJournal(button,panel,getWorld) {
+export function setupJournal(button,panel,getWorld,openInspection) {
   let tab='story',lastFocus=null;
   function close(){panel.style.display='none';button.setAttribute('aria-expanded','false');lastFocus?.focus();}
   function draw(){
@@ -40,6 +40,7 @@ export function setupJournal(button,panel,getWorld) {
       tab==='words'?(J.length?J.map(j=>`<article class="diary-card"><time>${stamp(W,j.t)}</time><p>${escape(j.text).replace(/\n/g,'<br>')}</p></article>`).join(''):'<p>He has not written in his journal yet.</p>'):
       `<canvas class="camp-picture" id="home-picture" aria-label="His camp as it stands now"></canvas><h3>Made by his own hands</h3>${home.length?home.map(s=>`<div class="home-row"><strong>${escape(s.label||FAMILIES[s.k]?.label||s.k)}</strong><span>${s.stage>=s.stages.length?'Complete':escape(s.stages[s.stage]?.name||'under way')+' in progress'}${s.integrity<.88?' · needs repair':''}</span></div>`).join(''):'<p>He is still finding a place to make his home.</p>'}<h3>Useful things</h3><p>${[['basket','a woven basket'],['line','a fishing line'],['axe','a stone axe'],['wrap','a warm woven cape'],['clayPot','a fired clay pot'],['pot','a bark pot']].filter(([k])=>M.inv[k]&&!(k==='pot'&&M.inv.clayPot)).map(([,label])=>escape(label)).join(', ')||'He is learning what the island can provide.'}</p>`}</div>`;
     panel.querySelector('.journal-close').addEventListener('click',close);
+    if(tab==='home'&&openInspection){const inspect=document.createElement('button');inspect.className='inspect-link';inspect.textContent='Inspect camp & belongings';inspect.addEventListener('click',()=>{close();openInspection();});panel.querySelector('.journal-body').prepend(inspect);}
     panel.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.tab;draw();panel.querySelector(`[data-tab="${tab}"]`).focus();}));
     panel.querySelectorAll('[data-picture]').forEach(cv=>paintCamp(cv,entries[+cv.dataset.picture].camp));
     const cv=panel.querySelector('#home-picture');if(cv)paintCamp(cv,home);

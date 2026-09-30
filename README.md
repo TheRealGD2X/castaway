@@ -16,4 +16,11 @@ shallows, wave wash, currents, reflections, drifting litter, rain rings and lake
 Camp objects now share a construction grammar: actual supports, bindings, surfaces, covers and hollow basins
 determine their usefulness and their drawings. Tomas can consider combined designs, learn from visible strain,
 replace damaged components and recover some materials. Containers, working surfaces and racks are the first
-families using this model; larger shelters and tools retain their existing systems for now.
+families using this model. Shelters and bedding also use installed geometry; axe and fishing-line
+performance follows their working parts, force, wetness and wear. Earthworks move finite water and
+sediment, with excavated soil retained as spoil. Tomas compares known materials and observed loads.
+
+On a phone, tap Tomas or a construction to inspect it. The journal's **His home** tab also opens
+**Inspect camp & belongings**. Materials, damage, water, tools and design estimates come from the
+current simulated state. Models are simplified and use documented assumptions; they are not
+calibrated predictions of real-world structures or survival.

@@ -1,7 +1,7 @@
 // Presentation reads the physical task and installed geometry. It never advances work.
 import {fitted,panelGeometry} from '../build/assembly.js';
 import {toolProps} from '../sim/tools.js';
-const craftTime={cord:35,basket:70,line:45,axe:70,wrap:100,greenPot:55};
+import {RECIPES} from '../mind/crafts.js';
 export function workPose(W,M,position=M){
   const a=M?.act;if(!W||!M)return{};
   if(M.pose==='walk'){
@@ -36,4 +36,4 @@ export function workPose(W,M,position=M){
     const dx=(site.x-position.x)*16+x*16+y*8,dy=(site.y-position.y)*16+y*6-q[2]*18;
     return{...extra,work:[Math.max(-10,Math.min(14,dx*(position.face||M.face||1))),Math.max(-29,Math.min(-1,dy))],lean:undefined};}
 }
-function piece(M){const entry=Object.entries(M.workpieces||{}).find(([,p])=>p.paid);return entry?{kind:entry[0],progress:Math.min(1,entry[1].progress/(craftTime[entry[0]]||70))}:null;}
+function piece(M){const r=RECIPES[M.act?.a],p=M.workpieces?.[r?.out];return p?.paid?{kind:r.out,progress:Math.min(1,p.progress/r.mins)}:null;}

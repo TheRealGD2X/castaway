@@ -1,5 +1,6 @@
 // v2 preview: the island and Tomas, simulated in real time (UK clock). ?ff=<minutes> fast-forwards (testing only).
 import { setupJournal } from "./render/journal.js";
+import { setupInspection } from './render/inspect.js';
 import { createWorld, step, load } from "./sim/world.js";
 import { SEED, BORN } from "./config.js";
 import { paintTerrain } from "./render/terrain.js";
@@ -65,7 +66,8 @@ function setSound(on) { soundOn = on; sb.textContent = on ? "♪" : "♪̸"; sb.
 sb.addEventListener("click", () => setSound(!soundOn));
 if (pref) addEventListener("pointerdown", () => { if (!soundOn) setSound(true); }, { once: true });
 // Story, diary and camp: three readable views of the same simulated life.
-setupJournal(document.getElementById('jbtn'), document.getElementById('journal'), () => world);
+const inspection=setupInspection(cv,V,()=>world);
+setupJournal(document.getElementById('jbtn'), document.getElementById('journal'), () => world,()=>inspection.show({camp:true}));
 const clk = document.getElementById("clk");
 let lastFrame = null;
 function frame(now) {
@@ -80,6 +82,7 @@ function frame(now) {
   const groundSeason = Math.floor(season.autumn * 8);
   if (V.groundSeason !== groundSeason) { terr.recolor(season.autumn); V.groundSeason = groundSeason; }
   V.draw(now);
+  inspection.refresh();
   if (soundOn) audioUpdate(world, V, now);
   if (M) {
     const doing = M.B.alive ? (M.act || (M.goal && M.plan && M.plan.length) ? M.doing : M.pose === "sleep" ? "Sleeping" : "Resting") : "Tomas is gone";

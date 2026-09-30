@@ -203,7 +203,8 @@ export function brief(W, M) {
   const cover = autumn ? "bracken" : has("pine") ? "boughs" : "debris";
   const bedMat = has("pine") ? "boughs" : autumn ? "bracken" : "debris";
   const sources={poles:['branch','oak','birch','pine','hazel'],withies:['hazel','birch'],bracken:['fern'],boughs:['pine'],reeds:['reeds'],debris:['oak','birch','pine','rowan','hazel']},gatherMins={};
-  for(const m in sources){let nearest=1e9;for(const q of Object.values(M.mem))if(sources[m].includes(q.k)&&(q.n??1)>0){const dx=q.x-M.x,dy=q.y-M.y;nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));}if(nearest<1e9)gatherMins[m]=5+nearest*2/MATERIALS[m].trip;}
+  const metresPerMinute=72*Math.max(.2,1-M.B.fatigue*.35-(M.B.core<35.5?.3:0))*(M.carry>12?.75:1);
+  for(const m in sources){let nearest=1e9;for(const q of Object.values(M.mem))if(sources[m].includes(q.k)&&(q.n??1)>0){const dx=q.x-M.x,dy=q.y-M.y;nearest=Math.min(nearest,Math.sqrt(dx*dx+dy*dy));}if(nearest<1e9)gatherMins[m]=5+nearest*4*1.25/(metresPerMinute*MATERIALS[m].trip);}
   return { cover, bedMat, skill: M.skill.build, wind: prevailing(M), beliefs:M.materialBeliefs||{},stock:M.inv,gatherMins, knows: { stones: has("stones") || knowsTile(W, M, T.SHINGLE), withies: has("hazel") || has("birch"), reeds: has("reeds"), mud: knowsTile(W, M, T.MARSH) || knowsTile(W, M, T.STREAM), pine: has("pine"),boughs:has('pine'),debris:has('oak')||has('birch')||has('pine')||has('rowan')||has('hazel') } };
 }
 function knowsTile(W, M, t) { for (let i = 0; i < MW * MH; i++) if (M.known[i] && W.ter[i] === t) return true; return false; }

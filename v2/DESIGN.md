@@ -321,3 +321,19 @@ value follows installed enclosure and roof geometry rather than a roundhouse-nam
 These are practical, approximate estimates; gathering routes, future storms and service
 lifetimes are uncertain. Learning comes from actual use, not scheduled tests or free objects.
 `designer.test.js` checks material knowledge, effort, stock, loads, local observation and replay.
+
+Collection estimates convert a remembered round trip from tiles to metres (2 m/tile),
+then to minutes using the same 72 m/min baseline and fatigue/cold/load modifiers as walking.
+The 1.25 route factor and gathering labour remain estimates rather than exact route search.
+`designer.test.js` independently checks the distance/time conversion and tiredness effect.
+
+## Looking at possessions
+
+`render/inspection.js` describes installed parts, condition, finite stored water, sediment,
+owned tools and saved design comparisons. `render/inspect.js` presents those read-only facts
+in a phone sheet. Tap Tomas, tap visible construction pixels, or open the journal's home
+tab and choose Inspect camp & belongings. Dragging or pinching continues to move the camera.
+Object previews use the existing physical-part sprites; none are invented catalogue pictures.
+Small tool masses use grams, and engineering estimates are labelled as estimates. Looking
+never creates items, changes Tomas's knowledge, advances work or consumes random numbers.
+`inspection.test.js` verifies physical values, wear and unchanged checkpoint state.

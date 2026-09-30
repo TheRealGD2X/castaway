@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {compareDesigns,propose} from '../src/build/designer.js';
 import {createWorld,save,load} from '../src/sim/world.js';
 import {SEED,BORN} from '../src/config.js';
-import {place} from '../src/build/build.js';
+import {place,brief} from '../src/build/build.js';
 import {assemblyStep} from '../src/build/assembly.js';
 const b={skill:1,cover:'bracken',knows:{reeds:true}},need={storageKg:5,dry:.85},opts=compareDesigns(need,b,{rain:2});
 assert(opts.some(q=>q.cover==='reeds'));assert(opts.some(q=>q.cover==='bracken'));assert(!opts.some(q=>q.cover==='boughs'));
@@ -18,4 +18,6 @@ W.wx={...W.wx,gust:0,rain:0};W.surface.snow=0;assemblyStep(W,s);assert(Object.va
 const remembered=JSON.stringify(M.constructionMemory);M.x+=20;assemblyStep(W,s);assert.equal(JSON.stringify(M.constructionMemory),remembered);
 assert.equal(save(load(save(W))),save(W));
 const before=save(W);compareDesigns(need,b,W.wx);assert.equal(save(W),before);
+const walker=createWorld(SEED,BORN).man;walker.B.fatigue=0;walker.B.core=37;walker.carry=0;walker.mem={reeds:{k:'reeds',x:walker.x+36,y:walker.y,n:10}};
+assert.equal(brief(W,walker).gatherMins.reeds,5.5);walker.B.fatigue=.8;assert(brief(W,walker).gatherMins.reeds>5.5);
 console.log('ok   deterministic comparisons use known covers, collection effort, owned stock, weather loads and witnessed trials; saved estimates grant no physical abilities');

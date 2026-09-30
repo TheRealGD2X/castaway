@@ -11,5 +11,6 @@ s.assembly.nodes[1][2]=2;const high=workPose(W,M);assert.equal(high.stance,'stan
 s.assembly.parts[0]={id:0,stage:0,kind:'joint',node:1,mat:'withies',amount:1};assert.equal(workPose(W,M).tool,'cord');
 M.act.st.phase='go';assert.deepEqual(workPose(W,M),{});
 M.pose='weave';M.act={a:'weaveBasket',t:{},st:{}};M.workpieces={basket:{paid:true,progress:35}};assert.equal(workPose(W,M).workpiece.progress,.5);
+M.workpieces.wrap={paid:true,progress:20};M.act.a='weaveWrap';assert.equal(workPose(W,M).workpiece.kind,'wrap');assert.equal(workPose(W,M).workpiece.progress,.2);
 const before=save(W);for(let n=0;n<100;n++)workPose(W,M);assert.equal(save(W),before);
 console.log('ok   physical part heights, bindings, loads, fishing endpoints and paid progress drive read-only poses');

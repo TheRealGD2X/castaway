@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {structureDetails,toolDetails,inventoryRows} from '../src/render/inspection.js';
+import {createWorld,save} from '../src/sim/world.js';
+import {SEED,BORN} from '../src/config.js';
+import {propose} from '../src/build/designer.js';
+import {place,propsOf} from '../src/build/build.js';
+import {makeTool} from '../src/sim/tools.js';
+const W=createWorld(SEED,BORN),M=W.man,a=propose({capacity:12,catchArea:1.1},{skill:1,cover:'bracken',knows:{reeds:true}},{}),stages=a.stages;delete a.stages;
+const s=place(W,{k:'rainCollector',x:M.x,y:M.y,dir:0,assembly:a,stages});s.stage=stages.length;s.props=propsOf(s);s.waterL=3.5;
+M.inv={stones:3,food:160,clean:.6,line:1};makeTool(M,'line');
+assert.equal(inventoryRows(M).find(q=>q.key==='stones').value,'6 kg');assert.equal(inventoryRows(M).find(q=>q.key==='clean').value,'0.6 litres');
+const d=structureDetails(s);assert(d.fields.find(q=>q.label==='Water held').value.startsWith('3.5 litres'));assert(d.comparison.alternatives>1);assert(d.materials.length);
+const original=toolDetails(M,'line');assert(original.fields.find(q=>q.label==='Material weight').value.endsWith('grams'));M.tools.line.parts[0].condition=.25;assert.notDeepEqual(toolDetails(M,'line').fields,original.fields);
+makeTool(M,'axe');assert.equal(toolDetails(M,'axe').fields.find(q=>q.label==='Cutting edge').value,'Sharp');M.tools.axe.parts[0].radius=.0015;assert.equal(toolDetails(M,'axe').fields.find(q=>q.label==='Cutting edge').value,'Very blunt');
+const before=save(W);for(let n=0;n<20;n++){structureDetails(s);toolDetails(M,'line');inventoryRows(M);}assert.equal(save(W),before);
+console.log('ok   inspection describes actual installed material, finite water, gram-scale tools and wear without changing state');
