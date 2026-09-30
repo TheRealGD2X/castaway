@@ -11,16 +11,16 @@
 import { R } from "./palette.js";
 import { sprite } from "./pix.js";
 
-const W = 34, H = 36, FX = 15, FY = 35;
-const COL = { skin: ["#b8704f", "#cf8a64", "#eab08a"], shirt: ["#8b6c49", "#bb9660", "#e2c08a"], trou: ["#3f372e", "#51463b", "#675a4b"], boot: "#2f241c", hair: "#4a2e1c", hair2: "#6b4428", beard: "#5e3c24", eye: "#1b120c" };
-const HEAD = [                                  // 9 x 9, facing right, looking ahead / looking down
-  ["..HHHHH..", ".HHHHHHH.", "HHHhhHHHH", "HHHHSSSSS", "HHHSSSSeS", "HHSSSSSSSs", "HBSSSSSSS", ".BBBBBBB.", "..BBBBB.."],
-  [".........", "..HHHHH..", ".HHHHHHH.", "HHHhhHHHH", "HHHHHSSSS", "HHHSSSSSS", "HHBSSSSeSs", ".BBBSSSS.", "..BBBBB.."],
+const W = 40, H = 42, FX = 17, FY = 38;
+const COL = { skin: ["#ad6848", "#cf8a64", "#eab08a"], shirt: ["#365b59", "#527d75", "#83a193"], trou: ["#3f372e", "#51463b", "#75644b"], boot: "#2f241c", hair: "#4a2e1c", hair2: "#6b4428", beard: "#5e3c24", eye: "#1b120c" };
+const HEAD = [                                  // 8 x 8, facing right, looking ahead / looking down
+  ["..HHHH..", ".HHHHHH.", "HHhhHHHH", "HHSSSSS.", "HHSSSeSS", "HSSSSSSs", ".BBSSSS.", "..BBBB.."],
+  ["........", "..HHHH..", ".HHhhHH.", "HHHHSSS.", "HHSSSSSS", "HBSSSeSs", ".BBSSSS.", "..BBBB.."],
 ];
 const HC = { H: COL.hair, h: COL.hair2, S: COL.skin[2], s: COL.skin[1], B: COL.beard, e: COL.eye };
 // ---------------------------------------------------------------- stances: hips, feet, knees (relative to the feet centre)
 const STANCE = {
-  stand: { hip: [0, -11], spine: 8, feet: [[-1, 0], [2, 0]], knee: 1 },
+  stand: { hip: [0, -13], spine: 9, feet: [[-1.5, 0], [2, 0]], knee: 1 },
   kneel: { hip: [-1, -7], spine: 8, feet: [[-7, 0], [4, 0]], knees: [[-3, -1], [4, -6]] },         // back knee on the ground
   kneelUp: { hip: [-1, -8], spine: 8, feet: [[-7, 0], [-6, 0]], knees: [[3, -1], [4, -1]] },       // both knees down, sitting up
   squat: { hip: [-2, -6], spine: 8, feet: [[0, 0], [2, 0]], knees: [[4, -7], [5, -7]] },
@@ -37,20 +37,20 @@ function ik(sx, sy, tx, ty, a, b, bendSign) {           // two-bone IK: returns 
 }
 // ---------------------------------------------------------------- the hands' motion at the work point, phase p in [0,1)
 const ease = p => p < .5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
-function hands(motion, wx, wy, p, two) {
+function hands(motion, wx, wy, p, two, mouth) {
   const s = Math.sin(p * 6.2832), c = Math.cos(p * 6.2832);
   switch (motion) {
     case "strike": { const up = p < .7 ? ease(p / .7) : 1 - (p - .7) / .3; return [[wx + 1 - up * 2, wy - up * 8], two ? [wx - up * 2, wy - up * 8 + 1] : [wx - 5, wy + 1]]; }  // raise slowly, bring down hard
     case "rub": { const d = p < .8 ? p / .8 : 1 - (p - .8) / .2; return [[wx, wy - 5 + d * 7], [wx + 1, wy - 4 + d * 7]]; }            // palms working down a spindle
     case "saw": return [[wx + s * 2.5, wy], [wx - 3, wy + 1]];
     case "reach": return [[wx + c * 1, wy + s * 1.5], [wx - 6, wy + 5]];
-    case "pick": { const out = p < .6 ? 1 : 0; return [[lerp(wx - 7, wx, out) + s * .8, lerp(wy + 5, wy, out)], [wx - 6, wy + 6]]; }  // take, drop in the fold of the shirt
+    case "pick": { const out = p < .35 ? ease(p / .35) : p < .55 ? 1 : p < .9 ? 1 - ease((p - .55) / .35) : 0; return [[lerp(wx - 5, wx, out), lerp(wy + 3, wy, out)], [wx - 5, wy + 4]]; }
     case "pull": { const d = ease(p); return [[wx - d * 5, wy + d * 1.5], [wx - d * 5 - 1, wy + d * 1.5 + 1]]; }
     case "scoop": return [[wx + c * 3, wy + Math.abs(s) * -3], [wx + c * 3 - 2, wy + Math.abs(s) * -3 + 1]];
     case "stir": return [[wx + c * 2, wy + s * 1], [wx - 7, wy + 3]];
     case "wave": return [[wx + 3 + s * 2.5, wy - 12], [wx - 4 - s * 2.5, wy - 12]];
     case "lift": return [[wx + 1, wy - 2], [wx - 2, wy - 2]];
-    case "mouth": { const up = p < .5 ? ease(p * 2) : ease((1 - p) * 2); return [[lerp(wx, 3, up), lerp(wy, -19, up)], [wx - 3, wy + 1]]; }
+    case "mouth": { const up = p < .5 ? ease(p * 2) : ease((1 - p) * 2); return [[lerp(wx, mouth[0], up), lerp(wy, mouth[1], up)], [wx - 3, wy + 1]]; }
     case "warm": return [[wx + s * .6, wy], [wx - 1 + s * .6, wy + 1]];
     case "rest": return [[wx, wy], [wx - 4, wy]];
     default: return [[wx, wy], [wx - 4, wy + 1]];
@@ -83,9 +83,7 @@ function prop(P, tool, hx, hy, ex, ey, p) {
 // ---------------------------------------------------------------- pose and draw one frame
 export function drawRig(P, spec, p) {
   const st = STANCE[spec.stance === "walk" ? "stand" : spec.stance] || STANCE.stand, walking = spec.stance === "walk";
-  // More substantial limbs and an upright silhouette, with room around every tool.
-  const base = P, scale = 1.2;
-  P = { ...base, set(x,y,c) { const xx = Math.round(FX + (x - FX) * scale), yy = Math.round(FY + (y - FY) * scale); base.set(xx,yy,c); if (Math.floor(x*3)%3 === 0) base.set(xx+1,yy,c); } };
+  // Paint complete shapes directly on the native pixel grid. Only the camera enlarges them.
   const ox = FX, oy = FY;
   // walking: a gait cycle moves the feet (the far foot half a cycle behind) and bobs the hips
   let feet = st.feet.map(f => [f[0], f[1]]), bob = 0;
@@ -98,9 +96,9 @@ export function drawRig(P, spec, p) {
   const a = lean + effort, nX = hipX + Math.sin(a) * st.spine, nY = hipY - Math.cos(a) * st.spine;
   // shoulders a pixel either side along the chest; head above the neck, looking down if the work is low
   const sh = [[nX - 1.5, nY + 1], [nX + 1.2, nY + 1.2]];
-  const hs = hands(spec.motion || "hold", wx, wy, p, spec.two);
-  if (walking) { const s = Math.sin(p * 6.2832); hs[0] = [nX + 1 + s * 2.5, nY + 7]; hs[1] = [nX - 1 - s * 2.5, nY + 7]; if (spec.tool === "pole") { hs[0] = [nX + 3, nY - 1]; } }
-  const armL = [4, 4.2], legL = [5.4, 5.6];
+  const hs = hands(spec.motion || "hold", wx, wy, p, spec.two, [nX + 3, nY - 2]);
+  if (walking) { const s = Math.sin(p * 6.2832); hs[0] = [nX + 1 + s * 2.5, nY + 9]; hs[1] = [nX - 1 - s * 2.5, nY + 9]; if (spec.tool === "pole") { hs[0] = [nX + 3, nY + 3]; } else if (spec.tool === "stone") { hs[1] = [nX + 6, nY + 5]; } }
+  const armL = [4.8, 4.8], legL = [6.2, 6.4];
   const arm = i => { const [ex, ey, hx, hy] = ik(sh[i][0], sh[i][1], hs[i][0], hs[i][1], armL[0], armL[1], i ? 1 : 1); return { ex, ey, hx, hy }; };
   const leg = i => {
     const hx = hipX + (i ? .8 : -.8), fx = ox + feet[i][0], fy = oy + feet[i][1] - 1;
@@ -109,23 +107,25 @@ export function drawRig(P, spec, p) {
   };
   const A = [arm(0), arm(1)], L = [leg(0), leg(1)];
   const drawLeg = (l, far) => { const cols = far ? [COL.trou[0], COL.trou[0], COL.trou[1]] : COL.trou; brush(P, l.hx, hipY, l.kx, l.ky, 1.4, cols); brush(P, l.kx, l.ky, l.fx, l.fy, 1.2, cols); const bx = Math.round(l.fx), by = Math.round(l.fy); for (let i = -1; i <= 2; i++) { P.set(bx + i, by + 1, COL.boot); if (i < 2) P.set(bx + i, by, COL.boot); } };
-  const drawArm = (q, far) => { const sc = far ? [COL.shirt[0], COL.shirt[0], COL.shirt[1]] : COL.shirt, kc = far ? [COL.skin[0], COL.skin[0], COL.skin[1]] : COL.skin; brush(P, sh[far ? 0 : 1][0], sh[far ? 0 : 1][1], q.ex, q.ey, 1.5, sc); brush(P, q.ex, q.ey, q.hx, q.hy, 1.25, kc); brush(P, q.hx, q.hy, q.hx + .6, q.hy + .4, 1.25, kc); };
+  const drawArm = (q, far) => { const sc = far ? [COL.shirt[0], COL.shirt[0], COL.shirt[1]] : COL.shirt, kc = far ? [COL.skin[0], COL.skin[0], COL.skin[1]] : COL.skin; brush(P, sh[far ? 0 : 1][0], sh[far ? 0 : 1][1], q.ex, q.ey, 1.35, sc); brush(P, q.ex, q.ey, q.hx, q.hy, 1, kc); put(P, q.ex, q.ey, COL.shirt[2]); brush(P, q.hx, q.hy, q.hx + .5, q.hy, 1, kc); };
   // back to front: far arm, far leg, torso, near leg, head, tool, near arm
   drawArm(A[0], true); if (spec.tool && spec.two) prop(P, spec.tool, A[0].hx, A[0].hy, A[0].ex, A[0].ey, p);
   drawLeg(L[0], true);
-  brush(P, hipX, hipY - 1, nX, nY + 1, 3.1, COL.shirt);                                   // the body in his shirt
+  brush(P, hipX, hipY - 1, nX, nY + 1, 2.7, COL.shirt);                                   // the body in his shirt
   brush(P, hipX - .5, hipY, hipX + .5, hipY, 2.2, COL.trou);                             // belt line / hips
   drawLeg(L[1], false);
   // Shirt placket, collar, cuff and leather belt catch the light without noisy texture.
-  brush(P, nX + 1, nY + 3, hipX + 1, hipY - 2, .35, ['#8b6c49','#8b6c49','#bb9660']);
-  put(P, nX, nY+2, '#ead0a0'); put(P, nX+1, nY+5, '#70533a'); put(P, hipX+2, hipY, '#c5ad73');
-  const look = wy > nY + 4 ? 1 : 0, hx0 = Math.round(nX - 4 + a * 2), hy0 = Math.round(nY - 9 + look);
+  brush(P, nX + 1, nY + 3, hipX + 1, hipY - 2, .35, [COL.shirt[0], COL.shirt[0], COL.shirt[1]]);
+  put(P, nX, nY+1, '#d6d4b1'); put(P, nX+1, nY+4, '#c0c4a2');
+  brush(P, hipX - 2, hipY - .5, hipX + 2, hipY - .5, .5, ['#4a3628','#4a3628','#73533a']); put(P, hipX+1, hipY, '#c5ad73');
+  put(P, nX, nY-1, COL.skin[1]);
+  const look = wy > nY + 4 ? 1 : 0, hx0 = Math.round(nX - 3 + a * 2), hy0 = Math.round(nY - 9 + look);
   HEAD[look].forEach((row, y) => { for (let x = 0; x < row.length; x++) { let c = HC[row[x]];
     if (row[x] === 'e' && (spec.mood === 'tired' || p > .87)) c = COL.skin[1];
     if (row[x] === 'S' && spec.mood === 'ill') c = '#d4b287';
     if (c) P.set(hx0 + x, hy0 + y, c); } });
   if (spec.tool && !spec.two) prop(P, spec.tool, A[1].hx, A[1].hy, A[1].ex, A[1].ey, p);
-  if (spec.tool === "pole" && walking) brush(P, nX - 8, nY - 1, nX + 9, nY - 3, .6, [R.bark[1], R.bark[2], R.bark[3]]);
+  if (spec.tool === "pole" && walking) brush(P, nX - 8, nY + 4, nX + 9, nY + 2, .6, [R.bark[1], R.bark[2], R.bark[3]]);
   drawArm(A[1], false);
   if (spec.extra) spec.extra(P, { ox, oy, p, hands: A });
 }

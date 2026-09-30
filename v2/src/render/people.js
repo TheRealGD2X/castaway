@@ -4,7 +4,7 @@
 import { rigSprite } from "./rig.js";
 
 export const ANIM = {
-  stand:     { stance: "stand", work: [3, -8], motion: "rest", lean: 0 },
+  stand:     { stance: "stand", work: [4, -12], motion: "rest", lean: 0 },
   walk:      { stance: "walk", period: 650, frames: 8 },
   carrywalk: { stance: "walk", tool: "pole", period: 750, frames: 8 },
   wave:      { stance: "stand", work: [2, -10], motion: "wave", period: 700, frames: 6, lean: 0 },
@@ -27,7 +27,7 @@ export const ANIM = {
   weave:     { stance: "sit", work: [7,-6], motion: "saw", tool: "cord", two: true, period: 1700, frames: 8, lean: .1 },
   potter:    { stance: "sit", work: [7,-5], motion: "stir", tool: "clay", period: 2200, frames: 8, lean: .15 },
   fish:      { stance: "sit", work: [7,-8], motion: "rest", tool: "rod", period: 3000, frames: 8, lean: .05 },
-  carry:     { stance: "stand", work: [5,-10], motion: "lift", tool: "basket", two: true, period: 1400, frames: 4 },
+  carry:     { stance: "stand", work: [6,-14], motion: "lift", tool: "basket", two: true, period: 1400, frames: 4 },
   stonewalk: { stance: "walk", work: [5,-9], tool: "stone", period: 900, frames: 8 },
   sleep:     { stance: "lie" },
   lie:       { stance: "lie" },                                                                         // conserving heat while awake
