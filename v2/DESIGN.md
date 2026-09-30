@@ -190,3 +190,41 @@ old checkpoint defaults and replay. The health test advances flow alongside wate
 verification also includes the required suite, a five-day life replay, both fresh and production-checkpoint
 65-day survival/replay runs, and phone-sized rendering/motion checks. Benchmark results and limits are reported
 with the release; desktop Chromium emulation does not establish native iPhone Safari performance.
+
+## Shared construction grammar
+
+`build/assembly.js` stores metre-scale nodes and bars, bindings, panels, hollow shells and retained offcuts.
+Material units have approximate mass, density, stiffness, strength, permeability and recoverable fractions.
+Installed quantities, graph support paths, panel overlap, mass distribution and container dimensions determine
+load capacity, working surface, hanging length, dry storage, rain interception, water volume and leakage.
+Object names grant none of these functions. Wetness weakens fibres; load, gust pressure and snow strain the
+components. Sag and damaged parts are saved. Tomas learns conservative strength bounds only while close
+enough to observe strain; those beliefs influence proposed designs. No mechanics or drawings consume RNG.
+
+`build/designer.js` searches a bounded grammar for useful dimensions, material quantities, bracing and cover,
+weighing target shortfall, safety and labour. Workbenches, drying racks, food shelves, rain collectors and
+combined camp inventions use this model. Missing useful functions can produce a combined construction,
+which competes with existing projects and bodily needs in the normal planner. It may prefer a simpler project.
+Legacy shelters, hearths, bedding and traps retain their existing physical models; this is a foundation for
+extending procedural objects, not unrestricted invention or a general rigid-body/finite-element solver.
+Support and stress calculations are engineering approximations, including conservative contact friction.
+
+Gathered units move from inventory to site to installed parts as work proceeds. Whole-unit offcuts stay in
+the assembly. Partial work resumes without charging twice. Repairs retain paid replacement pieces across
+interruptions, require labour, replace the actual material and return bounded usable scraps. Salvage is a
+material source in the planner, with a once-per-part state variable; it never creates a second recovery.
+Stored food respects physical shelf capacity. Crafting, drying and drinking select physical capabilities,
+including those of mixed designs. Rain is conserved when shells leak or overflow into surrounding ground.
+
+`render/assembly.js` projects the same installed geometry in four orientations, with material textures,
+lashings, separate supports, woven/slatted surfaces, sloping covers, hollow water basins and deformation.
+It never selects a sprite by object name. A bounded cache retains 512 construction sprites; rendering is
+read-only. Journal camp snapshots clone component state so later repairs cannot alter earlier pictures.
+Legacy constructions migrate on load with original stage material budgets; new component and learning
+state travels in the existing structure/man save fields. Optional brief additions are documented in MIND.md.
+
+Run `node test/construction.test.js` alongside the existing required suite and water/life-upgrade tests.
+It covers name-independent functions, misplaced roofs, supports, bindings, tipping, cracks, construction and
+repair accounting, recovery, witnessed strain, water conservation, historical snapshots and old-save replay.
+Release checks also include fresh and production-checkpoint 65-day survival/replay, advance.js, Node versus
+Chromium checkpoint equality, phone screenshots and render timing. Safari on an actual iPhone is untested.

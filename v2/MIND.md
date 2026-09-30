@@ -56,3 +56,12 @@ materials and experience. Do not assume he completed a recipe or a house unless 
 context describes a stream he has seen and litres in his own collecting basins. Collection depends on
 installed parts and actual precipitation; an empty basin supplies nothing, and collected water is not
 guaranteed sterile. The thought input format and all existing brief keys remain unchanged.
+
+`build:invention` expresses a wish for a useful camp construction. Tomas's designer combines supports,
+surfaces, hanging bars, covers and basins to address missing functions; it does not unlock a particular object.
+Existing workbench, drying rack, food store and rain collector intentions also use this shared part model.
+Their descriptive names in `built.what` can vary with the actual design. Optional `constructionExperience`
+reports material failures he personally witnessed, rather than hidden island knowledge. Components can be
+strained by their load and the weather; the ordinary planner gathers replacement materials and can recover
+usable material from damaged finished constructions. Do not claim a new invention or repair until the brief
+reports that it happened. The advance and think command interfaces remain unchanged.

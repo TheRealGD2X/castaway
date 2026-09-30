@@ -109,7 +109,7 @@ export function hydroTen(W,dt=10) {
     const p=s.props,old=(s.waterL||0)/1000,capacity=p.capacity/1000;
     // Rain intercepted by its collecting surface is taken from the tile's incoming surface water.
     const i=Math.floor(s.y)*W.MW+Math.floor(s.x),capture=captured.get(s.id)||0;
-    const all=old+capture,overflow=Math.max(0,all-capacity),leak=Math.min(Math.max(0,all-overflow),dt*.000002);
+    const all=old+capture,overflow=Math.max(0,all-capacity),leak=Math.min(Math.max(0,all-overflow),dt*(p.leakL??.002)/1000);
     const evaporated=Math.min(Math.max(0,all-overflow-leak),evaporation*.3);
     s.waterL=Math.max(0,all-overflow-leak-evaporated)*1000;addSurface(W,i,overflow+leak);h.evap+=evaporated;
     s.waterLoad=clamp((s.waterLoad??.8)+x.rain*.003+(Math.max(0,h.temp-4)*.0003)*(s.waterL>0?1:0),.3,20);

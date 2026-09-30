@@ -2,6 +2,7 @@
 import { MW, idx, T } from '../world/gen.js';
 import { clamp } from '../core/dmath.js';
 import { propsOf, FAMILIES } from '../build/build.js';
+import { assemblyStep } from '../build/assembly.js';
 
 export function heritageInit(W) { W.traces = {}; W.scent = {}; W.story = []; W.storyKeys = {}; }
 export function footfall(W, x, y, load = 1) {
@@ -20,7 +21,7 @@ export function campSnapshot(W) {
   if (W.camp == null) return [];
   const cx = W.camp % MW + .5, cy = Math.floor(W.camp / MW) + .5;
   return W.structs.filter(s => Math.abs(s.x - cx) < 9 && Math.abs(s.y - cy) < 9)
-    .map(s => ({ k: s.k, x: s.x - cx, y: s.y - cy, dir: s.dir, stage: s.stage, prog: s.prog, stages: s.stages, kg: s.kg || 0, integrity: s.integrity ?? 1 }));
+    .map(s => ({ k: s.k, label:s.label, x: s.x - cx, y: s.y - cy, dir: s.dir, stage: s.stage, prog: s.prog, stages: s.stages, kg: s.kg || 0, stock:s.stock||0,waterL:s.waterL||0,assembly:s.assembly?JSON.parse(JSON.stringify(s.assembly)):undefined, integrity: s.integrity ?? 1 }));
 }
 export function observeLife(W, logFrom) {
   const M = W.man; if (!M) return;
@@ -28,7 +29,7 @@ export function observeLife(W, logFrom) {
     const [t, k, what, stage] = l;
     if (k === 'built') {
       const s = W.structs.find(s => s.k === what && s.stages[s.stage - 1]?.name === stage);
-      if (s) record(W, 'build:' + s.id + ':' + stage, 'home', 'He finished the ' + stage + ' of his ' + FAMILIES[what].label + '.', { camp: campSnapshot(W) });
+      if (s) record(W, 'build:' + s.id + ':' + stage, 'home', 'He finished the ' + stage + ' of his ' + (s.label||FAMILIES[what].label) + '.', { camp: campSnapshot(W) });
     } else if (k === 'crafted') record(W, 'craft:' + what, 'craft', 'He made his first ' + what + '.');
     else if (k === 'fish' && what > 0) record(W, 'first-fish', 'food', 'His fish trap brought in its first trout.');
     else if (k === 'caught fish') record(W, 'first-line-fish', 'food', 'He caught a trout on his handmade fishing line.');
@@ -63,6 +64,8 @@ export function heritageTen(W) {
   // Wind pressure is quadratic in gust speed. Wet fibres lose stiffness; bracing spreads the load.
   for (const s of W.structs) {
     s.integrity ??= 1; s.saturation ??= 0;
+    if(s.assembly){const before=s.integrity;assemblyStep(W,s);if(s.integrity<before&&s.integrity<.82&&W.man&&Math.abs(s.x-W.man.x)<6&&Math.abs(s.y-W.man.y)<6)record(W,'damage:'+s.id,'storm','The load strained his '+s.label+'.',{camp:campSnapshot(W)});}
+    else {
     s.saturation = clamp(s.saturation + x.rain * .002 - (.0008 + Math.max(0, x.temp) * .00008 + (x.sun || 0) * .000001), 0, 1);
     const area = FAMILIES[s.k].shelter ? 4 : s.k === 'fireRing' ? .05 : 1.2;
     const load = x.gust * x.gust * area * (1 + (W.surface.snow || 0) * .04);
@@ -71,7 +74,8 @@ export function heritageTen(W) {
     s.integrity = clamp(s.integrity - loss, .15, 1); s.props = propsOf(s);
     if (loss > 0 && s.integrity < .82 && W.man && Math.abs(s.x - W.man.x) < 9 && Math.abs(s.y - W.man.y) < 9)
       record(W, 'damage:' + s.id, 'storm', 'Wind and rain damaged his ' + FAMILIES[s.k].label + '.', { camp: campSnapshot(W) });
-    if (s.k === 'foodStore' && s.stock > 0) s.load = (s.load || 0) * (1 + Math.max(0, x.temp - 3) * .0006 * (1 - (s.props?.dry || 0) * .5));
+    }
+    if (s.stock > 0) s.load = (s.load || 0) * (1 + Math.max(0, x.temp - 3) * .0006 * (1 - (s.props?.dry || 0) * .5));
   }
   // Wave run-up transports loose beach wood only while the water physically reaches it.
   const oct = [[1,0],[.7071,.7071],[0,1],[-.7071,.7071],[-1,0],[-.7071,-.7071],[0,-1],[.7071,-.7071]][x.windDir];

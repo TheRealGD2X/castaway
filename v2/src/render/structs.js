@@ -5,6 +5,7 @@
 import { R, OUT } from "./palette.js";
 import { sprite, canvas } from "./pix.js";
 import { hash3 } from "../core/rng.js";
+import { assemblySprite, snowOnAssembly } from './assembly.js';
 
 const cache = new Map();
 const memo = (k, f) => { let v = cache.get(k); if (!v) { v = f(); cache.set(k, v); } return v; };
@@ -159,6 +160,7 @@ export function drawPot(g, px, py, now, boiling) {
   if (boiling) for (let i = 0; i < 3; i++) { const l = ((now / 900 + i / 3) % 1); g.fillStyle = `rgba(240,240,236,${(1 - l) * .6})`; g.fillRect(px - 1 + Math.round(Math.sin(now / 400 + i) * 1.5), py - 6 - Math.round(l * 10), 2, 2); }
 }
 export function structSprite(s) {
+  if(s.assembly)return assemblySprite(s);
   if (["workbench", "dryingRack", "foodStore", "bedding", "rainCollector", "drainage"].includes(s.k)) return household(s);
   switch (s.k) {
     case "fishTrap": return fishTrap(s);
@@ -173,6 +175,7 @@ export function structSprite(s) {
 }
 
 export function snowOnRoof(sp, s, snow) {
+  if(s.assembly)return snowOnAssembly(sp,s,snow);
   const n=Math.min(3,Math.floor(snow/2));
   if(!n||!sp||!['leanto','roundhouse','foodStore','woodpile'].includes(s.k))return sp;
   const roof=s.k==='roundhouse'?done(s,4):done(s,1);if(roof<.2)return sp;

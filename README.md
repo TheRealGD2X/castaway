@@ -12,3 +12,8 @@ illustrations. See `v2/DESIGN.md` for the physical models and verification comma
 Rain now feeds soil, puddles, groundwater, lake and stream. Tomas can plan rain collection and drainage;
 water supplies are finite, and freshwater conditions affect fish. The viewport water renderer shows changing
 shallows, wave wash, currents, reflections, drifting litter, rain rings and lake ice.
+
+Camp objects now share a construction grammar: actual supports, bindings, surfaces, covers and hollow basins
+determine their usefulness and their drawings. Tomas can consider combined designs, learn from visible strain,
+replace damaged components and recover some materials. Containers, working surfaces and racks are the first
+families using this model; larger shelters and tools retain their existing systems for now.

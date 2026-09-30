@@ -16,7 +16,7 @@ import { warmPlace } from "./exposure.js";
 import { craftActions } from "./crafts.js";
 import { FISH } from "../sim/fish.js";
 import { availableWater, takeWater } from '../sim/hydro.js';
-import { MATS, MATERIALS, bestShelter, propsOf, woodpile, work as buildWork, finished, FAMILIES, fireRingAt } from "../build/build.js";
+import { MATS, MATERIALS, bestShelter, propsOf, woodpile, work as buildWork, finished, FAMILIES, fireRingAt, stillNeeds } from "../build/build.js";
 
 const d2 = (a, b) => dhypot(a.x - b.x, a.y - b.y) * 2;           // metres
 export const walkMin = (M, p) => d2(M, p) * 1.25 / 72;                 // rough minutes to walk there
@@ -38,7 +38,7 @@ export const ACTIONS = {
   },
   drinkCollected: {
     r:[],w:['watered'],provides:['watered'],
-    find:(W,M)=>{const s=W.structs.filter(s=>s.k==='rainCollector'&&(s.waterL||0)>.3).sort((a,b)=>d2(M,a)-d2(M,b))[0];return s?{...tileXY(idx(Math.floor(s.x),Math.floor(s.y))),tile:idx(Math.floor(s.x),Math.floor(s.y)),sid:s.id}:null;},
+    find:(W,M)=>{const s=W.structs.filter(s=>s.props?.capacity>0&&(s.waterL||0)>.3).sort((a,b)=>d2(M,a)-d2(M,b))[0];return s?{...tileXY(idx(Math.floor(s.x),Math.floor(s.y))),tile:idx(Math.floor(s.x),Math.floor(s.y)),sid:s.id}:null;},
     pre:S=>true,eff:S=>{S.watered=1;},cost:(W,M,t)=>walkMin(M,t)+3+riskMin(M,'water:collected',.04),
     exec:work({adjacent:true,mins:3,met:MET.stand,pose:'drink',done:(W,M,t)=>{
       const s=W.structs.find(s=>s.id===t.sid);if(!s||(s.waterL||0)<.1)return 'fail';const L=Math.min(s.waterL,Math.max(.3,M.B.waterDef+.2));s.waterL-=L;W.hydro.used+=L/1000;bodyDrink(M.B,L);expose(W,M,(s.waterLoad||.8)*L,'water:collected');
@@ -295,12 +295,12 @@ export function buildExec(W, M, t, st) {
   const stage = s.stages[s.stage];
   if (!st.paid) {   // put down what he's brought on the site; it stays there if he's called away
     const on = s.onsite || (s.onsite = {});
-    for (const m in stage.need) { const put = Math.min(M.inv[m] || 0, stage.need[m] - (on[m] || 0)); if (put > 0) { on[m] = (on[m] || 0) + put; M.inv[m] -= put; } }
-    if (Object.keys(stage.need).some(m => (on[m] || 0) < stage.need[m] - 1e-6)) return "fail";
+    const need=stillNeeds(s,stage);for (const m in need) { const put = Math.min(M.inv[m] || 0, need[m]); if (put > 0) { on[m] = (on[m] || 0) + put; M.inv[m] -= put; } }
+    if (Object.keys(stillNeeds(s,stage)).length) return "fail";
     st.paid = 1; if (stage.say && s.prog === 0) M.say = stage.say;
   }
   M.pose = "build"; M.met = MET.build; M.face = s.x > M.x ? 1 : -1;
-  const bench = W.structs.some(q => q.k === "workbench" && finished(q) && Math.abs(q.x - M.x) < 3 && Math.abs(q.y - M.y) < 3);
+  const bench = W.structs.some(q => (q.props?.bench||0)>.5 && Math.abs(q.x - M.x) < 3 && Math.abs(q.y - M.y) < 3);
   const speed = (.8 + Math.min(.6, M.skill.build * .3)) * (bench ? 1.15 : 1) * (M.inv.axe ? 1.12 : 1);          // practice makes him quicker
   M.skill.build += .0015; hazard(W, M, .0002, M.skill.build);
   if (buildWork(W, s, speed / stage.mins)) { M.log.push([W.t, "built", s.k, stage.name]); if (s.k === "fireRing") for (const F of W.fires) if (Math.abs(F.x - s.x) < .6 && Math.abs(F.y - s.y) < .6) F.ring = true; return "done"; }

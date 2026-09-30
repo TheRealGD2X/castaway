@@ -1,7 +1,8 @@
 // Useful equipment, made from gathered materials. Planning and execution use the same recipes.
 import { MET } from '../sim/body.js';
 import { MW, idx, T } from '../world/gen.js';
-import { clamp } from '../core/dmath.js';
+import { clamp, dceil } from '../core/dmath.js';
+import { MAT, fitted, reclaimPart, startRepair, finishRepair } from '../build/assembly.js';
 import { finished, FAMILIES, propsOf } from '../build/build.js';
 import { FISH } from '../sim/fish.js';
 import { availableWater } from '../sim/hydro.js';
@@ -18,7 +19,7 @@ const point = s => ({ x: s.x, y: s.y, tile: idx(Math.floor(s.x), Math.floor(s.y)
 const dist = (a,b) => { const x=a.x-b.x,y=a.y-b.y; return Math.sqrt(x*x+y*y); };
 const minutes = (M,t) => t.x == null ? 0 : dist(M,t)*2/60;
 const workplace = (W,M) => {
-  const s = W.structs.find(s => s.k === 'workbench' && finished(s));
+  const s = W.structs.find(s => (s.props?.bench||0)>.5);
   const room = W.structs.find(s => (s.props?.workspace || 0) > .5);
   return room ? point(room) : s ? point(s) : { x: null };
 };
@@ -41,10 +42,10 @@ export function craftActions(work) {
           for (const m in r.need) if (!r.keep?.includes(m)) M.inv[m] -= r.need[m];
           piece.paid = true;
         }
-        const bench = W.structs.find(s => s.k === 'workbench' && finished(s) && Math.abs(s.x-M.x) < 2 && Math.abs(s.y-M.y) < 2);
+        const bench = W.structs.find(s => (s.props?.bench||0)>.2 && Math.abs(s.x-M.x) < 2 && Math.abs(s.y-M.y) < 2);
         const room = W.structs.find(s => (s.props?.workspace || 0) > .5 && Math.abs(s.x-M.x) < 1 && Math.abs(s.y-M.y) < 1);
-        const rain = W.wx.rain * (room ? 1 - (room.props.rain || 0) : 1);
-        piece.progress += (bench ? 1.2 : 1) / (1 + rain * .08); st.left = Math.max(1, r.mins - piece.progress + 1);
+        const rain = W.wx.rain * (1-Math.max(room?.props.rain||0,bench?.props.dry||0));
+        piece.progress += (1+(bench?.props.bench||0)*.2) / (1 + rain * .08); st.left = Math.max(1, r.mins - piece.progress + 1);
         M.skill.build += .0006;
       }, done: (W,M) => {
         delete M.workpieces[r.out];
@@ -88,7 +89,7 @@ export function craftActions(work) {
       M.lineStrength=Math.max(.15,(M.lineStrength||.5)-.00012);
     }}) };
   A.repairHome = {r:['poles','cord','debris','repaired'],w:['repaired','poles','cord','debris'],
-    find:(W,M)=>{let s=null,v=.94;for(const q of W.structs)if((q.integrity??1)<v&&dist(M,q)<25){v=q.integrity;s=q;}return s?point(s):null;},
+    find:(W,M)=>{let s=null,v=.94;for(const q of W.structs)if(!q.assembly&&(q.integrity??1)<v&&dist(M,q)<25){v=q.integrity;s=q;}return s?point(s):null;},
     pre:S=>S.poles>=1&&S.cord>=1&&S.debris>=2&&!S.repaired,
     eff:S=>{S.repaired=1;S.poles--;S.cord--;S.debris-=2;},cost:(W,M,t)=>minutes(M,t)+45,
     exec:work({adjacent:true,mins:45,met:MET.build,pose:'build',tick:(W,M,t,st)=>{
@@ -96,13 +97,20 @@ export function craftActions(work) {
       if(!st.paid){if((M.inv.poles||0)<1||(M.inv.cord||0)<1||(M.inv.debris||0)<2)return 'fail';M.inv.poles--;M.inv.cord--;M.inv.debris-=2;st.paid=1;}
       s.integrity=Math.min(1,(s.integrity??1)+.018);s.props=propsOf(s);M.skill.build+=.0012;
     },done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);s.bracing=Math.min(3,(s.bracing||0)+.25);M.log.push([W.t,'repaired',s.k]);M.projCache=null;}}) };
-  A.storeFood={r:['food','stored'],w:['stored','food'],find:(W)=>{const s=W.structs.find(s=>s.k==='foodStore'&&finished(s));return s?point(s):null;},
+  A.repairPart={r:[],w:['repaired'],find:()=>null,pre:()=>false,eff:()=>{},cost:()=>1,
+    exec:work({adjacent:true,mins:120,met:MET.build,pose:'build',tick:(W,M,t,st)=>{
+      const s=W.structs.find(s=>s.id===t.sid),p=s?.assembly.parts.find(p=>p.id===t.pid);if(!s||!p)return 'fail';
+      const piece=startRepair(s,p.id,M.inv);if(!piece)return 'fail';piece.progress+=.8+Math.min(.6,M.skill.build*.3);st.left=Math.max(1,12+p.amount*6-piece.progress+1);M.skill.build+=.0012;
+    },done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s||!finishRepair(s,t.pid,M.inv))return 'fail';M.log.push([W.t,'repaired',s.k]);M.projCache=null;}})};
+  A.salvagePart={r:[],w:[],find:()=>null,pre:()=>false,eff:()=>{},cost:()=>1,
+    exec:work({adjacent:true,mins:18,met:MET.craft,pose:'build',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid),got=s&&reclaimPart(s,t.pid);if(!got)return 'fail';M.inv[got.mat]=(M.inv[got.mat]||0)+got.amount;M.log.push([W.t,'salvaged',got.mat]);M.projCache=null;}})};
+  A.storeFood={r:['food','stored'],w:['stored','food'],find:(W)=>{const s=W.structs.find(s=>(s.props?.store||0)>.4&&((s.props.storageKg||0)*1800>(s.stock||0)+200));return s?point(s):null;},
     pre:S=>S.food>1800&&!S.stored,eff:S=>{S.stored=1;S.food-=1000;},cost:(W,M,t)=>minutes(M,t)+6,
-    exec:work({adjacent:true,mins:6,met:MET.carry,pose:'carry',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s)return 'fail';const k=Math.min(1800,Math.max(0,(M.inv.food||0)-900)),old=s.stock||0;s.load=(old+k)>0?((s.load||0)*old+(M.foodLoad||0)*k)/(old+k):0;s.stock=old+k;M.inv.food-=k;}})};
-  A.takeStored={r:['food'],w:['food'],find:W=>{const s=W.structs.find(s=>s.k==='foodStore'&&s.stock>150);return s?point(s):null;},
+    exec:work({adjacent:true,mins:6,met:MET.carry,pose:'carry',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s)return 'fail';const k=Math.min(1800,Math.max(0,(M.inv.food||0)-900),Math.max(0,(s.props.storageKg||0)*1800-(s.stock||0))),old=s.stock||0;s.load=(old+k)>0?((s.load||0)*old+(M.foodLoad||0)*k)/(old+k):0;s.stock=old+k;M.inv.food-=k;}})};
+  A.takeStored={r:['food'],w:['food'],find:W=>{const s=W.structs.find(s=>s.stock>150);return s?point(s):null;},
     pre:S=>S.food<1200,eff:S=>{S.food+=1000;},cost:(W,M,t)=>minutes(M,t)+4,
     exec:work({adjacent:true,mins:4,met:MET.carry,pose:'carry',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s?.stock)return 'fail';const k=Math.min(1200,s.stock),old=M.inv.food||0;M.foodLoad=((M.foodLoad||0)*old+(s.load||0)*k)/(old+k);M.inv.food=old+k;s.stock-=k;M.foodWhat='stored food';}})};
-  A.dryFood={r:['raw','fire'],w:['raw','food','preservedFood'],find:W=>{const s=W.structs.find(s=>s.k==='dryingRack'&&finished(s)&&W.fires.some(f=>f.lit&&f.heat>1200&&dist(f,s)<4));return s?point(s):null;},
+  A.dryFood={r:['raw','fire'],w:['raw','food','preservedFood'],find:W=>{const s=W.structs.find(s=>(s.props?.drying||0)>.5&&W.fires.some(f=>f.lit&&f.heat>1200&&dist(f,s)<4));return s?point(s):null;},
     pre:S=>S.raw>200&&S.fire===2,eff:S=>{S.food+=S.raw;S.raw=0;S.preservedFood=1;},cost:(W,M,t)=>minutes(M,t)+100,
     exec:work({adjacent:true,mins:100,met:MET.sit,pose:'weave',tick:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid),f=W.fires.find(f=>f.lit&&f.heat>1200&&dist(f,s)<4);if(!f)return 'fail';M.rawLoad=(M.rawLoad||0)*.96;},done:(W,M)=>{const old=M.inv.food||0,k=M.inv.raw||0;M.foodLoad=((M.foodLoad||0)*old+(M.rawLoad||0)*k)/(old+k);M.preserved=old+k>0?((M.preserved||0)*old+k)/(old+k):0;M.inv.food=old+k;M.inv.raw=0;M.foodWhat='dried fish or meat';}})};
   A.collectQuarry={r:['raw'],w:['raw'],find:(W,M)=>{const it=W.items.find(it=>it.k==='quarry'&&dist(M,it)<25);return it?{...it,key:it.id,tile:idx(Math.floor(it.x),Math.floor(it.y))}:null;},
@@ -123,14 +131,24 @@ export function craftGoals(W,M,S) {
   if(!S.clayPot && !S.greenPot && S.fire===2)goal('greenPot',12,'Clay could become a sturdy pot for boiled water');
   if(S.greenPot&&!S.clayPot&&(M.potDry||0)>=.8&&S.fire===2)goal('clayPot',18,'His dried clay pot needs enough heat in the coals to harden');
   const damage=A_REPAIR(W,M);
-  if(damage)goal('repaired',32+(1-(damage.integrity??1))*65,'Repairing the '+FAMILIES[damage.k].label+' would restore its protection');
-  if(S.food>2200&&W.structs.some(s=>s.k==='foodStore'&&finished(s)))goal('stored',15,'Keeping surplus food dry in his store');
+  if(damage&&!damage.assembly)goal('repaired',32+(1-(damage.integrity??1))*65,'Repairing the '+FAMILIES[damage.k].label+' would restore its protection');
+  const broken=W.structs.flatMap(s=>s.assembly&&finished(s)&&dist(M,s)<25?s.assembly.parts.filter(p=>p.kind!=='stock'&&(p.condition??1)<.88).map(p=>({s,p})):[]).sort((a,b)=>a.p.condition-b.p.condition)[0];
+  if(broken){const {s,p}=broken,qty=dceil(p.amount),t={...point(s),pid:p.id};G.push({k:'repair:'+s.id+':'+p.id,vars:['repaired'],want:S=>S.repaired,v:28+(1-p.condition)*45,why:'Replacing the strained '+p.mat+' in his '+s.label,
+    acts:{repairPart:{r:[p.mat,'repaired'],w:[p.mat,'repaired'],provides:['repaired'],find:()=>t,pre:S=>S[p.mat]>=qty&&!S.repaired,eff:S=>{S[p.mat]-=qty;S.repaired=1;},cost:()=>minutes(M,t)+12+p.amount*6}}});}
+  if(S.food>2200&&W.structs.some(s=>(s.props?.store||0)>.4))goal('stored',15,'Keeping surplus food dry in his store');
   if(S.raw>800&&M.B.gut>700&&S.fire===2&&!S.preservedFood)goal('preservedFood',19,'Drying surplus fish would keep it useful for leaner days');
   return G;
 }
-function A_REPAIR(W,M){return W.structs.find(s=>(s.integrity??1)<.88&&Math.abs(s.x-M.x)<25&&Math.abs(s.y-M.y)<25);}
+function A_REPAIR(W,M){return W.structs.find(s=>!s.assembly&&(s.integrity??1)<.88&&Math.abs(s.x-M.x)<25&&Math.abs(s.y-M.y)<25);}
 export function equipmentStep(W) {
   const M=W.man;if(!M)return;
   if(M.inv.greenPot)M.potDry=clamp((M.potDry||0)+Math.max(0,W.wx.temp)*.00007*(1-W.wx.hum*.65)-W.wx.rain*.00008,0,1);
   if(M.inv.wrap) {M.wrapWet=clamp((M.wrapWet||0)+W.wx.rain*.0004-.0004,0,1);}
+}
+// Recovery is offered as a material source to the ordinary planner, only once per part.
+export function salvageActions(W,M) {
+  const out={};for(const s of W.structs)if(s.assembly&&finished(s)&&dist(M,s)<25)for(const p of s.assembly.parts)if(!p.removed&&(p.condition??1)<.35&&fitted(s,p)>0){
+    const key='recovered:'+s.id+':'+p.id,qty=p.amount*(p.condition??1)*MAT[p.mat].recover;if(qty<.05)continue;
+    const t={...point(s),pid:p.id};out['salvage_'+s.id+'_'+p.id]={r:[key,p.mat],w:[key,p.mat],provides:[p.mat],find:()=>t,pre:S=>!S[key],eff:S=>{S[key]=1;S[p.mat]+=qty;},cost:()=>minutes(M,t)+18};
+  }return out;
 }

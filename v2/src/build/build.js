@@ -8,6 +8,8 @@
 // Stages become ordinary planner goals: gather these parts, then put them up (over hours, or days for bigger work).
 import { MW, MH, T, idx } from "../world/gen.js";
 import { dceil, clamp, dexp } from "../core/dmath.js";
+import { assemblyProps, assemblyWork, installed } from './assembly.js';
+import { ASSEMBLED, TARGETS, propose, legacyAssembly } from './designer.js';
 
 // what each material is and how much of it one trip brings (an armful, a pair of poles dragged, a load of stones)
 export const MATERIALS = {
@@ -26,6 +28,7 @@ const OCT = [[1, 0], [.7071, .7071], [0, 1], [-.7071, .7071], [-1, 0], [-.7071, 
 // ------------------------------------------------------------------ families
 // each: minSkill (build skill needed to attempt it), make(brief) -> stages, props(struct) -> what it does now
 export const FAMILIES = {
+  invention: {label:'camp invention',minSkill:.3,beside:true,make:b=>[{name:'parts',need:{poles:2,withies:2},mins:40}],props:s=>({})},
   rainCollector: {
     label:'rain collector', minSkill:.45, beside:true,
     make:b=>[
@@ -159,6 +162,7 @@ const frac = (s, k) => s.stage > k ? 1 : s.stage === k ? s.prog : 0;
 const coverOf = (s, k) => Object.keys(s.stages[k].need).find(m => COVER[m]) || "bracken";
 const bedOf = (s, k) => { const m = coverOf(s, k); return clamp(frac(s, k) * (s.stages[k].need[m] || 0) * COVER[m].bed * 2, 0, .95); };
 export const propsOf = s => {
+  if(s.assembly)return assemblyProps(s);
   const p = FAMILIES[s.k].props(s), integrity = s.integrity ?? 1;
   for (const k of ["rain", "wind", "bed", "dry", "reflect", "bench", "drying"]) if (p[k] != null) p[k] *= integrity;
   return p;
@@ -193,7 +197,7 @@ export function brief(W, M) {
   const autumn = W.ents.length && has("fern");
   const cover = autumn ? "bracken" : has("pine") ? "boughs" : "debris";
   const bedMat = has("pine") ? "boughs" : autumn ? "bracken" : "debris";
-  return { cover, bedMat, skill: M.skill.build, wind: prevailing(M), knows: { stones: has("stones") || knowsTile(W, M, T.SHINGLE), withies: has("hazel") || has("birch"), reeds: has("reeds"), mud: knowsTile(W, M, T.MARSH) || knowsTile(W, M, T.STREAM), pine: has("pine") } };
+  return { cover, bedMat, skill: M.skill.build, wind: prevailing(M), beliefs:M.materialBeliefs||{}, knows: { stones: has("stones") || knowsTile(W, M, T.SHINGLE), withies: has("hazel") || has("birch"), reeds: has("reeds"), mud: knowsTile(W, M, T.MARSH) || knowsTile(W, M, T.STREAM), pine: has("pine") } };
 }
 function knowsTile(W, M, t) { for (let i = 0; i < MW * MH; i++) if (M.known[i] && W.ter[i] === t) return true; return false; }
 const buildable = (W, i) => { const t = W.ter[i]; return (t === T.GRASS || t === T.MEADOW || t === T.SAND || t === T.WOOD) && !W.treeAt[i] && !W.block?.[i] && !W.structs.some(s => idx(Math.floor(s.x), Math.floor(s.y)) === i); };
@@ -257,7 +261,20 @@ export function site(W, M, fam, b, campTile) {
 }
 export function design(W, M, fam, campTile) {
   const b = brief(W, M), s = site(W, M, fam, b, campTile); if (!s) return null;
-  return { k: fam, x: s.tile % MW + .5, y: ((s.tile / MW) | 0) + .5, tile: s.tile, dir: s.dir, stages: FAMILIES[fam].make(b), stage: 0, prog: 0 };
+  let assembly=null;
+  if(ASSEMBLED.has(fam)||fam==='invention'){
+    let wanted=TARGETS[fam];
+    if(fam==='invention'){
+      const has=k=>W.structs.reduce((v,q)=>Math.max(v,(q.props||propsOf(q))[k]||0),0);wanted={};
+      if(has('bench')<.65)wanted.bench=.8;
+      if(has('drying')<.65)wanted.drying=.8;
+      if(has('capacity')<10&&b.knows.mud&&b.knows.stones){wanted.capacity=12;wanted.catchArea=.9;}
+      if(!Object.keys(wanted).length||(!wanted.bench&&!wanted.drying))return null;
+    }
+    assembly=propose(wanted,b,W.wx);if(!assembly)return null;
+  }
+  const d={ k: fam, x: s.tile % MW + .5, y: ((s.tile / MW) | 0) + .5, tile: s.tile, dir: s.dir, stages: assembly?assembly.stages:FAMILIES[fam].make(b), stage: 0, prog: 0 };
+  if(assembly){delete assembly.stages;d.assembly=assembly;d.label=assembly.label;}return d;
 }
 // can he gather everything a stage needs? (he knows where to find it)
 export function feasible(b, stage) {
@@ -266,10 +283,12 @@ export function feasible(b, stage) {
 // raise a structure in the world when its first stage begins
 export function place(W, d) {
   const s = { id: W.nextId++, k: d.k, x: d.x, y: d.y, dir: d.dir, stages: d.stages, stage: 0, prog: 0, have: {}, onsite: {}, started: W.t };
+  s.assembly=d.assembly?JSON.parse(JSON.stringify(d.assembly)):legacyAssembly(s);if(!s.assembly)delete s.assembly;if(s.assembly)s.label=s.assembly.label;
   s.props = propsOf(s); W.structs.push(s); return s;
 }
 // a minute of work on a stage: parts go in as the work goes on
 export function work(W, s, share) {
+  if(s.assembly){const done=assemblyWork(s,share);s.props=propsOf(s);return done;}
   const st = s.stages[s.stage]; if (!st) return true;
   s.prog = Math.min(1, s.prog + share);
   if (s.prog >= 1) { for (const m in st.need) { s.have[m] = (s.have[m] || 0) + st.need[m]; s.onsite[m] = 0; } s.stage++; s.prog = 0; }
@@ -278,4 +297,4 @@ export function work(W, s, share) {
 }
 export const finished = s => s.stage >= s.stages.length;
 // what a stage still needs brought: its parts less what's already lying on the site
-export function stillNeeds(s, stage) { const o = {}; for (const m in stage.need) { const n = stage.need[m] - ((s && s.onsite && s.onsite[m]) || 0); if (n > 0) o[m] = n; } return o; }
+export function stillNeeds(s, stage) { const o = {},inPlace=s?.assembly?installed(s,s.stage):{}; for (const m in stage.need) { const n = stage.need[m] - ((s && s.onsite && s.onsite[m]) || 0)-(inPlace[m]||0); if (n > .000001) o[m] = n; } return o; }

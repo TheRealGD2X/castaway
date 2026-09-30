@@ -15,7 +15,7 @@ import { here, walk, goTo } from "../sim/man.js";
 import { MW, MH, idx } from "../world/gen.js";
 import { intent } from "../sim/mindlink.js";
 import { dround, dhypot, clamp } from "../core/dmath.js";
-import { craftGoals } from "./crafts.js";
+import { craftGoals, salvageActions } from "./crafts.js";
 import { exposure } from "./exposure.js";
 const FOOD_WORK = new Set(["forage", "shellfish", "checkTrap", "checkSnares", "lineFish", "collectQuarry"]);
 
@@ -52,6 +52,13 @@ export function projects(W, M, toDusk) {
   const hasFire = W.fires.length > 0 || W.camp != null;
   const worth = (fam, s) => {
     const F = FAMILIES[fam];
+    if(s.assembly){
+      if(!bestShelter(W))return 0;
+      const p=propsOf({...s,stage:s.stages.length,prog:0}),has=k=>W.structs.reduce((v,q)=>q.id===s.id?v:Math.max(v,(q.props||propsOf(q))[k]||0),0);
+      const bench=Math.max(0,p.bench-has('bench'))*18,drying=Math.max(0,p.drying-has('drying'))*(hasFire?17:0),store=Math.max(0,p.store*p.dry-has('store')*has('dry'))*17;
+      const water=Math.max(0,p.capacity-has('capacity'))/Math.max(12,p.capacity)*(12+Math.min(8,M.B.waterDef*2)+Math.min(8,W.wx.rain*2)+(M.belief?.['water:stream']||0)*12);
+      return Math.max(bench,drying,store,water)+(bench+drying+store+water-Math.max(bench,drying,store,water))*.28;
+    }
     if (F.shelter) {   // how much warmer would tonight be once this stage (or the usable shell) is up?
       const next = Object.assign({}, s, { stage: s.stage + 1, prog: 0 }), p = propsOf(next);
       const gain = Math.max(predictNight(W, M, false, p) - base, (predictNight(W, M, true, p) - baseF) * .7);
@@ -92,7 +99,7 @@ function buildGoal(W, M, p) {
   const tgt = s ? { sid: s.id, tile: idx(Math.floor(s.x), Math.floor(s.y)), x: s.x, y: s.y } : { d: p.d, tile: p.d.tile, x: p.d.x, y: p.d.y };
   const act = { r: [...mats, "stageDone"], w: ["stageDone", ...mats], provides: ["stageDone"], find: () => tgt, pre: S => !S.stageDone && mats.every(m => S[m] >= need[m]), eff: S => { S.stageDone = 1; for (const m of mats) S[m] -= need[m]; },
     cost: (W, M, t) => walkMin(M, t) + st.mins };
-  const what = FAMILIES[k].label, why = s ? `Working on the ${what}: the ${st.name}` : `A ${what} would help: ${st.say ? st.say.split(".")[0].toLowerCase() : "time to start"}`;
+  const what = (s||p.d).label||FAMILIES[k].label, why = s ? `Working on the ${what}: the ${st.name}` : `A ${what} would help: ${st.say ? st.say.split(".")[0].toLowerCase() : "time to start"}`;
   return { k: "build:" + (s ? s.id : k) + ":" + (s ? s.stage : 0), vars: ["stageDone"], want: S => S.stageDone, acts: { ["build_" + k]: act }, v: p.v, why };
 }
 function goals(W, M) {
@@ -176,7 +183,8 @@ export function relevant(vars, pool = ACTIONS, cache = true) {
 }
 // best-first search for the cheapest sequence of actions that makes the goal true
 export function plan(W, M, goal, S0) {
-  const pool = goal.acts ? Object.assign({}, ACTIONS, goal.acts) : ACTIONS, candidates = relevant(goal.vars, pool, !goal.acts), targets = {}, costs = {};
+  const recovered=salvageActions(W,M),extra=Object.keys(recovered).length>0||goal.acts;
+  const pool = extra ? Object.assign({}, ACTIONS, recovered, goal.acts) : ACTIONS, candidates = relevant(goal.vars, pool, !extra), targets = {}, costs = {};
   const available = {};
   for (const n of candidates) {
     if ((M.cool && M.cool[n] > W.t) || goal.exclude?.includes(n)) continue;
@@ -261,10 +269,10 @@ export function think(W) {
     else if (pick) { M.why = pick.why; if (!M.act) M.plan = pick.steps; }
     if (!pick && !M.act) { M.idleSince = W.t; M.goal = null; M.why = S.fire === 2 ? "Resting by the fire" : "Catching his breath"; M.pose = "sit"; M.met = MET.sit; return; }
   }
-  if (!M.act && M.plan && M.plan.length) { const s = M.plan[0]; M.act = { a: s.a, t: s.t, st: {}, supply: (M.inv.raw || 0) + (M.inv.food || 0), begun: W.t }; M.doing = s.a === "warmUp" && s.t.key === "shelter" ? "Warming up in the shelter" : LABEL[s.a] || (s.a.startsWith("build_") ? "Building the " + FAMILIES[s.a.slice(6)].label : s.a); }
+  if (!M.act && M.plan && M.plan.length) { const s = M.plan[0]; M.act = { a: s.a, t: s.t, st: {}, supply: (M.inv.raw || 0) + (M.inv.food || 0), begun: W.t }; M.doing = s.a === "warmUp" && s.t.key === "shelter" ? "Warming up in the shelter" : LABEL[s.a] || (s.a.startsWith("build_") ? "Building the " + (s.t.d?.label||W.structs.find(q=>q.id===s.t.sid)?.label||FAMILIES[s.a.slice(6)].label) : s.a.startsWith('salvage_')?'Recovering useful materials':s.a); }
   if (!M.act) return;
   const A = ACTIONS[M.act.a] || (M.act.a.startsWith("build_") ? { exec: (W, M, t, st) => { if (t.d) { const n = place(W, t.d); if (W.camp == null && FAMILIES[n.k].shelter) W.camp = idx(Math.floor(n.x + DIRV[n.dir][0]), Math.floor(n.y + DIRV[n.dir][1])); t.sid = n.id; delete t.d; M.projCache = null; } return buildExec(W, M, t, st); } } : null);
-  const r = M.act.a === "explore" ? exploreExec(W, M, M.act.t, M.act.st) : A ? A.exec(W, M, M.act.t, M.act.st) : "fail";
+  const r = M.act.a === "explore" ? exploreExec(W, M, M.act.t, M.act.st) : M.act.a.startsWith('salvage_')?ACTIONS.salvagePart.exec(W,M,M.act.t,M.act.st):A ? A.exec(W, M, M.act.t, M.act.st) : "fail";
   if ((r === "done" || r === "fail") && FOOD_WORK.has(M.act.a) && M.act.supply != null) {
     const got = Math.max(0, (M.inv.raw || 0) + (M.inv.food || 0) - M.act.supply), elapsed = Math.max(1, W.t - M.act.begun);
     M.yields ||= {}; const old = M.yields[M.act.a];
@@ -280,4 +288,4 @@ function exploreExec(W, M, t, st) {
 }
 // after a failure he leaves that thing alone for a while (blistered hands, a branch that was gone)
 const COOL = { lightFire: 45, gatherKindling: 15, gatherFuel: 10 };
-export const LABEL = { twistCord: "Twisting bark cordage", weaveBasket: "Weaving a basket", makeLine: "Making a fishing line", haftAxe: "Hafting a stone axe", weaveWrap: "Weaving a warm cape", shapeClay: "Shaping a clay pot", fireClay: "Firing his clay pot", lineFish: "Fishing with his handmade line", repairHome: "Repairing his home", storeFood: "Putting food in his store", takeStored: "Fetching stored food", dryFood: "Drying food over the hearth", collectQuarry: "Collecting Nell's catch", drinkCollected: "Drinking collected rainwater", drink: "Drinking", forage: "Picking berries", eat: "Eating", gatherTinder: "Gathering tinder", gatherKindling: "Gathering dead sticks", gatherFuel: "Collecting firewood", knapFlake: "Knapping flint", makeDrill: "Carving a fire drill", layFire: "Laying a fire", lightFire: "Making fire with the hand drill", shelterFromRain: "Sheltering from the rain", rest: "Resting", stackWood: "Stacking the woodpile", takeWood: "Taking wood from the pile", splitKindling: "Splitting dry kindling", eatRaw: "Eating it raw", checkSnares: "Checking the snares", wave: "Waving at the ship", watchSea: "Watching the sea", lightSignal: "Lighting the signal fire", feedDog: "Throwing the dog some food", shellfish: "Gathering shellfish", checkTrap: "Lifting the fish trap", cook: "Cooking", makePot: "Making a bark pot", boilWater: "Boiling water", drinkBoiled: "Drinking boiled water", get_poles: "Dragging in poles", get_bracken: "Cutting bracken", get_boughs: "Breaking off pine boughs", get_stones: "Carrying stones", get_withies: "Cutting withies", get_debris: "Gathering leaf litter", get_mud: "Digging mud", get_reeds: "Cutting reeds", feedFire: "Feeding the fire", warmUp: "Warming up by the fire", sleep: "Sleeping", explore: "Exploring" };
+export const LABEL = { repairPart: "Replacing a damaged part", twistCord: "Twisting bark cordage", weaveBasket: "Weaving a basket", makeLine: "Making a fishing line", haftAxe: "Hafting a stone axe", weaveWrap: "Weaving a warm cape", shapeClay: "Shaping a clay pot", fireClay: "Firing his clay pot", lineFish: "Fishing with his handmade line", repairHome: "Repairing his home", storeFood: "Putting food in his store", takeStored: "Fetching stored food", dryFood: "Drying food over the hearth", collectQuarry: "Collecting Nell's catch", drinkCollected: "Drinking collected rainwater", drink: "Drinking", forage: "Picking berries", eat: "Eating", gatherTinder: "Gathering tinder", gatherKindling: "Gathering dead sticks", gatherFuel: "Collecting firewood", knapFlake: "Knapping flint", makeDrill: "Carving a fire drill", layFire: "Laying a fire", lightFire: "Making fire with the hand drill", shelterFromRain: "Sheltering from the rain", rest: "Resting", stackWood: "Stacking the woodpile", takeWood: "Taking wood from the pile", splitKindling: "Splitting dry kindling", eatRaw: "Eating it raw", checkSnares: "Checking the snares", wave: "Waving at the ship", watchSea: "Watching the sea", lightSignal: "Lighting the signal fire", feedDog: "Throwing the dog some food", shellfish: "Gathering shellfish", checkTrap: "Lifting the fish trap", cook: "Cooking", makePot: "Making a bark pot", boilWater: "Boiling water", drinkBoiled: "Drinking boiled water", get_poles: "Dragging in poles", get_bracken: "Cutting bracken", get_boughs: "Breaking off pine boughs", get_stones: "Carrying stones", get_withies: "Cutting withies", get_debris: "Gathering leaf litter", get_mud: "Digging mud", get_reeds: "Cutting reeds", feedFire: "Feeding the fire", warmUp: "Warming up by the fire", sleep: "Sleeping", explore: "Exploring" };
