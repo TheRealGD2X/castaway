@@ -1,6 +1,7 @@
 // Tomas's body language. Every pose his actions set (man.pose) is one line of description for the procedural rig
 // (rig.js): a stance, where his hands work, what they do there, and what they hold. To give him a new animation,
 // add a line here; nothing is drawn by hand except his head.
+import {workPose} from './workpose.js';
 import { rigSprite } from "./rig.js";
 import { motionFrames } from "./motion.js";
 
@@ -30,6 +31,11 @@ export const ANIM = {
   fish:      { stance: "sit", work: [7,-8], motion: "rest", tool: "rod", period: 3000, frames: 8, lean: .05 },
   carry:     { stance: "stand", work: [6,-14], motion: "lift", tool: "basket", two: true, period: 1400, frames: 4 },
   stonewalk: { stance: "walk", work: [5,-9], tool: "stone", period: 900, frames: 8 },
+  lash:      {stance:'stand',work:[8,-15],motion:'saw',tool:'cord',two:true,period:1700},
+  roof:      {stance:'stand',work:[5,-23],motion:'lift',tool:'bundle',two:true,period:2300},
+  dig:       {stance:'kneel',work:[9,-2],motion:'scoop',two:true,period:1600},
+  axework:   {stance:'stand',work:[8,-8],motion:'strike',tool:'axe',period:1600},
+  handfish:  {stance:'sit',work:[7,-8],motion:'rest',tool:'line',two:true,period:3000},
   sleep:     { stance: "lie" },
   lie:       { stance: "lie" },                                                                         // conserving heat while awake
 };
@@ -37,7 +43,9 @@ for (const k in ANIM) {
   const a = ANIM[k]; a.key = k;
   if (a.stance !== 'lie') { a.period ||= 4200; a.frames = motionFrames(a.period); }
 }
-export function manSprite(pose, t, M) {
+export function manSprite(pose, t, M, W, position) {
   const mood = M?.B.ill > .2 ? 'ill' : M?.B.fatigue > .7 || M?.B.sleepP > .8 ? 'tired' : 'calm';
-  return rigSprite({ ...(ANIM[pose] || ANIM.stand), mood }, t);
+  const spec={...(ANIM[pose]||ANIM.stand),...workPose(W,M,position),mood};
+  spec.key=pose+JSON.stringify([spec.work?.map(n=>Math.round(n*3)/3),spec.stance,spec.tool,spec.two,Math.round((spec.toolLength||0)*100),Math.round((spec.loadKg||0)*2)/2,spec.carry,spec.lineEnd?.map(n=>Math.round(n)),spec.workpiece?.kind,Math.floor((spec.workpiece?.progress||0)*12)]);
+  return rigSprite(spec,t);
 }

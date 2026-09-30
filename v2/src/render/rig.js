@@ -70,9 +70,16 @@ function brush(P, x0, y0, x1, y1, r, cols, shadeSide = 1) {
   }
 }
 const put = (P, x, y, c) => P.set(Math.round(x * (P.grid || 1)) / (P.grid || 1), Math.round(y * (P.grid || 1)) / (P.grid || 1), c);
-function prop(P, tool, hx, hy, ex, ey, p) {
+function prop(P, tool, hx, hy, ex, ey, p, spec={}) {
   const dx = hx - ex, dy = hy - ey, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;   // along the forearm
-  if (tool === "stick" || tool === "branch") { const L = tool === "branch" ? 9 : 6; brush(P, hx - ux * 2, hy - uy * 2, hx + ux * L, hy + uy * L, .5, [R.bark[1], R.bark[2], R.bark[3]]); }
+  if(tool==='pole'&&spec.stance!=='walk')brush(P,hx-7,hy+1,hx+8,hy-1,.7,[R.bark[1],R.bark[2],R.bark[3]]);
+  else if (tool === "stick" || tool === "branch") { const L = tool === "branch" ? 9 : 6; brush(P, hx - ux * 2, hy - uy * 2, hx + ux * L, hy + uy * L, .5, [R.bark[1], R.bark[2], R.bark[3]]); }
+  else if(tool==='axe'){const length=Math.max(5,Math.min(10,(spec.toolLength||.42)*18)),x=hx+ux*length,y=hy+uy*length;
+    brush(P,hx-ux*2,hy-uy*2,x,y,.65,[R.bark[1],R.bark[2],R.bark[3]]);
+    brush(P,x-uy*3,y+ux*3,x+uy*2,y-ux*2,1.1,[R.rock[1],R.rock[2],R.rock[3]]);
+    put(P,x,y,'#d2bd81');put(P,x-ux,y-uy,'#92774d');}
+  else if(tool==='line'){const end=spec.lineEnd||[13,0],x=FX+end[0],y=FY+end[1];brush(P,hx,hy,(hx+x)/2,(hy+y)/2+2,.12,['#b7a779','#b7a779','#d9c894']);brush(P,(hx+x)/2,(hy+y)/2+2,x,y,.12,['#b7a779','#b7a779','#d9c894']);}
+  else if(tool==='stones'){for(const [x,y]of[[-2,0],[1,1],[0,-2]])brush(P,hx+x,hy+y,hx+x+1,hy+y,1.5,[R.rock[1],R.rock[2],R.rock[3]]);}
   else if (tool === "stone" || tool === "flake") { const c = tool === "flake" ? R.flint : R.rock; put(P, hx + ux * 1.5, hy + uy * 1.5, c[3]); put(P, hx + ux * 1.5 + 1, hy + uy * 1.5, c[2]); put(P, hx + ux * 1.5, hy + uy * 1.5 + 1, c[1]); }
   else if (tool === "rod") { brush(P,hx,hy,hx+8,hy-11,.55,[R.bark[1],R.bark[3],R.bark[4]]); for(let j=0;j<13;j++)put(P,hx+8,hy-10+j,'#d2c8a3'); }
   else if (tool === "cord") { for(let j=-4;j<5;j++)put(P,hx+j,hy+Math.abs(j)*.3,'#d7bd80'); }
@@ -89,17 +96,18 @@ export function drawRig(P, spec, p) {
   // walking: a gait cycle moves the feet (the far foot half a cycle behind) and bobs the hips
   let feet = st.feet.map(f => [f[0], f[1]]), bob = Math.sin(p * 6.2832) * .12;
   if (walking) { for (let i = 0; i < 2; i++) { const q = p + i * .5, s = Math.sin(q * 6.2832), c = Math.cos(q * 6.2832); feet[i] = [.5 + s * 3.2, -Math.max(0, c) * 2.2]; } bob = -Math.abs(Math.sin(p * 12.566)) * 1; }
-  const hipX = ox + st.hip[0], hipY = oy + st.hip[1] + bob;
+  const hipX = ox + st.hip[0]-(spec.loadKg||0)/(75+(spec.loadKg||0))*6, hipY = oy + st.hip[1] + bob;
   // the spine leans toward the work: the lower and further the work point, the more he bends
   const wx = ox + (spec.work ? spec.work[0] : 5), wy = oy + (spec.work ? spec.work[1] : -9);
-  const lean = walking ? .06 : spec.lean ?? Math.max(0, Math.min(1.1, (wy - hipY + 2) / 12 + Math.max(0, (spec.work ? spec.work[0] : 0) - 8) * .05));   // only work below the hips bends him
+  const lean = walking ? .06+Math.min(.3,(spec.loadKg||0)*.012) : spec.lean ?? Math.max(0, Math.min(1.1, (wy - hipY + 2) / 12 + Math.max(0, (spec.work ? spec.work[0] : 0) - 8) * .05));   // only work below the hips bends him
   const effort = spec.motion === "strike" ? Math.sin(p * 6.2832) * .06 : spec.motion === "pull" ? -Math.sin(p * 3.1416) * .08 : 0;
   const a = lean + effort, nX = hipX + Math.sin(a) * st.spine, nY = hipY - Math.cos(a) * st.spine;
   // shoulders a pixel either side along the chest; head above the neck, looking down if the work is low
   const sh = [[nX - 1.5, nY + 1], [nX + 1.2, nY + 1.2]];
   const hs = hands(spec.motion || "hold", wx, wy, p, spec.two, [nX + 3, nY - 2]);
   if (walking) { const s = Math.sin(p * 6.2832); hs[0] = [nX + 1 + s * 2.5, nY + 9]; hs[1] = [nX - 1 - s * 2.5, nY + 9]; if (spec.tool === "pole") { hs[0] = [nX + 3, nY + 3]; } else if (spec.tool === "stone") { hs[1] = [nX + 6, nY + 5]; } }
-  const armL = [4.8, 4.8], legL = [6.2, 6.4];
+  if(walking&&spec.carry){hs[0]=[nX+4,nY+5];hs[1]=[nX+6,nY+6];}
+  const armL = [5.8, 5.8], legL = [6.2, 6.4];
   const arm = i => { const [ex, ey, hx, hy] = ik(sh[i][0], sh[i][1], hs[i][0], hs[i][1], armL[0], armL[1], i ? 1 : 1); return { ex, ey, hx, hy }; };
   const leg = i => {
     const hx = hipX + (i ? .8 : -.8), fx = ox + feet[i][0], fy = oy + feet[i][1] - 1;
@@ -110,7 +118,7 @@ export function drawRig(P, spec, p) {
   const drawLeg = (l, far) => { const cols = far ? [COL.trou[0], COL.trou[0], COL.trou[1]] : COL.trou; brush(P, l.hx, hipY, l.kx, l.ky, 1.4, cols); brush(P, l.kx, l.ky, l.fx, l.fy, 1.2, cols); const grid = P.grid || 1, bx = Math.round(l.fx * grid) / grid, by = Math.round(l.fy * grid) / grid; for (let i = -1; i <= 2; i++) { P.set(bx + i, by + 1, COL.boot); if (i < 2) P.set(bx + i, by, COL.boot); } };
   const drawArm = (q, far) => { const sc = far ? [COL.shirt[0], COL.shirt[0], COL.shirt[1]] : COL.shirt, kc = far ? [COL.skin[0], COL.skin[0], COL.skin[1]] : COL.skin; brush(P, sh[far ? 0 : 1][0], sh[far ? 0 : 1][1], q.ex, q.ey, 1.35, sc); brush(P, q.ex, q.ey, q.hx, q.hy, 1, kc); put(P, q.ex, q.ey, COL.shirt[2]); brush(P, q.hx, q.hy, q.hx + .5, q.hy, 1, kc); };
   // back to front: far arm, far leg, torso, near leg, head, tool, near arm
-  drawArm(A[0], true); if (spec.tool && spec.two) prop(P, spec.tool, A[0].hx, A[0].hy, A[0].ex, A[0].ey, p);
+  drawArm(A[0], true);
   drawLeg(L[0], true);
   brush(P, hipX, hipY - 1, nX, nY + 1, 2.7, COL.shirt);                                   // the body in his shirt
   brush(P, hipX - .5, hipY, hipX + .5, hipY, 2.2, COL.trou);                             // belt line / hips
@@ -125,7 +133,11 @@ export function drawRig(P, spec, p) {
     if (row[x] === 'e' && (spec.mood === 'tired' || p > .96)) c = COL.skin[1];
     if (row[x] === 'S' && spec.mood === 'ill') c = '#d4b287';
     if (c) P.set(hx0 + x, hy0 + y, c); } });
-  if (spec.tool && !spec.two) prop(P, spec.tool, A[1].hx, A[1].hy, A[1].ex, A[1].ey, p);
+  if(spec.workpiece){const q=spec.workpiece,px=wx,py=wy+2,n=Math.max(1,Math.ceil(q.progress*5));
+    if(q.kind==='greenPot'){for(let y=0;y<n;y++)for(let x=-3;x<=3;x++)put(P,px+x,py-y,(x+y)%3?'#bb8053':'#d09b66');}
+    else if(q.kind==='basket'||q.kind==='wrap'){for(let y=0;y<n;y++)for(let x=-4;x<=4;x++)put(P,px+x,py-y,(x+y)%2?'#c2a36c':'#8f744b');}
+  }
+  if (spec.tool) prop(P, spec.tool, A[1].hx, A[1].hy, A[1].ex, A[1].ey, p, spec);
   if (spec.tool === "pole" && walking) brush(P, nX - 8, nY + 4, nX + 9, nY + 2, .6, [R.bark[1], R.bark[2], R.bark[3]]);
   drawArm(A[1], false);
   if (spec.extra) spec.extra(P, { ox, oy, p, hands: A });

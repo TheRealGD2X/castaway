@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {createWorld,save} from '../src/sim/world.js';
+import {SEED,BORN} from '../src/config.js';
+import {workPose} from '../src/render/workpose.js';
+const W=createWorld(SEED,BORN),M=W.man;
+M.pose='walk';M.inv.stones=3;assert.equal(workPose(W,M).loadKg,6);assert.equal(workPose(W,M).tool,'stones');
+M.pose='fish';M.act={a:'lineFish',t:{x:M.x+1,y:M.y+.5},st:{}};assert.deepEqual(workPose(W,M).lineEnd,[16*(M.face||1),8]);
+const s={id:999,x:M.x,y:M.y,stage:0,prog:0,assembly:{nodes:[[0,0,0],[0,0,.3]],parts:[{id:0,stage:0,kind:'bar',a:0,b:1,mat:'poles',amount:1}]}};W.structs.push(s);
+M.pose='build';M.act={a:'build_workbench',t:{sid:999},st:{}};const low=workPose(W,M);assert.equal(low.stance,'kneel');assert.equal(low.tool,'pole');
+s.assembly.nodes[1][2]=2;const high=workPose(W,M);assert.equal(high.stance,'stand');assert(high.work[1]<low.work[1]);
+s.assembly.parts[0]={id:0,stage:0,kind:'joint',node:1,mat:'withies',amount:1};assert.equal(workPose(W,M).tool,'cord');
+M.act.st.phase='go';assert.deepEqual(workPose(W,M),{});
+M.pose='weave';M.act={a:'weaveBasket',t:{},st:{}};M.workpieces={basket:{paid:true,progress:35}};assert.equal(workPose(W,M).workpiece.progress,.5);
+const before=save(W);for(let n=0;n<100;n++)workPose(W,M);assert.equal(save(W),before);
+console.log('ok   physical part heights, bindings, loads, fishing endpoints and paid progress drive read-only poses');

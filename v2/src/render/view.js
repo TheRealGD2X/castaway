@@ -100,7 +100,7 @@ export function createView(cv, world, terr) {
     // the shore at low water: beds the tide has uncovered
     for (const b of world.shore) if (world.wx.tide < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - world.wx.tide) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy); g.globalAlpha = 1; }
     if (M) {
-      const p = V.manPos(now), pose = M.pose === "walk" && (M.inv.stones || 0) > 0 ? "stonewalk" : M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now, M);
+      const p = V.manPos(now), pose = M.pose === "walk" && (M.inv.stones || 0) > 0 ? "stonewalk" : M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now, M, world, p);
       const inside = world.structs.find(q => (q.k === "leanto" || q.k === "debrisHut" || q.k === "roundhouse") && q.stage > 0 && Math.abs(q.x - p.x) < .6 && Math.abs(q.y - p.y) < .6);
       const px = snap(p.x * TS) - sx, py = snap(p.y * TS) - sy + (inside ? 5 : 4);
       const drawMan = () => { if (p.face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(ms.img, -ms.ox, py - ms.oy, ms.w, ms.h); g.restore(); } else g.drawImage(ms.img, px - ms.ox, py - ms.oy, ms.w, ms.h); };

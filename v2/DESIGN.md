@@ -295,3 +295,14 @@ fibre quality and abrasion coefficient are engineering assumptions, not a calibr
 experiment. This does not simulate detailed fracture, individual fibre strands or hand contact.
 `tools.test.js` checks independent energy/strength equations, wear, overload, mass accounting,
 interrupted construction, short-branch yield and save/load. No new natural random draws are added.
+
+## Work seen through the rig
+
+`render/workpose.js` reads the current construction part, its installed geometry, nearby
+work surface, paid craft progress, carried material mass and fishing target. The same rig
+then lashes joints, lifts roof material, scoops excavations, carries stones and handles a
+real handline. Workpieces grow from saved physical progress rather than animation time.
+Hand targets are projected from assembly coordinates and bounded to the character's reach;
+this is a presentation approximation, not a contact or climbing solver. Animation never
+advances work, consumes materials, draws randomness or changes checkpoint state.
+`workpose.test.js` checks physical inputs and that drawing instructions remain read-only.
