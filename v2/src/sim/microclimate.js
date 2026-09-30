@@ -3,7 +3,7 @@
 import { FAMILIES } from '../build/build.js';
 import { fitted, MAT } from '../build/assembly.js';
 import { dexp, clamp } from '../core/dmath.js';
-import { liquidRain } from './seasons.js';
+import { localWeather } from './atmosphere.js';
 export const vapourDensity=(t,hum)=>.61078*dexp(17.27*t/(t+237.3))*1000*hum/(461.5*(t+273.15));
 const geometryCache=new WeakMap();
 export function thermalBalance(c, p, outside, heatW, dt=60){
@@ -24,16 +24,16 @@ export function climateAtHome(W,x,y){return W.structs.find(s=>FAMILIES[s.k]?.she
 export function microclimateStep(W){
   const homes=W.structs.filter(s=>FAMILIES[s.k]?.shelter&&(s.props?.rain||0)>.1);if(!homes.length)return;
   const share=new Map();for(const f of W.fires){let total=0;const weights=[];for(const s of homes){const d2=((f.x-s.x)*(f.x-s.x)+(f.y-s.y)*(f.y-s.y))*4,w=(s.props.rain||0)/(1+d2)*.2;weights.push(w);total+=w;}for(let i=0;i<homes.length;i++)share.set(homes[i].id,(share.get(homes[i].id)||0)+f.heat*weights[i]/Math.max(1,total));}
-  for(const s of homes){const p=climateParams(s,W.wx.wind),c=s.climate||(s.climate={airT:W.wx.temp,wallT:W.wx.temp,vapourKg:vapourDensity(W.wx.temp,W.wx.hum)*p.volume,condensateKg:0,moistureIn:0,moistureOut:0,heatJ:0});
+  for(const s of homes){const wx=localWeather(W,s.x,s.y),p=climateParams(s,wx.wind),c=s.climate||(s.climate={airT:wx.temp,wallT:wx.temp,vapourKg:vapourDensity(wx.temp,wx.hum)*p.volume,condensateKg:0,moistureIn:0,moistureOut:0,heatJ:0});
     c.boundWaterKg??=0;c.initialWaterKg??=c.vapourKg+c.condensateKg+c.boundWaterKg;
-    const capacity=p.mass*.3,rain=Math.min(Math.max(0,capacity-c.boundWaterKg),liquidRain(W)/60*p.area*(s.props.rain||0));
-    const oldCapacity=p.wallCapacity+c.boundWaterKg*4180;c.wallT=(c.wallT*oldCapacity+rain*4180*W.wx.temp)/(oldCapacity+rain*4180);
+    const capacity=p.mass*.3,rain=Math.min(Math.max(0,capacity-c.boundWaterKg),wx.rain*(1-clamp((1-wx.temp)/2,0,1))/60*p.area*(s.props.rain||0));
+    const oldCapacity=p.wallCapacity+c.boundWaterKg*4180;c.wallT=(c.wallT*oldCapacity+rain*4180*wx.temp)/(oldCapacity+rain*4180);
     c.boundWaterKg+=rain;c.moistureIn+=rain;
     p.wallCapacity+=c.boundWaterKg*4180;
     const inside=W.man&&Math.abs(s.x-W.man.x)<.95&&Math.abs(s.y-W.man.y)<.95;
-    const breath=inside?.00035:0;const rho=vapourDensity(W.wx.temp,W.wx.hum),exchange=p.vent/(1.2*1005)*60,frac=1-dexp(-exchange/p.volume),old=c.vapourKg;
+    const breath=inside?.00035:0;const rho=vapourDensity(wx.temp,wx.hum),exchange=p.vent/(1.2*1005)*60,frac=1-dexp(-exchange/p.volume),old=c.vapourKg;
     c.vapourKg+=(rho*p.volume-c.vapourKg)*frac+breath;c.moistureIn+=Math.max(0,c.vapourKg-old);c.moistureOut+=Math.max(0,old-c.vapourKg);
-    const q=thermalBalance(c,p,W.wx.temp,share.get(s.id)||0);c.airT=q.airT;c.wallT=q.wallT;c.heatJ+=q.exchanged;
+    const q=thermalBalance(c,p,wx.temp,share.get(s.id)||0);c.airT=q.airT;c.wallT=q.wallT;c.heatJ+=q.exchanged;
     const cap=vapourDensity(Math.min(c.wallT,c.airT),1)*p.volume,condensed=Math.max(0,c.vapourKg-cap);c.vapourKg-=condensed;c.condensateKg+=condensed;c.wallT+=condensed*2.3e6/p.wallCapacity;
     const evap=Math.min(c.condensateKg,Math.max(0,vapourDensity(c.wallT,1)*p.volume-c.vapourKg)*.08);c.condensateKg-=evap;c.vapourKg+=evap;c.wallT-=evap*2.3e6/p.wallCapacity;
     const dry=Math.min(c.boundWaterKg,Math.max(0,vapourDensity(c.wallT,1)-c.vapourKg/p.volume)*p.area*.001*60);c.boundWaterKg-=dry;c.vapourKg+=dry;c.wallT-=dry*2.3e6/p.wallCapacity;

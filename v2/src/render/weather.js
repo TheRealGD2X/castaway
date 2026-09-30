@@ -3,6 +3,8 @@
 import { canvas } from "./pix.js";
 import { vnoise } from "../core/noise.js";
 import { mix } from "./palette.js";
+import { localWeather } from '../sim/atmosphere.js';
+import { hash3 } from '../core/rng.js';
 
 let shadowTex = null;
 function cloudShadowTexture() {                           // a tileable field of soft cloud blobs, dithered at the edges
@@ -36,11 +38,11 @@ export function skyTint(x) {
   return c;
 }
 export function drawWeather(g, V, W, now, sx, sy) {
-  const x = W.wx, { aw, ah } = V;
+  const x = localWeather(W,V.cam.x/16,V.cam.y/16), { aw, ah } = V,rainMax=Math.max(x.rain,...(W.atmosphere?.local.rain||[]));
   // cloud shadow drifting with the wind (only when the sun is up and the sky broken)
   if (x.elev > 0 && x.cloud > .2 && x.cloud < .95) {
-    const tex = cloudShadowTexture(), S = tex.width, dir = x.windDir * Math.PI / 4, sp = x.wind * .004;
-    const ox = (((sx + now * sp * Math.sin(dir)) % S) + S) % S, oy = (((sy - now * sp * Math.cos(dir)) % S) + S) % S;
+    const tex = cloudShadowTexture(), S = tex.width;
+    const ox = (((sx - now * (x.u??x.wind) * .008) % S) + S) % S, oy = (((sy - now * (x.v??0) * .008) % S) + S) % S;
     g.globalAlpha = .09 * Math.min(1, x.cloud * 1.6);
     for (let y = -oy; y < ah; y += S) for (let xx = -ox; xx < aw; xx += S) g.drawImage(tex, xx, y);
     g.globalAlpha = 1;
@@ -48,13 +50,13 @@ export function drawWeather(g, V, W, now, sx, sy) {
   // wet ground: a cool darkening while it rains and for a while after
   if (x.rain > 0) { g.fillStyle = "rgba(30,40,60,.10)"; g.fillRect(0, 0, aw, ah); }
   // rain: slanted streaks (more, longer and faster the harder it falls; the wind leans them) and splashes where they land
-  if (x.rain > .05 && x.temp > 1) {
-    const n = Math.min(700, Math.round(aw * ah / 900 * Math.min(4, x.rain))), slant = (x.windDir >= 4 ? -1 : 1) * Math.min(3, x.wind / 5), t = now / 1000;
+  if (rainMax > .05 && x.temp > 1) {
+    const n = Math.min(700, Math.round(aw * ah / 900 * Math.min(4, rainMax))), slant = Math.max(-3,Math.min(3,(x.u??x.wind)/5)), t = now / 1000;
     g.fillStyle = "rgba(220,236,238,.40)";
     for (let i = 0; i < n; i++) {
       const hx = (i * 7919) % 1000 / 1000, hy = (i * 104729) % 1000 / 1000, sp = 220 + (i % 5) * 30;
       const px = ((hx * (aw + 40) + slant * t * sp * .3) % (aw + 40) + aw + 40) % (aw + 40) - 20, py = (hy * ah + t * sp) % ah;
-      for (let k = 0; k < 6; k++) g.fillRect(px + Math.round(slant * k * .3), py + k, 1, 1);
+      const local=localWeather(W,(sx+px)/16,(sy+py)/16);if(local.temp<=1||hash3(i,71,W.seed)>local.rain/rainMax)continue;const lean=Math.max(-3,Math.min(3,(local.u??x.wind)/5));for (let k = 0; k < 6; k++) g.fillRect(px + Math.round(lean * k * .3), py + k, 1, 1);
     }
     g.fillStyle = "rgba(226,240,232,.38)";
     const fr = Math.floor(now / 120), ns = Math.min(260, Math.round(aw * ah / 2500 * Math.min(4, x.rain)));
@@ -68,7 +70,7 @@ export function drawWeather(g, V, W, now, sx, sy) {
   // fog: a pale veil and soft banks of mist drifting with the air
   if (x.fog > .03) {
     g.fillStyle = `rgba(222,228,228,${Math.min(.45, x.fog * .4)})`; g.fillRect(0, 0, aw, ah);
-    const tex = fogTexture(), S = tex.width, dx = now * .004 + sx * .6, dy = sy * .6;
+    const tex = fogTexture(), S = tex.width, dx = sx*.6-now*(x.u??x.wind)*.004, dy = sy*.6-now*(x.v??0)*.004;
     g.globalAlpha = Math.min(.8, x.fog * .8);
     for (const [ox, oy] of [[dx, dy], [dx * 1.7 + 70, dy + 90]]) { const fx = ((ox % S) + S) % S, fy = ((oy % S) + S) % S; for (let y = -fy; y < ah; y += S) for (let xx = -fx; xx < aw; xx += S) g.drawImage(tex, xx, y); }
     g.globalAlpha = 1;

@@ -1,4 +1,5 @@
-import {structureDetails,toolDetails,inventoryRows,batchRows,effortRows} from './inspection.js';
+import {structureDetails,toolDetails,inventoryRows,batchRows,effortRows,animalDetails,sensoryRows} from './inspection.js';
+import {dogSprite,gullSprite,rabbitSprite} from './beasts.js';
 import {structSprite} from './structs.js';
 import {manSprite} from './people.js';
 import {rigSprite} from './rig.js';
@@ -21,9 +22,11 @@ export function setupInspection(cv,V,getWorld){
       if(d.comparison){body+='<h3>Why this design?</h3><p class="inspect-note">He compared '+d.comparison.alternatives+' possible assemblies. These were his estimates when he chose it.</p>'+d.comparison.choices.map((q,i)=>`<div class="inspect-choice">${i===0?'Chosen':'Alternative'}: ${esc(q.cover||'open frame')}<small>About ${Math.round(q.labourMinutes)} minutes of work · ${Math.round(q.predictedKg)} kg estimated extra load${q.protection>0?' · '+Math.round(q.protection*100)+'% rain kept off the surface':''}</small></div>`).join('');}
       body+='<p class="inspect-note">Shown from the parts actually installed. Strength and protection are simplified estimates; damage and wetness change them.</p>';
     }else if(target.tool){const d=toolDetails(M,target.tool);title=d.title;body=rows(d.fields)+'<h3>The working parts</h3>'+materials(d.materials)+`<p class="inspect-note">${target.tool==='line'?'The pull limit describes a steady load. A sudden tug can break a line sooner.':'Wear blunts the stone edge. Damp fibres weaken its binding.'}</p>`;sp=rigSprite({stance:'stand',tool:target.tool,work:[6,-14],motion:'rest',period:1000,frames:1,key:'inspect:'+target.tool,toolLength:M.tools?.[target.tool]?.parts.find(p=>p.kind==='handle')?.length},0);
+    }else if(target.animal!=null){const a=W.animals.find(a=>a.id===target.animal&&!a.dead);if(!a){close();return;}const d=animalDetails(a);title=d.title;body=rows(d.fields);sp=a.sp==='dog'?dogSprite(a.act,0):a.sp==='gull'?gullSprite(a.act,0,a.id):rabbitSprite(a.act,0,a.id);
     }else{title=target.camp?'Camp & belongings':'With Tomas';sp=manSprite('stand',0,M);const items=inventoryRows(M);
       body=`<p class="inspect-note">${target.camp?'His constructions and the things he has with him.':'The things he has with him now.'}</p><div class="inspect-list">`+items.map(q=>q.tool?`<button data-tool="${q.key}"><span>${esc(q.label)}</span><span>Inspect →</span></button>`:`<div class="inspect-row"><span>${esc(q.label)}</span><span>${esc(q.value)}</span></div>`).join('')+(items.length?'':'<p>His hands are empty for now.</p>')+'</div>';
       body+='<h3>Carrying and experience</h3>'+rows(effortRows(M));if(M.foodBatches?.length)body+='<h3>His food batches</h3>'+rows(batchRows(M));
+      if(sensoryRows(M).length)body+='<h3>What he noticed</h3>'+rows(sensoryRows(M));
       if(target.camp)body+='<h3>Made on the island</h3><div class="inspect-list">'+W.structs.map(s=>`<button data-sid="${s.id}"><span>${esc(structureDetails(s).title)}</span><span>${s.stage>=s.stages.length?'Complete':'Under way'} →</span></button>`).join('')+'</div>';
       else body+='<p><button class="inspect-link" data-camp>See his camp</button></p>';
     }
@@ -41,6 +44,7 @@ export function setupInspection(cv,V,getWorld){
   cv.addEventListener('pointerup',e=>{const p=down.get(e.pointerId);down.delete(e.pointerId);if(!p||p.cancel||e.timeStamp-p.time>600)return;
     const rect=cv.getBoundingClientRect(),raster=V.raster||1,snap=n=>Math.round(n*raster)/raster,sx=snap(V.cam.x-V.aw/2),sy=snap(V.cam.y-V.ah/2),x=(e.clientX-rect.left)*V.aw/rect.width+sx,y=(e.clientY-rect.top)*V.ah/rect.height+sy,W=getWorld(),m=V.manPos(performance.now());
     if(Math.abs(x-m.x*16)<11&&y>m.y*16-30&&y<m.y*16+7){show({});return;}
+    for(const a of W.animals||[]){if(a.dead||a.adrift||a.under)continue;const f=Math.max(0,Math.min(1,(Date.now()-W.born)/60000-W.t)),ax=(a.px+(a.x-a.px)*f)*16,ay=(a.py+(a.y-a.py)*f)*16;if(Math.abs(x-ax)<10&&y>ay-12&&y<ay+7){show({animal:a.id});return;}}
     for(const s of W.structs.slice().sort((a,b)=>b.y-a.y)){const sp=structSprite({...s,open:Math.abs(s.x-W.man.x)<.7&&Math.abs(s.y-W.man.y)<.7});if(!sp)continue;const a=Math.floor(x-(Math.round(s.x*16)-sp.ox)),b=Math.floor(y-(Math.round(s.y*16)+5-sp.oy));if(a<0||b<0||a>=sp.img.width||b>=sp.img.height)continue;const px=sp.img.getContext('2d').getImageData(Math.max(0,a-2),Math.max(0,b-2),Math.min(5,sp.img.width-a),Math.min(5,sp.img.height-b)).data;if(px.some((n,k)=>k%4===3&&n)){show({sid:s.id});break;}}
   });
   return{show,close,refresh(){if(target&&(lastWorld!==getWorld()||lastMinute!==getWorld().t)){const scroll=root.querySelector('.inspect-scroll')?.scrollTop||0,a=document.activeElement,key=a?.dataset.sid?`[data-sid="${a.dataset.sid}"]`:a?.dataset.tool?`[data-tool="${a.dataset.tool}"]`:a?.classList.contains('inspect-back')?'.inspect-back':'.inspect-close';draw();const el=root.querySelector('.inspect-scroll');if(el)el.scrollTop=scroll;if(!root.hidden)root.querySelector(key)?.focus({preventScroll:true});}}};

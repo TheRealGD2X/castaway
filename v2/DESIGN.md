@@ -422,7 +422,8 @@ boundary. This single-organism model does not resolve spores, toxins, cross-cont
 specific pathogens or validate food safety. Tomas chooses by age and visible decay, never
 by reading the hidden organism count. Actual consumed lots supply his exposure dose.
 Snares and loose quarry retain their harvest time and decay; shared scraps no longer vanish
-because exactly one day elapsed. The marine and animal population models remain aggregate.
+because exactly one day elapsed. Fish remain biomass cohorts; terrestrial animals now
+have individual bodies as described in `SIMULATION.md`.
 
 ### Carrying and effort
 
@@ -448,7 +449,8 @@ deposition raises the effective bed and alters outflow. Renderer marks expose er
 deposited patches from that state. Drainage is rebuilt once per affected tile after each
 hydrology interval; derived caches do not enter saves. Checkpoint loading rebuilds the same
 drainage from saved relief. Terrain classes and the marine coastline remain coarse static
-tiles; channel flooding, cliff failure and full coastal sediment transport are not resolved.
+tiles; cliff failure and full coastal sediment transport are not resolved. Surface pools
+and channel overflow now affect water heads, render standing water and block deep crossings.
 
 ### Learning from actual work
 
@@ -546,3 +548,36 @@ native iPhone Safari performance or subjective listening quality.
 Equation references: [NOAA linear wave dispersion](https://polar.ncep.noaa.gov/waves/wavewatch/manual.v5.16.pdf)
 and [experimental work on entrained-bubble sound](https://pmc.ncbi.nlm.nih.gov/articles/PMC6014985/).
 Web Audio lifecycle follows the [AudioContext suspend/resume API](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/suspend).
+
+## Connected ecology, atmosphere, senses and work
+
+The newer physical models are specified in [SIMULATION.md](SIMULATION.md). They replace
+the original weather-regime event selection, automatic daily shellfish replenishment,
+logistic fish growth, free rabbit grazing and the dog's occasional unexplained food gain.
+Fish and shellfish production require finite food; animal deaths and catches transfer
+actual body matter. Rabbit litters debit maternal reserves and keep paid embryo mass;
+nursing requires the mother in the burrow. Burrows retain exchanged heat with their own
+ledger. Body mass controls the drawn size of growing rabbits.
+
+The 8×6 regional atmosphere and 6×4 surface mesh persist their own heat and water fields.
+Conservative transport, condensation, latent heat, ocean evaporation, Coriolis rotation
+and pressure gradients produce weather. Atlantic temperature and geostrophic forcing
+are prescribed seeded closures, not resolved global weather. Sea temperature has thermal
+inertia. Local weather reaches bodies, fires, shelters, food, rainfall, rendering and
+acoustic sources. Falling regional rain is a through-flux to the ground rather than
+suspended cloud at the surface. Diagnostic labels such as “front” describe current fields
+and do not schedule a future event.
+
+Tomas observes trees and installed walls along sight rays, remembers flood depths,
+discounts stale resource memories and hears uncertain bearings of actual animal calls.
+Unknown route tiles are tentative ground; unseen water depth cannot select a cheaper
+path. Actual movement rejects an impassable crossing and replans. The dog can follow a
+coarse advected scent field. Its briefing describes the last dog observation instead of
+revealing an unseen animal's present condition.
+
+Work contacts record force, travel, stroke count, mechanical energy, heat and fracture
+work. These drive paid workpieces, current animation frequency and soft acoustic impacts.
+An axe's abrasion uses the same contact work. This is an equivalent-contact model with
+empirical task work requirements, not a resolved fracture or musculoskeletal solver.
+Rare bird/dog voices are deduplicated saved behavioural events, with finite energetic
+cost, distance and wall attenuation. Rendering and sound remain read-only world views.

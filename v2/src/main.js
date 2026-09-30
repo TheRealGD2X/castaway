@@ -7,6 +7,7 @@ import { paintTerrain } from "./render/terrain.js";
 import { createView } from "./render/view.js";
 import { cal } from "./core/time.js";
 import { audioStart, audioStop, audioUpdate } from "./audio.js";
+import { localWeather } from './sim/atmosphere.js';
 
 const qs = new URLSearchParams(location.search), test = qs.has("seed") || qs.has("t");
 // the island starts from the latest checkpoint the routine saved (so every device sees the same life), plus his
@@ -87,7 +88,7 @@ function frame(now) {
   // A steady 60-Hz display budget also avoids wasting battery on 120/240-Hz screens.
   if (lastFrame != null && now - lastFrame < 1000 / 60 - .5) return;
   const dt = lastFrame == null ? 1000 / 60 : Math.min(64, now - lastFrame); lastFrame = now;
-  const c = cal(world.born, world.t), x = world.wx, M = world.man;
+  const c = cal(world.born, world.t), M = world.man, x = localWeather(world,M.x,M.y);
   if (follow && M) { const p = V.manPos(now), easing = 1 - Math.exp(-dt / 200); V.cam.x += (p.x * 16 - V.cam.x) * easing; V.cam.y += (p.y * 16 - 8 - V.cam.y) * easing; }
   const season = seasonOf(qd ? +qd : c.doy);
   V.flower = season.flower;

@@ -7,6 +7,7 @@ import {ACTIONS} from '../src/mind/actions.js';
 import {SEED,BORN} from '../src/config.js';
 import {T} from '../src/world/gen.js';
 import {fishTen} from '../src/sim/fish.js';
+import {foodwebTen} from '../src/sim/foodweb.js';
 
 const W=createWorld(SEED,BORN),h=W.hydro;
 const total=()=>waterVolume(W)+h.evap+h.sea+h.used-h.rain;
@@ -55,7 +56,7 @@ M.inv.line=1;M.known[stream]=1;M.x=stream%W.MW+.5;M.y=Math.floor(stream/W.MW)+.5
 st={};let fishing;for(let n=0;n<10;n++){fishing=ACTIONS.lineFish.exec(W,M,{tile:stream,x:M.x,y:M.y},st);if(fishing==='fail')break;}
 assert.equal(fishing,'fail','a dry watercourse cannot provide line fishing');
 const healthy=load(save(W)),poor=load(save(W));healthy.hydro.streamDepth=.12;healthy.hydro.oxygen=9;poor.hydro.streamDepth=.02;poor.hydro.oxygen=3;
-for(let n=0;n<120;n++){fishTen(healthy);fishTen(poor);}assert(poor.fish.stream<healthy.fish.stream);
+for(let n=0;n<120;n++){foodwebTen(healthy);foodwebTen(poor);fishTen(healthy);fishTen(poor);}assert(poor.fish.stream<healthy.fish.stream);
 console.log('ok   dry water cannot be fished; shallow, low-oxygen habitat supports fewer fish');
 
 const fixture=createWorld(SEED,BORN);fixture.wx={...fixture.wx,rain:0,sun:0,temp:12,wind:2};fixture.surface.temp=12;

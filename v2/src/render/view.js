@@ -83,16 +83,16 @@ export function createView(cv, world, terr) {
       let ax = a.px + (a.x - a.px) * frac, ay = a.py + (a.y - a.py) * frac, face = a.face || 1;
       if (a.sp === "dog" && a.trail && a.trail.length > 1) { const q = alongTrail(a.trail, frac); ax = q.x; ay = q.y; face = q.face || face; }
       const px = snap(ax * TS) - sx, py = snap(ay * TS) - sy + 4; if (px < -30 || py < -30 || px > aw + 30 || py > ah + 30) continue;
-      let sp, lift = 0;
+      let sp, lift = 0;const size=a.body?Math.max(.25,Math.min(1,Math.cbrt(a.body.mass/(a.sp==='rabbit'?1.5:a.sp==='gull'?.9:18)))):1;
       if (a.sp === "dog") sp = a.adrift ? raftSprite(now) : jointedDog(a, now);
       else if (a.sp === "gull") { sp = gullSprite(a.act === "fly" || a.air ? "fly" : a.act, now, a.id); if (a.air) lift = 10 + Math.round(Math.sin(now / 500 + a.id) * 2); }
       else sp = rabbitSprite(a.act, now, a.id);
       if (world.ter[Math.floor(ay + 1) * world.MW + Math.floor(ax)] <= 1) {
-        g.save(); g.globalAlpha=.12; g.translate(px,py+6); g.scale(face<0?-1:1,-.35); g.drawImage(sp.img,-sp.ox,-sp.oy,sp.w || sp.img.width,sp.h || sp.img.height); g.restore();
+        g.save(); g.globalAlpha=.12; g.translate(px,py+6); g.scale((face<0?-1:1)*size,-.35*size); g.drawImage(sp.img,-sp.ox,-sp.oy,sp.w || sp.img.width,sp.h || sp.img.height); g.restore();
       }
       dyn.push({ y: ay + (lift ? 3 : 0), f: () => {
         if (lift) { g.globalAlpha = .18; g.fillStyle = "#1b120c"; g.fillRect(px - 3, py - 1, 6, 1); g.globalAlpha = 1; }
-        if (face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(sp.img, -sp.ox, py - lift - sp.oy, sp.w || sp.img.width, sp.h || sp.img.height); g.restore(); } else g.drawImage(sp.img, px - sp.ox, py - lift - sp.oy, sp.w || sp.img.width, sp.h || sp.img.height);
+        g.save();g.translate(px,py-lift);g.scale((face<0?-1:1)*size,size);g.drawImage(sp.img,-sp.ox,-sp.oy,sp.w||sp.img.width,sp.h||sp.img.height);g.restore();
       } });
     }
     for (const it of world.items) if (it.k === "scraps" || it.k === "quarry") { const sp = scrapsSprite(); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy) }); }

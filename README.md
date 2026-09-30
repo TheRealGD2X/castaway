@@ -20,7 +20,7 @@ families using this model. Shelters and bedding also use installed geometry; axe
 performance follows their working parts, force, wetness and wear. Earthworks move finite water and
 sediment, with excavated soil retained as spoil. Tomas compares known materials and observed loads.
 
-On a phone, tap Tomas or a construction to inspect it. The journal's **His home** tab also opens
+On a phone, tap Tomas, an animal or a construction to inspect it. The journal's **His home** tab also opens
 **Inspect camp & belongings**. Materials, damage, water, tools and design estimates come from the
 current simulated state. Models are simplified and use documented assumptions; they are not
 calibrated predictions of real-world structures or survival.
@@ -36,3 +36,13 @@ Tap the sound button for a softer, continuous island soundscape: surf, wind thro
 foliage, liquid rain on installed coverings, flowing streams and burning fuel. Sound is generated
 from the current world and camera position, with no recordings or repeating sound clips.
 The acoustic models and listening levels are approximations, documented in `v2/DESIGN.md`.
+
+The world now also has a connected food web, animal digestion and thermal budgets, sight
+occlusion, wind-carried scent, uncertain memories and directional hearing. Mechanical
+contacts drive work progress, tool wear, motion and quiet work sounds; animal calls come
+from their simulated behaviour. A numerical regional atmosphere transports heat and
+moisture into a local island mesh. Its precipitation supplies the same finite surface
+water that draws puddles and blocks flooded paths. See [the model equations, boundaries
+and tests](v2/SIMULATION.md). These are deterministic reduced models with explicit
+assumptions; conservation tests establish numerical consistency, not complete accuracy
+against real weather, animal physiology or measured sound.

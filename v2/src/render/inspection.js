@@ -29,6 +29,8 @@ export function structureDetails(s){
 }
 export function batchRows(M){return(M.foodBatches||[]).map(b=>({label:b.kind,value:`${kg(foodMass(b))} · ${Math.round(b.kcal)} kcal · ${b.raw?'uncooked':waterActivity(b)<.85?'dried':'ready'} · ${number(b.temp)} °C${(b.decay||0)>.2?' · smells stale':''}`}));}
 export function effortRows(M){const rows=[{label:'Weight carried',value:kg(carriedMass(M))}];const most=Object.entries(M.experience||{}).filter(([,e])=>e.n>=2).sort((a,b)=>b[1].n-a[1].n).slice(0,3);for(const [key,e]of most)rows.push({label:LABEL[key]||key.replace('get_','Gathering ').replace(/_/g,' '),value:`${e.n} completed tries · last took ${Math.round(e.last.actual)} min (expected ${Math.round(e.last.predicted)})`});return rows;}
+export function animalDetails(a){const b=a.body;return{title:a.name||a.sp,fields:[{label:'Doing',value:a.act||'resting'},...(b?[{label:'Body temperature',value:`${number(b.core)} °C`},{label:'Energy reserves',value:`${Math.round(b.reserve*4000)} kcal`},{label:'Digesting',value:`${Math.round(b.gut*4000)} kcal`},{label:'Age',value:`${Math.floor(b.ageDays)} days`},{label:'Thirst',value:a.thirst>.7?'Very thirsty':a.thirst>.35?'Thirsty':'Comfortable'},{label:'Injury',value:b.injury>.1?'Healing':'No apparent injury'}]:[])]};}
+export function sensoryRows(M){const q=M.senses?.heard.at(-1);if(!q)return[];return[{label:'Last heard',value:`A ${q.kind}, towards the ${['east','south-east','south','south-west','west','north-west','north','north-east'][q.bearing]}`}];}
 export function toolDetails(M,key){
   const t=M.tools?.[key],p=toolProps(t),fields=[{label:'Material weight',value:kg(p.mass)}];
   if(p.length)fields.push({label:key==='line'?'Line length':'Handle length',value:`${number(p.length)} metres`});

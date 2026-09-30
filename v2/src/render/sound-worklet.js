@@ -9,6 +9,7 @@ class IslandAcoustics extends AudioWorkletProcessor {
         this.field.setState(data.state);
       }
       if (data.horn && this.field) this.field.horn(data.horn);
+      if (data.voice && this.field) this.field.voice(data.voice);
     };
   }
   process(_inputs, outputs) {

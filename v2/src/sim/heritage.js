@@ -25,7 +25,7 @@ export function campSnapshot(W) {
 }
 export function observeLife(W, logFrom) {
   const M = W.man; if (!M) return;
-  for (const l of M.log.slice(logFrom)) {
+  for (let li=logFrom;li<M.log.length;li++) {const l=M.log[li];
     const [t, k, what, stage] = l;
     if (k === 'built') {
       const s = W.structs.find(s => s.k === what && s.stages[s.stage - 1]?.name === stage);
@@ -44,8 +44,7 @@ export function observeLife(W, logFrom) {
     record(W, 'met-dog', 'dog', 'He found ' + dog.name + ', the dog from his ship.');
     if (dog.trust > .6) record(W, 'dog-trust', 'dog', dog.name + ' learned to trust him.');
   }
-  const known = Object.keys(M.mem).length;
-  if (known > 30) record(W, 'knows-island', 'island', 'He began to know the island: its trees, fresh water and shore.');
+  if (!W.storyKeys['knows-island'] && Object.keys(M.mem).length > 30) record(W, 'knows-island', 'island', 'He began to know the island: its trees, fresh water and shore.');
 }
 
 export function heritageTen(W) {

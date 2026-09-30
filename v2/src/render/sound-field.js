@@ -3,7 +3,7 @@
 const TAU = Math.PI * 2;
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 const KEYS = ['sea', 'seaPan', 'wave', 'wind', 'leaves', 'gust', 'rain', 'rainRate', 'roof', 'roofPan', 'roofSoft',
-  'stream', 'streamPan', 'flow', 'fire', 'firePan', 'fireMoisture', 'muffling'];
+  'stream', 'streamPan', 'flow', 'fire', 'firePan', 'fireMoisture', 'muffling','work','workPan','workHz'];
 const cutoff = (hz, rate) => 1 - Math.exp(-TAU * hz / rate);
 
 class Texture {
@@ -25,7 +25,7 @@ export class AcousticField {
       rain: new Texture(rate, 3300, 650), roof: new Texture(rate, 1600, 180),
       stream: new Texture(rate, 1900, 260), fire: new Texture(rate, 620, 110),
     }));
-    this.modes = []; this.horns = []; this.low = [0, 0]; this.dc = [0, 0];
+    this.modes = []; this.horns = []; this.voices=[];this.workPhase=0;this.low = [0, 0]; this.dc = [0, 0];
     this.muffleA = cutoff(1400, rate); this.dcA = cutoff(40, rate);
   }
   random() {
@@ -39,6 +39,7 @@ export class AcousticField {
   horn({ gain, pan = 0 }) {
     if (gain > 0 && this.horns.length < 4) this.horns.push({ gain: Math.min(.045, gain), pan: clamp(pan, -.65, .65), age: 0 });
   }
+  voice(v){if(v?.gain>0&&this.voices.length<8)this.voices.push({...v,age:0});}
   // Impulse response of a damped vibrating/air-bubble resonator, or a short noise fracture.
   mode(frequency, decay, amplitude, pan, noisy = false) {
     if (this.modes.length >= 24) return;
@@ -70,6 +71,9 @@ export class AcousticField {
           p.roof * (.025 + this.random() * .06), p.roofPan, p.roofSoft > .5);
       }
       let ml = 0, mr = 0;
+      this.workPhase+=p.workHz*dt;if(this.workPhase>=1){this.workPhase-=1;if(p.work>0)this.mode(360,.045,p.work,p.workPan,true);}
+      for(let j=this.voices.length-1;j>=0;j--){const v=this.voices[j],t=v.age*dt,envelope=Math.sin(Math.PI*Math.min(1,t/v.duration))**2,hz=v.hz*(1+.08*Math.sin(Math.PI*t/v.duration));
+        const value=v.gain*envelope*(Math.sin(TAU*hz*t)+.2*Math.sin(TAU*hz*2*t));ml+=value*Math.sqrt((1-v.pan)/2);mr+=value*Math.sqrt((1+v.pan)/2);if(++v.age>=v.duration*this.rate)this.voices.splice(j,1);}
       for (let j = this.modes.length - 1; j >= 0; j--) {
         const m = this.modes[j]; let value;
         if (m.noisy) {

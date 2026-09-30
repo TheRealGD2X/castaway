@@ -32,14 +32,15 @@ export function makeTool(M,key){
 }
 export function woodWorkRate(M,fraction=.2){const p=toolProps(M.inv.axe?M.tools?.axe:null);return 1+fraction*Math.max(0,p.cutPower/1.8-1);}
 export function breakTool(M,key){const tool=M.tools?.[key];if(!tool)return;M.brokenTools.push(tool);delete M.tools[key];M.inv[key]=0;}
-export function useAxe(M,minutes,wx){
+export function useAxe(M,minutes,wx,contact=null){
   ensureTools(M);if(!M.inv.axe)return;const t=M.tools.axe,p=toolProps(t),edge=t.parts.find(p=>p.kind==='edge'),binding=t.parts.find(p=>p.kind==='binding'),handle=t.parts.find(p=>p.kind==='handle');
   t.wet=clamp(t.wet+(wx.rain||0)*minutes*.0004-minutes*.00015,0,1);
   // Archard abrasion: load * sliding distance / hardness, with an assumed wear coefficient.
-  const volume=.0002*p.force*(.08*.6*60*minutes)/3e9,kg=Math.min(edge.kg,volume*2400);
+  const volume=.0002*(contact?contact.forceN*contact.travelM*contact.strokes:p.force*(.08*.6*60*minutes))/3e9,kg=Math.min(edge.kg,volume*2400);
   edge.kg-=kg;M.toolDustKg+=kg;edge.radius+=volume/Math.max(.000001,edge.width*.01);
-  binding.condition=clamp(binding.condition-Math.max(0,p.impactN/Math.max(.01,p.bindingN)-1)*minutes*.0005,0,1);
-  handle.condition=clamp(handle.condition-Math.max(0,p.impactN/Math.max(.01,p.handleN)-1)*minutes*.0005,0,1);
+  const cycles=contact?contact.strokes/36:minutes,impact=contact?contact.forceN*contact.travelM/.03+35:p.impactN;
+  binding.condition=clamp(binding.condition-Math.max(0,impact/Math.max(.01,p.bindingN)-1)*cycles*.0005,0,1);
+  handle.condition=clamp(handle.condition-Math.max(0,impact/Math.max(.01,p.handleN)-1)*cycles*.0005,0,1);
   M.axeWear=clamp(.0003/edge.radius,0,1);if(binding.condition<=0||handle.condition<=0||edge.kg<.05)breakTool(M,'axe');
 }
 export function useLine(M,minutes,pull=0){

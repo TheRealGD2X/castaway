@@ -23,4 +23,4 @@ export function shoreInit(W) {
 export const exposed = (W, b) => W.wx.tide < -b.depth;
 // minutes until the tide next uncovers a bed this deep (0 if it's showing now), or null within the next 13 hours
 export function lowIn(W, depth) { for (let m = 0; m <= 780; m += 5) if (tideAt(W.t + m) < -depth) return m; return null; }
-export function shoreDay(W) { for (const b of W.shore) { const cap = SHELL[b.k].cap * (.5 + b.depth / 3); b.kg = +Math.min(cap, b.kg + cap * SHELL[b.k].regrow).toFixed(2); } }
+export function shoreDay(W) {} // Food-limited growth now integrates in foodwebTen.

@@ -32,6 +32,10 @@ import { microclimateStep } from './microclimate.js';
 import { reliefInit, reroute,touchRelief } from './geomorph.js';
 import { carriedMass } from './effort.js';
 import { MW, MH, SP } from "../world/gen.js";
+import { foodwebInit, foodwebTen, foodwebSave } from './foodweb.js';
+import { atmosphereInit, atmosphereSave, localWeather, returnEvaporation } from './atmosphere.js';
+import { sensoryStep } from './senses.js';
+import { ensureAnimal } from './animal-body.js';
 
 export function createWorld(seed, born, opt) {
   const W = generate(seed);
@@ -40,11 +44,13 @@ export function createWorld(seed, born, opt) {
   envInit(W); seasonsInit(W); heritageInit(W); ecoInit(W); shoreInit(W); waterInit(W); fishInit(W); hydroInit(W);
   W.fires = []; W.structs = []; W.camp = null;
   biomassInit(W); reliefInit(W);
+  foodwebInit(W);
   // where the trees stand (shade, rain cover, slower walking) and a spatial index of everything rooted in place
   W.treeAt = new Uint8Array(MW * MH); W.grid = Array.from({ length: MW * MH }, () => []);
   for (const e of W.ents) { const i = Math.floor(e.y) * MW + Math.floor(e.x); W.grid[i].push(e); if (SP[e.k] && SP[e.k].kind === "tree") W.treeAt[i] = 1; }
   W.near = (cx, cy, r) => { const out = []; for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(MH - 1, dceil(cy + r)); y++) for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(MW - 1, dceil(cx + r)); x++) for (const e of W.grid[y * MW + x]) if (dsq(e.x - cx) + dsq(e.y - cy) <= r * r) out.push(e); return out; };
   animalsInit(W); shipsInit(W);
+  for(const a of W.animals)ensureAnimal(a);
   W.thoughtQ = thoughtsFrom(opt && opt.thoughts, 0);
   if (!opt || opt.man !== false) arrive(W);
   if(W.man)ensureTools(W.man);
@@ -54,17 +60,19 @@ export function createWorld(seed, born, opt) {
 export function step(W) {
   W.t++;
   envStep(W); seasonsStep(W);
-  const logFrom = W.man?.log.length || 0;
-  if (W.t % 10 === 0) { ecoTen(W); hydroTen(W); waterTen(W); fishTen(W); heritageTen(W); }
+  const logFrom = W.man?.log.length || 0,oldEvap=W.hydro.evap;
+  if (W.t % 10 === 0) { ecoTen(W); hydroTen(W); waterTen(W); foodwebTen(W);fishTen(W); heritageTen(W); }
   if (cal(W.born, W.t).mod === 360) { ecoDay(W); shoreDay(W); animalsDay(W, cal(W.born, W.t).doy); }
+  returnEvaporation(W,W.hydro.evap-oldEvap);
   animalsStep(W); shipsStep(W); shipsWatch(W);
-  for (const F of W.fires) fireStep(F, W.wx);
+  for (const F of W.fires) fireStep(F, localWeather(W,F.x,F.y));
   microclimateStep(W);foodStep(W);
   // the woodpile: wood under its cover dries toward seasoned; uncovered it follows the weather
   if (W.t % 10 === 0) for (const s of W.structs) if (s.k === "woodpile" && s.kg > 0) { const target = (s.props?.dry || 0) > .5 ? .14 : W.litterWet; s.moist = (s.moist ?? .25) + (target - (s.moist ?? .25)) / 300; }
   const M = W.man;
   if (M && M.B.alive) {
     look(W);
+    sensoryStep(W,M);
     applyThoughts(W);
     equipmentStep(W);
     think(W);
@@ -79,7 +87,7 @@ const DYN = ["deadKg", "aut", "fall", "fruit", "n", "shoots", "liveKg", "reserve
 export function save(W) {
   return JSON.stringify({ v: 2, seed: W.seed, born: W.born, t: W.t, rng: W.rng.save(), wx: W.wx, nextId: W.nextId,
     ents: W.ents.map(e => DYN.map(k => e[k] ?? null)), litter: Array.from(W.litter), litterWet: W.litterWet, items: W.items, fires: W.fires, structs: W.structs, camp: W.camp, shore: W.shore.map(b => b.kg), water: W.water, fish: W.fish, animals: W.animals, warrens: W.warrens, runs: W.runs || {}, events: W.events || [], ships: W.ships, nextShip: W.nextShip,
-    surface: W.surface, hydro: hydroSave(W), bio:W.bio,soilN:Array.from(W.soilN),relief:Array.from(W.relief),traces: W.traces, scent: W.scent, story: W.story, storyKeys: W.storyKeys,
+    surface: W.surface, hydro: hydroSave(W), atmosphere:atmosphereSave(W),foodweb:foodwebSave(W),odour:W.odour, bio:W.bio,soilN:Array.from(W.soilN),relief:Array.from(W.relief),traces: W.traces, scent: W.scent, story: W.story, storyKeys: W.storyKeys,
     man: W.man ? Object.assign({}, W.man, { known: Array.from(W.man.known).join("") }) : null });
 }
 export function load(s, thoughts) {
@@ -93,6 +101,8 @@ export function load(s, thoughts) {
   W.surface = o.surface || { ...W.surface, temp: o.wx.temp }; W.traces = o.traces || {}; W.scent = o.scent || {}; W.story = o.story || []; W.storyKeys = o.storyKeys || {};
   hydroLoad(W,o.hydro);
   W.soilN=o.soilN;biomassInit(W,o.bio);reliefInit(W,o.relief);for(let i=0;i<W.relief.length;i++)if(W.relief[i]){reroute(W,i);for(const j of [i-1,i+1,i-W.MW,i+W.MW])if(j>=0&&j<W.relief.length)reroute(W,j);}
+  atmosphereInit(W,o.atmosphere);foodwebInit(W,o.foodweb);for(const a of W.animals)ensureAnimal(a);
+  W.odour=o.odour;
   if(W.hydro.lakeBed)for(const i of W.hydroMap.lake)touchRelief(W,i);
   if (o.man) { W.man = Object.assign(o.man, { known: Uint8Array.from(o.man.known, c => +c) }); }
   // Existing memories are already part of his past; the first future fire or sighting is not his first ever.

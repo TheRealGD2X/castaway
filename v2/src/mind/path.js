@@ -6,11 +6,14 @@ import { T, MW, MH, WATER } from "../world/gen.js";
 // minutes per metre are what matter; these are relative slowness factors (1 = firm grass)
 import { groundCost } from "../sim/seasons.js";
 export const SLOW = { [T.GRASS]: 1, [T.MEADOW]: 1.05, [T.WOOD]: 1.3, [T.SAND]: 1.25, [T.SHINGLE]: 1.5, [T.ROCK]: 1.7, [T.MARSH]: 2.6, [T.STREAM]: 3.2 };
-export const walkable = (W, i) => { const t = W.ter[i]; return !(WATER(t) && t !== T.STREAM) && !(W.block && W.block[i]); };
+export const floodDepth=(W,i)=>W.ter[i]===T.STREAM?(W.hydro?.streamDepth||0):(W.hydro?.pool[i]||0)/4;
+export const walkable = (W, i) => { const t = W.ter[i]; return i>=0&&i<W.ter.length&& !(WATER(t) && t !== T.STREAM) && !(W.block && W.block[i]) && floodDepth(W,i)<.5; };
 const DIRS = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, 1.4142], [-1, 1, 1.4142], [1, -1, 1.4142], [-1, -1, 1.4142]];
 
 export function findPath(W, from, to, opt = {}) {
   const N = MW * MH, goalAdj = !!opt.adjacent;               // adjacent: stop next to the target (a tree, the water)
+  const known=i=>!opt.observed||opt.observed[i],pass=i=>!opt.observed?walkable(W,i):!known(i)||(!(WATER(W.ter[i])&&W.ter[i]!==T.STREAM)&&!W.block?.[i]&&(opt.floodMem?.[i]||0)<.5);
+  const cost=i=>!known(i)?1.25:!opt.observed?(SLOW[W.ter[i]]||1)*groundCost(W,i):(SLOW[W.ter[i]]||1)*(1+Math.min(1.5,(W.surface?.snow||0)*.03)+Math.min(.4,(W.surface?.ice||0)*.035)+Math.min(.5,(opt.floodMem?.[i]||0)*12));
   if (from === to) return [from];
   const g = new Float32Array(N).fill(Infinity), came = new Int32Array(N).fill(-1), closed = new Uint8Array(N);
   const tx = to % MW, ty = (to / MW) | 0, h = i => { const dx = Math.abs(i % MW - tx), dy = Math.abs(((i / MW) | 0) - ty); return (Math.max(dx, dy) + .4142 * Math.min(dx, dy)) * .79; };
@@ -25,10 +28,10 @@ export function findPath(W, from, to, opt = {}) {
     const x = i % MW, y = (i / MW) | 0;
     for (const [dx, dy, dl] of DIRS) {
       const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= MW || ny >= MH) continue;
-      const j = ny * MW + nx; if (closed[j] || !walkable(W, j)) continue;
-      if (dx && dy && (!walkable(W, y * MW + nx) || !walkable(W, ny * MW + x))) continue;   // no squeezing past corners
-      const slope=1+Math.max(0,elevation(W,j)-elevation(W,i))/(dl*2)*1.8;
-      const c = g[i] + dl * slope * ((SLOW[W.ter[i]] || 1) * groundCost(W, i) + (SLOW[W.ter[j]] || 1) * groundCost(W, j)) * .5 + (W.treeAt && W.treeAt[j] ? .6 : 0);
+      const j = ny * MW + nx; if (closed[j] || !pass(j)) continue;
+      if (dx && dy && (!pass(y * MW + nx) || !pass(ny * MW + x))) continue;   // no squeezing past corners
+      const slope=known(i)&&known(j)?1+Math.max(0,elevation(W,j)-elevation(W,i))/(dl*2)*1.8:1;
+      const c = g[i] + dl * slope * (cost(i)+cost(j)) * .5 + (known(j)&&W.treeAt?.[j] ? .6 : 0);
       if (c < g[j]) { g[j] = c; came[j] = i; push(c + h(j), j); }
     }
   }

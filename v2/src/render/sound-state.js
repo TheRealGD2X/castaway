@@ -2,6 +2,8 @@
 import { analyse } from '../build/assembly.js';
 import { elevation } from '../sim/geomorph.js';
 import { shipXY } from '../sim/ships.js';
+import { localWeather } from '../sim/atmosphere.js';
+import { transmission } from '../sim/senses.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const safe = v => Number.isFinite(v) ? Math.max(0, v) : 0;
@@ -23,7 +25,7 @@ function insideFloor(s, x, y) {
 export function acousticState(W, V) {
   const x = Number.isFinite(V.cam.x) ? V.cam.x / 16 : W.cx;
   const y = Number.isFinite(V.cam.y) ? V.cam.y / 16 : W.cy;
-  const wx = W.wx || {}, wind = safe(wx.wind), gust = safe(wx.gust || wind);
+  const wx = localWeather(W,x,y) || {}, wind = safe(wx.wind), gust = safe(wx.gust || wind);
   const dist = (sx, sy) => 2 * Math.hypot(sx - x, sy - y);
   const pan = sx => clamp((sx - x) / 16, -.65, .65);
   let coast = coasts.get(W);
@@ -40,9 +42,8 @@ export function acousticState(W, V) {
   const wave = safe(W.hydro?.wave), shoreGain = 1 / Math.sqrt(1 + shoreDistance / 10);
   const waveEnergy = 1000 * 9.81 * wave * wave / 8;
   const rain = safe(wx.rain) * (1 - clamp((1 - (wx.temp ?? 10)) / 2));
-  let leaves = 0;
-  for (const e of W.ents || []) if (e.leafKg > 0) leaves += Math.min(1, e.leafKg / 8) * distanceGain(dist(e.x, e.y), 3) ** 2;
-  leaves = clamp(leaves / 6);
+  let leafPower = 0;
+  for (const e of W.ents || []) if (e.leafKg > 0) leafPower += .5*1.2*safe(localWeather(W,e.x,e.y).wind)**3*Math.min(1, e.leafKg / 8) * distanceGain(dist(e.x, e.y), 3) ** 2/6;
   let streamGain = 0, streamPan = 0, streamDrop = 0;
   for (const i of W.stream || []) {
     const sx = i % W.MW + .5, sy = Math.floor(i / W.MW) + .5, g = distanceGain(dist(sx, sy), 4);
@@ -63,27 +64,31 @@ export function acousticState(W, V) {
   }
   for (const s of W.structs || []) {
     const d = dist(s.x, s.y), g = distanceGain(d, 3);
+    const sourceWx=localWeather(W,s.x,s.y),sourceRain=safe(sourceWx.rain)*(1-clamp((1-(sourceWx.temp??10))/2));
     if (s.assembly?.habitat && insideFloor(s, x, y)) shelter = Math.max(shelter, clamp(s.props?.indoorFire || 0));
     for (const geom of s.assembly ? analyse(s).panels : []) {
       const p = geom.p;
       if (geom.z < .35 || geom.normal < .1 || geom.f <= 0) continue;
-      const power = rainPower(rain, geom.projected * geom.f) * g * g;
+      const power = rainPower(sourceRain, geom.projected * geom.f) * g * g;
       roofPower += power; roofPan += power * pan(s.x);
       softRoof += power * (['reeds', 'bracken', 'boughs', 'debris'].includes(p.mat) ? 1 : .15);
     }
   }
   const outdoor = 1 - shelter * .7;
+  const work=W.man?.workContact,active=work?.t===W.t&&W.man?.act?.st.phase!=='go',workGain=active?distanceGain(dist(work.x,work.y),2)*transmission(W,{x,y},work,true):0;
   return {
     // Source energy maps to a gentle listening range, not calibrated dB SPL.
     sea: quiet(waveEnergy, 250, .23) * shoreGain * outdoor, seaPan: pan(shoreX), wave,
     wind: quiet(.5 * 1.2 * wind ** 3, 300, .055) * outdoor,
-    leaves: quiet(.5 * 1.2 * wind ** 3, 300, .09) * leaves * outdoor, gust: clamp(gust / Math.max(1, wind), 1, 2),
+    leaves: quiet(leafPower, 300, .09) * outdoor, gust: clamp(gust / Math.max(1, wind), 1, 2),
     rain: quiet(rainPower(rain, 4), .04, .12) * outdoor, rainRate: rain,
     roof: quiet(roofPower, .03, .10), roofPan: roofPower ? roofPan / roofPower : 0,
     roofSoft: roofPower ? softRoof / roofPower : 1,
     stream: quiet(streamPower, 8, .13) * streamGain * outdoor, streamPan, flow,
     fire: quiet(firePower, 3000, .13), firePan: firePower ? firePan / firePower : 0,
     fireMoisture: firePower ? moisture / firePower : 0, muffling: shelter,
+    work:active?quiet(work.fractureJ/60,.6,.035)*workGain:0,workPan:active?pan(work.x):0,workHz:active?work.frequency:0,
+    voices:(W.animals||[]).filter(a=>a.call?.t===W.t&&!a.dead).map(a=>({id:a.id,t:a.call.t,hz:a.call.hz,duration:a.call.duration,gain:Math.min(.018,Math.sqrt(a.call.energyJ*.001))*distanceGain(dist(a.x,a.y),2)*transmission(W,{x,y},a,true),pan:pan(a.x)})),
     horns: (W.ships || []).filter(sh => sh.horn === W.t && sh.horn > 0).map(sh => {
       const p = shipXY(W, sh), sx = W.cx + p.x / 2, sy = W.cy + p.y / 2;
       return { id: sh.id, gain: .045 * distanceGain(dist(sx, sy), 180) * outdoor, pan: pan(sx) };

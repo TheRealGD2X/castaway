@@ -4,6 +4,7 @@ import { T, WATER } from '../world/gen.js';
 import { hash3 } from '../core/rng.js';
 import { canvas } from './pix.js';
 import { tree } from './sprites.js';
+import { localWeather } from '../sim/atmosphere.js';
 const LUT=new Float32Array(4096),TURN=4096/(Math.PI*2);
 for(let i=0;i<LUT.length;i++)LUT[i]=Math.sin(i/TURN);
 const sin=p=>LUT[(p|0)&4095],clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -20,7 +21,7 @@ export function createWaterRenderer(terr,W) {
   const resize=V=>{if(V.aw===oldW&&V.ah===oldH&&V.raster===oldRaster)return;oldW=V.aw;oldH=V.ah;oldRaster=V.raster;
     cv=canvas(V.aw+1,V.ah+1);cg=cv.getContext('2d');im=cg.createImageData(cv.width,cv.height);ref=canvas(V.aw*V.raster,V.ah*V.raster);rg=ref.getContext('2d');rg.imageSmoothingEnabled=false;rg.setTransform(V.raster,0,0,V.raster,0,0);};
   function draw(g,V,W,now,sx,sy) {
-    resize(V);const h=W.hydro||{},t=now/1000,x=W.wx,D=im.data;D.fill(0);
+    resize(V);const h=W.hydro||{},t=now/1000,x=localWeather(W,V.cam.x/16,V.cam.y/16),D=im.data;D.fill(0);
     const wave=h.wave??.1,sun=clamp((x.sun||0)/450,0,1),period=.72/(1+wave*.2),time=t*TURN;
     const dir=x.windDir*Math.PI/4,dx=Math.cos(dir)*.11,dy=Math.sin(dir)*.11,wind=Math.min(1,x.wind/14);
     const tide=x.tide*.9,streamWidth=(Math.sqrt(Math.max(.001,h.streamDepth??.14)/.14)-1)*2.8,lakeWidth=((h.lakeDepth??.65)-.65)*6;
@@ -33,6 +34,8 @@ export function createWaterRenderer(terr,W) {
       for(let xx=0;xx<cv.width;xx++){
         const wx=Math.floor(sx+xx),outside=wx<0||wx>=PW||wy<0||wy>=PH;
         const i=row+clamp(wx,0,PW-1),m=outside?T.DEEP:mat[i],water=WATER(m),kind=water?m:nearest[i],sea=kind<=1;
+        const poolTile=tileRow+Math.floor(wx/16),pool=(h.pool?.[poolTile]||0)/4;
+        if(!water&&pool>.005&&W.ter[poolTile]>1){const o=(y*cv.width+xx)*4;D[o]=66;D[o+1]=116;D[o+2]=110;D[o+3]=Math.min(200,35+pool*700);continue;}
         if(!water&&(landDistance[i]>7||m===T.ROCK))continue;
         if(stride>1&&water&&(outside||wd[i]>stride*3)){
           const o=(y*cv.width+xx)*4;

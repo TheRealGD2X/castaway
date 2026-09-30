@@ -14,7 +14,7 @@ import { cal } from "../core/time.js";
 import { here, walk, goTo } from "../sim/man.js";
 import { MW, MH, idx } from "../world/gen.js";
 import { intent } from "../sim/mindlink.js";
-import { dround, dhypot, clamp } from "../core/dmath.js";
+import { dround, dhypot, clamp,dsin,dcos,TAU } from "../core/dmath.js";
 import { craftGoals, salvageActions, RECIPES } from "./crafts.js";
 import { estimateCost, learnCost } from './experience.js';
 import { forecastAir } from '../sim/microclimate.js';
@@ -110,7 +110,7 @@ function goals(W, M) {
   const f = feel(M.B), S = situation(W, M), G = [], x = W.wx, C = cal(W.born, W.t);
   const toDusk = x.elev > -.05 ? minutesToDusk(W) : 0;
   if (f.thirst > .3) G.push({ k: "water", vars: ["watered"], want: S => S.watered, v: 50 + f.thirst * 70, why: f.thirst > .7 ? "Parched" : "Thirsty" });
-  if ((f.hunger > .5 || f.starving > .1) && (S.food > 100 || knowsFood(M) || S.line || W.structs.some(s=>s.stock>150) || W.items.some(it=>it.k==="quarry"))) G.push({ k: "food", vars: ["fed"], want: S => S.fed, v: 30 + f.hunger * 55 + f.starving * 500 + intent(W, M, "food"), why: f.starving > .5 ? "Running out of strength; he needs food to keep warm" : f.hunger > .85 ? "Weak with hunger" : "Hungry" });
+  if ((f.hunger > .5 || f.starving > .1) && (S.food > 1 || S.raw > 1 || knowsFood(M) || S.line || W.structs.some(s=>s.stock>150) || W.items.some(it=>it.k==="quarry"))) G.push({ k: "food", vars: ["fed"], want: S => S.fed, v: 30 + f.hunger * 55 + f.starving * 500 + intent(W, M, "food"), why: f.starving > .5 ? "Running out of strength; he needs food to keep warm" : f.hunger > .85 ? "Weak with hunger" : "Hungry" });
   if ((M.B.core < 36.4 || (M.B.wet > .5 && x.temp < 12)) && (S.fire === 2 || S.cover)) {
     const target = ACTIONS.warmUp.find(W, M);
     if (target) {
@@ -174,7 +174,7 @@ function minutesToDusk(W) { for (let m = 0; m < 900; m += 10) { const ms = W.bor
 import { sunAt } from "../sim/env.js";
 const sunElev = ms => sunAt(ms).elev;
 const knowsWater = (W, M) => { for (let i = 0; i < MW * MH; i++) if (M.known[i] && (W.ter[i] === 7 || W.ter[i] === 9)) return true; return false; };
-const knowsFood = M => (M.inv.raw || 0) > 100 || (M.inv.food || 0) > 100 || Object.values(M.mem).some(m => ((m.k === "bramble" || m.k === "hazel") && m.fruit > .15) || ((m.k === "mussels" || m.k === "cockles") && m.kg > 1));
+const knowsFood = M => (M.inv.raw || 0) > 1 || (M.inv.food || 0) > 1 || Object.values(M.mem).some(m => ((m.k === "bramble" || m.k === "hazel") && m.fruit > .15) || ((m.k === "mussels" || m.k === "cockles") && m.kg > 1));
 
 // the actions that can matter to a goal: those that change its variables, then (transitively) those that change
 // what those actions need. Everything else (picking berries while planning a fire) is left out of the search.
@@ -232,12 +232,13 @@ export function plan(W, M, goal, S0) {
 // explore: walk toward the nearest edge of what he knows, preferring the direction he hasn't been
 function exploreStep(W, M) {
   const cx = Math.floor(M.x), cy = Math.floor(M.y); let best = -1, bd = 1e9;
+  const heard=M.senses?.heard.at(-1),curious=heard&&W.t-heard.t<20&&W.t-(M.senses.lastInvestigated||-1000)>30;
   for (let y = 1; y < MH - 1; y++) for (let x = 1; x < MW - 1; x++) {
     const i = y * MW + x; if (!M.known[i] || W.ter[i] <= 1 || W.ter[i] === 7 || (M.noReach && M.noReach[i])) continue;
     if (M.known[i - 1] && M.known[i + 1] && M.known[i - MW] && M.known[i + MW]) continue;   // not a frontier
-    const d = dhypot(x - cx, y - cy); if (d < 4) continue; if (d < bd) { bd = d; best = i; }
+    const d = dhypot(x - cx, y - cy); if (d < 4) continue;const bearing=curious?((x-cx)*dcos(heard.bearing*TAU/8)+(y-cy)*dsin(heard.bearing*TAU/8))/d:0,score=d/(1+Math.max(0,bearing)*(heard?.confidence||0));if(score<bd){bd=score;best=i;}
   }
-  return best;
+  if(curious&&best>=0)M.senses.lastInvestigated=W.t;return best;
 }
 // once a minute: carry on with the current action, or think again
 export function think(W) {
@@ -277,7 +278,8 @@ export function think(W) {
   if (!M.act) return;
   if(M.act.prior==null){M.act.prior=M.act.expected||0;M.act.expected=estimateCost(M,M.act.a,M.act.prior);M.act.resumed=(M.workpieces?.[RECIPES[M.act.a]?.out]?.progress||0)>0;}
   const A = ACTIONS[M.act.a] || (M.act.a.startsWith("build_") ? { exec: (W, M, t, st) => { if (t.d) { const n = place(W, t.d); if (W.camp == null && FAMILIES[n.k].shelter) W.camp = idx(Math.floor(n.x + DIRV[n.dir][0]), Math.floor(n.y + DIRV[n.dir][1])); t.sid = n.id; delete t.d; M.projCache = null; } return buildExec(W, M, t, st); } } : null);
-  const r = M.act.a === "explore" ? exploreExec(W, M, M.act.t, M.act.st) : M.act.a.startsWith('salvage_')?ACTIONS.salvagePart.exec(W,M,M.act.t,M.act.st):A ? A.exec(W, M, M.act.t, M.act.st) : "fail";
+  let r = M.act.a === "explore" ? exploreExec(W, M, M.act.t, M.act.st) : M.act.a.startsWith('salvage_')?ACTIONS.salvagePart.exec(W,M,M.act.t,M.act.st):A ? A.exec(W, M, M.act.t, M.act.st) : "fail";
+  if(M.movementFailed){M.movementFailed=false;r='fail';}
   if ((r === "done" || r === "fail") && FOOD_WORK.has(M.act.a) && M.act.supply != null) {
     const got = Math.max(0, (M.inv.raw || 0) + (M.inv.food || 0) - M.act.supply), elapsed = Math.max(1, W.t - M.act.begun);
     M.yields ||= {}; const old = M.yields[M.act.a];

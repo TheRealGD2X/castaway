@@ -1,6 +1,7 @@
 // Individual lots: kcal, dry kg, water kg, core Celsius and organisms/kcal.
 // Coefficients are declared approximations, not a food-safety certification.
 import { dexp, clamp, dcbrt } from '../core/dmath.js';
+import { localWeather } from './atmosphere.js';
 export const foodMass=b=>b.dryKg+b.waterKg+(b.shellKg||0);
 export const waterActivity=b=>b.waterKg/Math.max(.000001,b.waterKg+b.dryKg*.22);
 const batchOrder=(a,b)=>(a.born+(a.decay||0)*14400)-(b.born+(b.decay||0)*14400)||a.id-b.id;
@@ -43,8 +44,8 @@ export function foodRate(b,airT,hum,dt=1){
   const fraction=1-dexp(-.000006*warm*aw*dt),rot=b.dryKg*fraction;b.dryKg-=rot;b.kcal*=1-fraction;b.decay=1-(1-(b.decay||0))*(1-fraction);
   return rot;
 }
-export function foodStep(W){const M=W.man;if(!M)return;ensureFood(W);const indoor=W.structs.find(s=>s.climate&&Math.abs(s.x-M.x)<.95&&Math.abs(s.y-M.y)<.95)?.climate;M.foodTime=W.t;M.foodAmbient=indoor?.airT??W.wx.temp;M.foodRespiredKg??=0;for(const b of M.foodBatches)M.foodRespiredKg+=foodRate(b,M.foodAmbient,indoor?.hum??W.wx.hum);for(const s of W.structs){if(s.foodBatches){for(const b of s.foodBatches)M.foodRespiredKg+=foodRate(b,s.climate?.airT??W.wx.temp,W.wx.hum);syncStore(s);}if(s.catchBatch)M.foodRespiredKg+=foodRate(s.catchBatch,W.wx.temp,W.wx.hum);}
-  for(const it of W.items)if(it.foodBatches){const i=Math.floor(it.y)*W.MW+Math.floor(it.x);for(const b of it.foodBatches){const rot=foodRate(b,W.wx.temp,W.wx.hum);M.foodRespiredKg+=rot;W.soilN[i]+=rot*.01;W.bio.recycledN=(W.bio.recycledN||0)+rot*.01;}it.kcal=it.foodBatches.reduce((v,b)=>v+b.kcal,0);}syncFood(M);}
+export function foodStep(W){const M=W.man;if(!M)return;ensureFood(W);const wx=localWeather(W,M.x,M.y),indoor=W.structs.find(s=>s.climate&&Math.abs(s.x-M.x)<.95&&Math.abs(s.y-M.y)<.95)?.climate;M.foodTime=W.t;M.foodAmbient=indoor?.airT??wx.temp;M.foodRespiredKg??=0;for(const b of M.foodBatches)M.foodRespiredKg+=foodRate(b,M.foodAmbient,indoor?.hum??wx.hum);for(const s of W.structs){const w=localWeather(W,s.x,s.y);if(s.foodBatches){for(const b of s.foodBatches)M.foodRespiredKg+=foodRate(b,s.climate?.airT??w.temp,s.climate?.hum??w.hum);syncStore(s);}if(s.catchBatch)M.foodRespiredKg+=foodRate(s.catchBatch,w.temp,w.hum);}
+  for(const it of W.items)if(it.foodBatches){const i=Math.floor(it.y)*W.MW+Math.floor(it.x),w=localWeather(W,it.x,it.y);for(const b of it.foodBatches){const rot=foodRate(b,w.temp,w.hum);M.foodRespiredKg+=rot;W.soilN[i]+=rot*.01;W.bio.recycledN=(W.bio.recycledN||0)+rot*.01;}it.kcal=it.foodBatches.reduce((v,b)=>v+b.kcal,0);}syncFood(M);}
 export function caughtBatch(W,kcal=1100){const b=newBatch(W.man||{},kcal,W.water.stream*.01,'rabbit',true);b.born=W.t;b.temp=W.wx.temp;return b;}
 // Food receives a finite share of emitted fire heat. Thick, heavy portions heat more slowly.
 export function heatFood(M,F,dry=false,dt=1){const emitted=Math.max(0,F.heat)*.08*dt*60,batches=M.foodBatches.filter(b=>b.raw),areas=batches.map(b=>dcbrt(foodMass(b)*foodMass(b))),totalArea=areas.reduce((v,a)=>v+a,0);

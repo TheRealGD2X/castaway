@@ -1,5 +1,6 @@
 // Useful equipment, made from gathered materials. Planning and execution use the same recipes.
 import { addBatch, heatFood, finishFood, moveFood, syncFood } from '../sim/food.js';
+import { harvestFish } from '../sim/foodweb.js';
 import {workRate} from '../sim/effort.js';
 import {ensureTools,makeTool,useLine,toolProps} from '../sim/tools.js';
 import { MET } from '../sim/body.js';
@@ -48,7 +49,7 @@ export function craftActions(work) {
         const bench = W.structs.find(s => (s.props?.bench||0)>.2 && Math.abs(s.x-M.x) < 2 && Math.abs(s.y-M.y) < 2);
         const room = W.structs.find(s => (s.props?.workspace || 0) > .5 && Math.abs(s.x-M.x) < 1 && Math.abs(s.y-M.y) < 1);
         const rain = W.wx.rain * (1-Math.max(room?.props.rain||0,bench?.props.dry||0));
-        piece.progress += workRate(W,M) / (1 + rain * .08); st.left = Math.max(1, r.mins - piece.progress + 1);
+        piece.progress += (M.contactRate??workRate(W,M)) / (1 + rain * .08); st.left = Math.max(1, r.mins - piece.progress + 1);
         M.skill.build += .0006;
         if(piece.progress>=r.mins)return 'done';
       }, done: (W,M) => {
@@ -86,7 +87,7 @@ export function craftActions(work) {
       if(W.rng.f()<Math.min(.08, density * .05 * (.7+M.skill.forage*.1))&&population>=1) {
         const pull=.3+W.rng.f()*.55;
         if(!useLine(M,0,pull*30)){M.inv.line=0;M.say='The cord parted under the pull.';return 'fail';}
-        fish[water]=Math.max(0,fish[water]-1);
+        harvestFish(W,water);
         addBatch(M,FISH.kcal,W.water.stream*.004,'fish',true);M.skill.forage+=.04;M.log.push([W.t,'caught fish']);
       }
       useLine(M,1);
@@ -103,7 +104,7 @@ export function craftActions(work) {
   A.repairPart={r:[],w:['repaired'],find:()=>null,pre:()=>false,eff:()=>{},cost:()=>1,
     exec:work({adjacent:true,mins:120,met:MET.build,pose:'build',tick:(W,M,t,st)=>{
       const s=W.structs.find(s=>s.id===t.sid),p=s?.assembly.parts.find(p=>p.id===t.pid);if(!s||!p)return 'fail';
-      const piece=startRepair(s,p.id,M.inv);if(!piece)return 'fail';piece.progress+=(.8+Math.min(.6,M.skill.build*.3))*workRate(W,M);st.left=Math.max(1,12+p.amount*6-piece.progress+1);M.skill.build+=.0012;if(piece.progress>=12+p.amount*6)return 'done';
+      const piece=startRepair(s,p.id,M.inv);if(!piece)return 'fail';piece.progress+=(.8+Math.min(.6,M.skill.build*.3))*(M.contactRate??workRate(W,M));st.left=Math.max(1,12+p.amount*6-piece.progress+1);M.skill.build+=.0012;if(piece.progress>=12+p.amount*6)return 'done';
     },done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid);if(!s||!finishRepair(s,t.pid,M.inv))return 'fail';M.log.push([W.t,'repaired',s.k]);M.projCache=null;}})};
   A.salvagePart={r:[],w:[],find:()=>null,pre:()=>false,eff:()=>{},cost:()=>1,
     exec:work({adjacent:true,mins:18,met:MET.craft,pose:'build',done:(W,M,t)=>{const s=W.structs.find(s=>s.id===t.sid),got=s&&reclaimPart(s,t.pid);if(!got)return 'fail';M.inv[got.mat]=(M.inv[got.mat]||0)+got.amount;M.log.push([W.t,'salvaged',got.mat]);M.projCache=null;}})};

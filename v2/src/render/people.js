@@ -46,6 +46,7 @@ for (const k in ANIM) {
 export function manSprite(pose, t, M, W, position) {
   const mood = M?.B.ill > .2 ? 'ill' : M?.B.fatigue > .7 || M?.B.sleepP > .8 ? 'tired' : 'calm';
   const spec={...(ANIM[pose]||ANIM.stand),...workPose(W,M,position),mood};
-  spec.key=pose+JSON.stringify([spec.work?.map(n=>Math.round(n*3)/3),spec.stance,spec.tool,spec.two,Math.round((spec.toolLength||0)*100),Math.round((spec.loadKg||0)*2)/2,spec.carry,spec.lineEnd?.map(n=>Math.round(n)),spec.workpiece?.kind,Math.floor((spec.workpiece?.progress||0)*12)]);
+  if(M?.workContact?.t===W?.t&&M.workContact.pose===pose&&M.workContact.frequency>0){spec.period=1000/M.workContact.frequency;spec.frames=motionFrames(spec.period);}
+  spec.key=pose+JSON.stringify([spec.work?.map(n=>Math.round(n*3)/3),spec.stance,spec.tool,spec.two,Math.round((spec.toolLength||0)*100),Math.round((spec.loadKg||0)*2)/2,spec.carry,spec.lineEnd?.map(n=>Math.round(n)),spec.workpiece?.kind,Math.floor((spec.workpiece?.progress||0)*12),Math.round(spec.period/100)]);
   return rigSprite(spec,t);
 }

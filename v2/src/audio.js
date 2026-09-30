@@ -61,6 +61,7 @@ export function audioUpdate(W, V) {
   lastUpdate = t;
   const state = acousticState(W, V);
   field.port.postMessage({ state, seed: W.seed });
+  for(const voice of state.voices||[]){const key=`voice:${W.seed}:${voice.id}:${voice.t}`;if(!seenHorns.has(key)){seenHorns.add(key);field.port.postMessage({voice});}}
   for (const sh of W.ships || []) {
     const key = `${W.seed}:${sh.id}:${sh.horn}`;
     if (!sh.horn || seenHorns.has(key)) continue;

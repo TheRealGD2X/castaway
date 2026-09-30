@@ -11,6 +11,9 @@ import { footfall } from "./heritage.js";
 import { shelterAt } from "../build/build.js";
 import { climateAtHome } from './microclimate.js';
 import { loadFactor, effortMet } from './effort.js';
+import { visible } from './senses.js';
+import { localWeather } from './atmosphere.js';
+import { walkable, floodDepth } from '../mind/path.js';
 import { elevation } from './geomorph.js';
 
 export function arrive(W) {
@@ -24,7 +27,7 @@ export function arrive(W) {
 export const here = M => idx(Math.floor(M.x), Math.floor(M.y));
 // how far he can see: daylight, fog, and trees close in around him
 export function sightRange(W, M) {
-  const x = W.wx, day = x.elev > .05 ? 1 : x.elev > -.1 ? .6 : .32, fog = 1 - x.fog * .75;
+  const x = localWeather(W,M.x,M.y), day = x.elev > .05 ? 1 : x.elev > -.1 ? .6 : .32, fog = 1 - x.fog * .75;
   const inWood = W.ter[here(M)] === T.WOOD ? .65 : 1;
   return Math.max(2.5, 11 * day * fog * inWood);
 }
@@ -33,28 +36,30 @@ export function look(W) {
   const M = W.man, r = sightRange(W, M), r2 = r * r, cx = M.x, cy = M.y;
   for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(MH - 1, dceil(cy + r)); y++)
     for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(MW - 1, dceil(cx + r)); x++)
-      if (dsq(x + .5 - cx) + dsq(y + .5 - cy) <= r2) M.known[y * MW + x] = 1;
-  const seen = (k, o) => { M.mem[k] = Object.assign(M.mem[k] || {}, o, { t: W.t }); };
+      if (dsq(x + .5 - cx) + dsq(y + .5 - cy) <= r2 && (!M.known[y*MW+x]||floodDepth(W,y*MW+x)>=.5) && visible(W,M,{x:x+.5,y:y+.5})){const i=y*MW+x;M.known[i]=1;if(floodDepth(W,i)>=.5)(M.floodMem||={})[i]=floodDepth(W,i);}
+  for(const k in M.floodMem||{}){const i=+k,p={x:i%MW+.5,y:Math.floor(i/MW)+.5};if(dsq(p.x-cx)+dsq(p.y-cy)<=r2&&visible(W,M,p)){const depth=floodDepth(W,i);if(depth<.5)delete M.floodMem[k];else M.floodMem[k]=depth;}}
+  const seen = (k, o) => { const m=M.mem[k]||(M.mem[k]={});Object.assign(m,o);m.t=W.t;m.confidence=1; };
   for (const e of W.near(cx, cy, r)) {
+    if(!visible(W,M,e))continue;
     if (e.fruit != null) seen("e" + e.id, { k: e.k, x: e.x, y: e.y, fruit: e.fruit, shoots: e.shoots });
     else if (e.deadKg != null) seen("e" + e.id, { k: e.k, x: e.x, y: e.y, deadKg: e.deadKg, shoots: e.shoots, leafKg:e.leafKg });
     else if (e.k === "flint" || e.k === "fern" || e.k === "boulder" || e.k === "stones" || e.k === "reeds") seen("e" + e.id, { k: e.k, x: e.x, y: e.y, n: e.n ?? 1 });
   }
-  for (const it of W.items) if (dsq(it.x - cx) + dsq(it.y - cy) <= r2) seen("i" + it.id, { k: it.k, x: it.x, y: it.y, kg: it.kg, moist: it.moist });
-  for (const k in M.mem) if (k[0] === "i" && !W.items.some(it => "i" + it.id === k)) { const m = M.mem[k]; if (dsq(m.x - cx) + dsq(m.y - cy) <= r2) delete M.mem[k]; }   // gone (he sees it isn't there)
+  for (const it of W.items) if (dsq(it.x - cx) + dsq(it.y - cy) <= r2 && visible(W,M,it)) seen("i" + it.id, { k: it.k, x: it.x, y: it.y, kg: it.kg, moist: it.moist });
+  for (const k in M.mem) if (k[0] === "i" && !W.items.some(it => "i" + it.id === k)) { const m = M.mem[k]; if (dsq(m.x - cx) + dsq(m.y - cy) <= r2 && visible(W,M,m)) delete M.mem[k]; }   // gone (he sees it isn't there)
   // the shore: beds he can see when the tide has uncovered them (and how deep they lie, so when they'll show again)
-  for (const b of W.shore) if (dsq(b.x - cx) + dsq(b.y - cy) <= r2 && W.wx.tide < -b.depth) seen("s" + b.id, { k: b.k, x: b.x, y: b.y, kg: b.kg, depth: b.depth, tile: b.tile });
+  for (const b of W.shore) if (dsq(b.x - cx) + dsq(b.y - cy) <= r2 && W.wx.tide < -b.depth && visible(W,M,b)) seen("s" + b.id, { k: b.k, x: b.x, y: b.y, kg: b.kg, depth: b.depth, tile: b.tile });
   // animals: the dog (where it was, how it seemed), rabbits by their warren (so he knows where they run)
   for (const a of W.animals) {
-    if (dsq(a.x - cx) + dsq(a.y - cy) > r2 || a.adrift || a.dead) continue;
+    if (dsq(a.x - cx) + dsq(a.y - cy) > r2 || a.adrift || a.dead || !visible(W,M,a)) continue;
     if (a.sp === "dog") seen("dog", { k: "dog", x: a.x, y: a.y, trust: a.trust, name: a.name, thin: a.E < .3 ? 1 : 0 });
     else if (a.sp === "rabbit" && !a.under) seen("warren" + a.home, { k: "warren", x: W.warrens[a.home].x, y: W.warrens[a.home].y, home: a.home });
   }
-  for (const f of W.fires) if (dsq(f.x - cx) + dsq(f.y - cy) <= r2) seen("fire" + f.id, { k: "fire", x: f.x, y: f.y, lit: f.lit, embers: f.embers, fuelKg: (f.fuel.logs[1] < .35 ? f.fuel.logs[0] : 0) + (f.fuel.kindling[1] < .35 ? f.fuel.kindling[0] : 0), tinder: f.fuel.tinder[1] < .3 ? f.fuel.tinder[0] : 0 });   // damp tinder is no tinder
+  for (const f of W.fires) if (dsq(f.x - cx) + dsq(f.y - cy) <= r2 && visible(W,M,f)) seen("fire" + f.id, { k: "fire", x: f.x, y: f.y, lit: f.lit, embers: f.embers, fuelKg: (f.fuel.logs[1] < .35 ? f.fuel.logs[0] : 0) + (f.fuel.kindling[1] < .35 ? f.fuel.kindling[0] : 0), tinder: f.fuel.tinder[1] < .3 ? f.fuel.tinder[0] : 0 });   // damp tinder is no tinder
 }
 // the conditions his body is in this minute (shelter he stands in, the fire beside him, the weather)
 export function bodyContext(W, M, met) {
-  const x = W.wx, i = here(M), sh = shelterAt(W, M.x, M.y);
+  const x = localWeather(W,M.x,M.y), i = here(M), sh = shelterAt(W, M.x, M.y);
   const indoor=climateAtHome(W,M.x,M.y);met=effortMet(W,M,met);
   // standing under a big tree keeps some rain off and some wind
   const underTree = W.treeAt && W.treeAt[i] ? .45 : 0;
@@ -62,8 +67,8 @@ export function bodyContext(W, M, met) {
   for (const f of W.fires) { const d = dhypot(f.x - M.x, f.y - M.y) * 2; if (d < 8) fireW += radiantAt(f, d); }
   fireW *= sh.fire * (1 + sh.reflect);
   // a dog asleep against him is a hot-water bottle (a dog's body gives off about 50 W; he gets some of it)
-  if (M.B.asleep) for (const a of W.animals) if (a.sp === "dog" && a.curled) fireW += 22;                    // a debris hut shuts the fire out; a reflector wall throws it back in
-  return { met, airT: indoor?.airT??x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: liquidRain(W), blanket: M.inv.wrap ? .35 * (1 - (M.wrapWet || 0) * .6) : 0, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: indoor?.hum??x.hum, fireW, lying: M.B.asleep || M.pose === "lie", bedding: sh.bed, groundT: indoor?.wallT??W.surface?.temp, sleepQ: 1 };
+  for (const a of W.animals) if (a.sp === "dog" && a.curled && !a.dead) fireW += a.contactHeatW||0;
+  return { met, airT: indoor?.airT??x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: x.rain*(1-Math.max(0,Math.min(1,(1-x.temp)/2))), blanket: M.inv.wrap ? .35 * (1 - (M.wrapWet || 0) * .6) : 0, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: indoor?.hum??x.hum, fireW, lying: M.B.asleep || M.pose === "lie", bedding: sh.bed, groundT: indoor?.wallT??W.surface?.temp, sleepQ: 1 };
 }
 // walk along the path: real speed (about 1.2 m/s on firm grass), slower on rough ground, when tired or cold
 export function walk(W, M, minutes = 1) {
@@ -72,6 +77,7 @@ export function walk(W, M, minutes = 1) {
   let budget = 72 * minutes * tired / loadFactor(M);M.walkedM=0;M.climbedM=0;
   while (budget > 0 && M.path.length > 1) {
     const a = M.path[0], b = M.path[1], bx = b % MW + .5, by = ((b / MW) | 0) + .5;
+    if(!walkable(W,b)){M.blockedTile=b;M.movementFailed=true;M.known[b]=1;if(floodDepth(W,b)>=.5)(M.floodMem||={})[b]=floodDepth(W,b);M.path=null;return false;}
     const dx = bx - M.x, dy = by - M.y, metres=dhypot(dx,dy)*2,full=dhypot(b%MW-a%MW,Math.floor(b/MW)-Math.floor(a/MW))*2;
     const rise=(elevation(W,b)-elevation(W,a))*Math.min(1,metres/Math.max(.001,full)),slope=1+Math.max(0,rise)/Math.max(.2,metres)*1.8;
     const dist = metres * (SLOW[W.ter[b]] || 1) * groundCost(W, b)*slope,share=Math.min(1,budget/Math.max(.000001,dist));M.walkedM+=metres*share;M.climbedM+=Math.max(0,rise)*share;
@@ -80,10 +86,10 @@ export function walk(W, M, minutes = 1) {
     if (Math.abs(dx) > .01) M.face = dx > 0 ? 1 : -1;
   }
   if (M.trail) M.trail.push([M.x, M.y]);                      // the way he went this minute, for drawing him walking it
-  if (M.path.length < 2) { M.path = null; return true; }
+  if (!M.path || M.path.length < 2) { M.path = null; return true; }
   return false;
 }
 export function goTo(W, M, targetTile, adjacent) {
-  const p = findPath(W, here(M), targetTile, { adjacent });
+  const p = findPath(W, here(M), targetTile, { adjacent,observed:M.known,floodMem:M.floodMem });
   M.path = p; return !!p;
 }
