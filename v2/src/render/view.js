@@ -1,5 +1,5 @@
 // The camera and the frame: terrain, then everything standing on it sorted by depth, then the light of the hour.
-// Integer zoom (device pixels per art pixel) keeps every pixel crisp; the crown of each tree sways by whole pixels.
+// Integer art zoom stays crisp; a finer presentation grid allows gentle motion between art-pixel positions.
 import { jointedDog } from "./dogrig.js";
 import { drawGroundLife } from "./groundlife.js";
 import { TS } from "./terrain.js";
@@ -25,14 +25,18 @@ function shipSprite(k) {
 export function createView(cv, world, terr) {
   const g = cv.getContext("2d", { alpha: false });
   const V = { cam: { x: world.cx * TS, y: world.cy * TS }, k: 0, aw: 0, ah: 0 };
+  let lastDraw = null;
+  const canopyAlpha = new Map();
   V.resize = () => {
     const dpr = window.devicePixelRatio || 1;
     if (!V.k) V.k = Math.max(3, Math.round(dpr * 3));
     const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
     V.aw = Math.ceil(W / V.k); V.ah = Math.ceil(H / V.k);
-    cv.width = V.aw; cv.height = V.ah;
+    V.raster = Math.min(3, V.k);
+    cv.width = V.aw * V.raster; cv.height = V.ah * V.raster;
     cv.style.width = (V.aw * V.k / dpr) + "px"; cv.style.height = (V.ah * V.k / dpr) + "px";
     g.imageSmoothingEnabled = false;
+    g.setTransform(V.raster, 0, 0, V.raster, 0, 0);
   };
   V.zoom = (dir, fx, fy) => {                          // zoom by whole steps around a screen point
     const dpr = window.devicePixelRatio || 1, lv = [2, 3, 4, 5, 6, 8, 10, 12].map(v => Math.max(1, Math.round(v * dpr / 3 * 1.5))).filter((v, i, a) => a.indexOf(v) === i);
@@ -43,10 +47,13 @@ export function createView(cv, world, terr) {
     V.cam.x = ax - (fx * dpr / V.k - V.aw / 2); V.cam.y = ay - (fy * dpr / V.k - V.ah / 2);
   };
   let ents = world.ents;                               // sorted by y
-  V.world = w => { world = w; ents = w.ents; };        // a fresh copy of the island (resynced from a checkpoint)
+  V.world = w => { world = w; ents = w.ents; canopyAlpha.clear(); }; // a fresh copy of the island
   const firstRow = y => { let lo = 0, hi = ents.length; while (lo < hi) { const m = (lo + hi) >> 1; if (ents[m].y < y) lo = m + 1; else hi = m; } return lo; };
   V.draw = (now) => {
-    const { aw, ah } = V, sx = Math.round(V.cam.x - aw / 2), sy = Math.round(V.cam.y - ah / 2);
+    const { aw, ah, raster } = V, snap = x => Math.round(x * raster) / raster;
+    const sx = snap(V.cam.x - aw / 2), sy = snap(V.cam.y - ah / 2);
+    const dt = lastDraw == null ? 1000 / 60 : Math.min(64, Math.max(0, now - lastDraw)); lastDraw = now;
+    const fade = 1 - Math.exp(-dt / 180);
     g.fillStyle = R.deep[0]; g.fillRect(0, 0, aw, ah);
     const x0 = Math.max(0, sx), y0 = Math.max(0, sy), x1 = Math.min(terr.PW, sx + aw), y1 = Math.min(terr.PH, sy + ah);
     if (x1 > x0 && y1 > y0) g.drawImage(terr.cv, x0, y0, x1 - x0, y1 - y0, x0 - sx, y0 - sy, x1 - x0, y1 - y0);
@@ -72,7 +79,7 @@ export function createView(cv, world, terr) {
     if (world.wx.rain > .15 && world.wx.temp > 1) for (const s of world.structs) if (s.props?.rain > .4) {
       const px=Math.round(s.x*TS)-sx, py=Math.round(s.y*TS)-sy;
       g.fillStyle='rgba(180,210,200,.55)';
-      for(let k=0;k<3;k++){const fall=(now/650+k/3)%1;g.fillRect(px-12+k*12,py-10+Math.floor(fall*15),1,2);}
+      for(let k=0;k<3;k++){const fall=(now/650+k/3)%1;g.fillRect(px-12+k*12,py-10+snap(fall*15),1,2);}
     }
     // animals: where they were over the last minute, smoothly; the dog along the way it ran
     const frac = Math.max(0, Math.min(1, (Date.now() - world.born) / 60000 - world.t));
@@ -80,17 +87,17 @@ export function createView(cv, world, terr) {
       if (a.dead || (a.sp === "rabbit" && a.under)) continue;
       let ax = a.px + (a.x - a.px) * frac, ay = a.py + (a.y - a.py) * frac, face = a.face || 1;
       if (a.sp === "dog" && a.trail && a.trail.length > 1) { const q = alongTrail(a.trail, frac); ax = q.x; ay = q.y; face = q.face || face; }
-      const px = Math.round(ax * TS) - sx, py = Math.round(ay * TS) - sy + 4; if (px < -30 || py < -30 || px > aw + 30 || py > ah + 30) continue;
+      const px = snap(ax * TS) - sx, py = snap(ay * TS) - sy + 4; if (px < -30 || py < -30 || px > aw + 30 || py > ah + 30) continue;
       let sp, lift = 0;
       if (a.sp === "dog") sp = a.adrift ? raftSprite(now) : jointedDog(a, now);
       else if (a.sp === "gull") { sp = gullSprite(a.act === "fly" || a.air ? "fly" : a.act, now, a.id); if (a.air) lift = 10 + Math.round(Math.sin(now / 500 + a.id) * 2); }
       else sp = rabbitSprite(a.act, now, a.id);
       if (world.ter[Math.floor(ay + 1) * world.MW + Math.floor(ax)] <= 1) {
-        g.save(); g.globalAlpha=.12; g.translate(px,py+6); g.scale(face<0?-1:1,-.35); g.drawImage(sp.img,-sp.ox,-sp.oy); g.restore();
+        g.save(); g.globalAlpha=.12; g.translate(px,py+6); g.scale(face<0?-1:1,-.35); g.drawImage(sp.img,-sp.ox,-sp.oy,sp.w || sp.img.width,sp.h || sp.img.height); g.restore();
       }
       dyn.push({ y: ay + (lift ? 3 : 0), f: () => {
         if (lift) { g.globalAlpha = .18; g.fillStyle = "#1b120c"; g.fillRect(px - 3, py - 1, 6, 1); g.globalAlpha = 1; }
-        if (face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(sp.img, -sp.ox, py - lift - sp.oy); g.restore(); } else g.drawImage(sp.img, px - sp.ox, py - lift - sp.oy);
+        if (face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(sp.img, -sp.ox, py - lift - sp.oy, sp.w || sp.img.width, sp.h || sp.img.height); g.restore(); } else g.drawImage(sp.img, px - sp.ox, py - lift - sp.oy, sp.w || sp.img.width, sp.h || sp.img.height);
       } });
     }
     for (const it of world.items) if (it.k === "scraps" || it.k === "quarry") { const sp = scrapsSprite(); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy) }); }
@@ -100,8 +107,8 @@ export function createView(cv, world, terr) {
     if (M) {
       const p = V.manPos(now), pose = M.pose === "walk" && (M.inv.stones || 0) > 0 ? "stonewalk" : M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now, M);
       const inside = world.structs.find(q => (q.k === "leanto" || q.k === "debrisHut" || q.k === "roundhouse") && q.stage > 0 && Math.abs(q.x - p.x) < .6 && Math.abs(q.y - p.y) < .6);
-      const px = Math.round(p.x * TS) - sx, py = Math.round(p.y * TS) - sy + (inside ? 5 : 4);
-      const drawMan = () => { if (p.face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(ms.img, -ms.ox, py - ms.oy); g.restore(); } else g.drawImage(ms.img, px - ms.ox, py - ms.oy); };
+      const px = snap(p.x * TS) - sx, py = snap(p.y * TS) - sy + (inside ? 5 : 4);
+      const drawMan = () => { if (p.face < 0) { g.save(); g.translate(px, 0); g.scale(-1, 1); g.drawImage(ms.img, -ms.ox, py - ms.oy, ms.w, ms.h); g.restore(); } else g.drawImage(ms.img, px - ms.ox, py - ms.oy, ms.w, ms.h); };
       const hidden = false; // A gentle cutaway reveals him inside his own home.          // inside the hut: out of sight
       const zzz = () => { if (M.pose !== "sleep") return; for (let k = 0; k < 3; k++) { const l = ((now / 1600 + k / 3) % 1); g.globalAlpha = 1 - l; g.fillStyle = "#f6e4b0"; const zx = px + 4 + Math.round(l * 6 + Math.sin(now / 500 + k) * 1.5), zy = py - 16 - Math.round(l * 14); g.fillRect(zx, zy, 3, 1); g.fillRect(zx + 1, zy + 1, 1, 1); g.fillRect(zx, zy + 2, 3, 1); } g.globalAlpha = 1; };
       dyn.push({ y: inside ? inside.y + .35 : p.y + .02, f: () => { if (!hidden) { const sh = shadow(12, 4); g.globalAlpha = .3; g.drawImage(sh, px - 6, py - 2); g.globalAlpha = 1; drawMan(); } } });
@@ -112,7 +119,7 @@ export function createView(cv, world, terr) {
     if (M) { const p = V.manPos(now); focus.push({ y: p.y, sx: Math.round(p.x * TS) - sx, sy: Math.round(p.y * TS) - sy }); }
     for (const a of world.animals || []) if (a.sp === "dog" && !a.adrift && !a.dead) focus.push({ y: a.y, sx: Math.round(a.x * TS) - sx, sy: Math.round(a.y * TS) - sy });
     // things on the ground, back to front
-    const wk = Math.min(2.2, .35 + world.wx.wind / 7), wind = (Math.sin(now / (1900 - world.wx.wind * 60)) + Math.sin(now / 610) * .4) * wk;
+    const windStrength = Math.min(1.4, Math.max(0, world.wx.wind / 20));
     for (let i = firstRow(sy / TS - 1); i < ents.length; i++) {
       const e = ents[i]; if (e.y * TS - 60 > sy + ah) break;
       while (di < dyn.length && dyn[di].y < e.y) dyn[di++].f();
@@ -123,10 +130,20 @@ export function createView(cv, world, terr) {
         g.globalAlpha = .19; g.drawImage(sh, px - (sh.width >> 1) + shadowDx, py - 3, sh.width, shadowLen); g.globalAlpha = 1;
         g.drawImage(s.trunk, px - Math.round(s.cx), py - s.trunk.height + 1);
         if (s.crown) {
-          const sway = Math.round((wind + hash3(e.id, 0, 9) * 2 - 1) * .55 * (e.k === "pine" ? .6 : 1)), cx0 = px - Math.round(s.cx) + sway, cy0 = py - s.trunk.height - s.crown.height + 6;
+          const phase = hash3(e.id, 0, 9) * Math.PI * 2, stiffness = e.k === "pine" ? .35 : e.k === "birch" ? 1.1 : .8;
+          const sway = (Math.sin(now / (3300 + phase * 160) + phase) + Math.sin(now / 1900 + phase * 1.7) * .2) * (.08 + windStrength * .65) * stiffness;
+          const cx0 = px - Math.round(s.cx), cy0 = py - s.trunk.height - s.crown.height + 6;
           // a crown standing in front of Tomas (or the dog) turns see-through, so you never lose him in the woods
           const hide = focus.some(q => q.y < e.y && q.sx > cx0 - 2 && q.sx < cx0 + s.crown.width + 2 && q.sy > cy0 - 2 && q.sy - 14 < cy0 + s.crown.height);
-          if (hide) g.globalAlpha = .23; g.drawImage(s.crown, cx0, cy0); g.globalAlpha = 1;
+          const target = hide ? .23 : 1, previous = canopyAlpha.get(e.id) ?? target, alpha = previous + (target - previous) * fade;
+          canopyAlpha.set(e.id, alpha); g.globalAlpha = alpha;
+          // The branch attachment stays still; flexible upper foliage moves more than the bottom.
+          const band = Math.ceil(s.crown.height / 5);
+          for (let y = 0; y < s.crown.height; y += band) {
+            const h = Math.min(band, s.crown.height - y), bend = 1 - (y + h / 2) / s.crown.height;
+            g.drawImage(s.crown, 0, y, s.crown.width, h, cx0 + snap(sway * bend * bend), cy0 + y, s.crown.width, h);
+          }
+          g.globalAlpha = 1;
         }
       } else if (SHRUBS.has(e.k)) {
         if (e.n != null && e.n <= 0) continue;

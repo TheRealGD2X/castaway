@@ -67,9 +67,14 @@ if (pref) addEventListener("pointerdown", () => { if (!soundOn) setSound(true); 
 // Story, diary and camp: three readable views of the same simulated life.
 setupJournal(document.getElementById('jbtn'), document.getElementById('journal'), () => world);
 const clk = document.getElementById("clk");
+let lastFrame = null;
 function frame(now) {
+  requestAnimationFrame(frame);
+  // A steady 60-Hz display budget also avoids wasting battery on 120/240-Hz screens.
+  if (lastFrame != null && now - lastFrame < 1000 / 60 - .5) return;
+  const dt = lastFrame == null ? 1000 / 60 : Math.min(64, now - lastFrame); lastFrame = now;
   const c = cal(world.born, world.t), x = world.wx, M = world.man;
-  if (follow && M) { const p = V.manPos(now); V.cam.x += (p.x * 16 - V.cam.x) * .08; V.cam.y += (p.y * 16 - 8 - V.cam.y) * .08; }
+  if (follow && M) { const p = V.manPos(now), easing = 1 - Math.exp(-dt / 200); V.cam.x += (p.x * 16 - V.cam.x) * easing; V.cam.y += (p.y * 16 - 8 - V.cam.y) * easing; }
   const season = seasonOf(qd ? +qd : c.doy);
   V.flower = season.flower;
   const groundSeason = Math.floor(season.autumn * 8);
@@ -83,7 +88,6 @@ function frame(now) {
   }
   const wxs = x.rain > .05 && x.temp <= 1 ? "Snow" : x.fog > .4 ? "Fog" : x.rain > 1.5 ? "Heavy rain" : x.rain > 0 ? "Rain" : x.cloud > .75 ? "Overcast" : x.cloud > .4 ? "Cloudy" : x.elev > 0 ? "Sunny" : "Clear";
   clk.textContent = `Day ${Math.floor(world.t / 1440) + 1} · ${String(c.h).padStart(2, "0")}:${String(c.mi).padStart(2, "0")} · ${wxs} ${Math.round(x.temp)}°`;
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 document.getElementById("load")?.remove();

@@ -130,6 +130,13 @@ pottery, fishing and carrying poses, with tired/ill facial variations. Tree shad
 shed visible drops when covered and raining, water has restrained reflections, and a house cutaway reveals
 Tomas inside. Furnishings, damage, paths, ash and snow draw from physical state.
 
+Animation samples continuous poses at 60 Hz, with bounded frame caches. A three-part presentation grid lets
+joints, the camera and scenery move between art-pixel positions; head details, tile art and warm outlines
+retain their original pixel sizes, without image smoothing. Drawing is capped at 60 Hz, and camera easing
+uses elapsed display time. Tree crowns bend in five bands with slower, individual wind phases and gradual
+canopy cutaways. These are display effects only: rendering does not advance simulation time or consume RNG.
+The animation page shows representative poses alongside a moving preview.
+
 The journal has Story so far, Tomas's words and His home tabs, a close button, finger scrolling and keyboard
 focus handling. Its timeline uses actual logged events and deduplicated milestones; camp illustrations use
 structure snapshots captured at those events. Older checkpoints retain their existing diary/log history;

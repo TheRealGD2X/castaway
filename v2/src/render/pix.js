@@ -17,7 +17,7 @@ export function sprite(w, h, fn, opt) {
     clear(x, y) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= w || y >= h) return; d[(y * w + x) * 4 + 3] = 0; },
   };
   fn(P);
-  if (!opt || opt.outline !== false) outline(d, w, h, (opt && opt.out) || OUT);
+  if (!opt || opt.outline !== false) for (let i = 0; i < (opt?.outlineWidth || 1); i++) outline(d, w, h, (opt && opt.out) || OUT);
   g.putImageData(im, 0, 0);
   return c;
 }

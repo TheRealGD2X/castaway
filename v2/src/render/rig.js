@@ -9,7 +9,7 @@
 // His feet stay planted and his hips stay put for the stance; only what moves in real life moves. Any stance x work
 // point x motion x tool is a new animation, so he can be given one for anything he does.
 import { R } from "./palette.js";
-import { sprite } from "./pix.js";
+import { detailSprite, frameCache } from "./motion.js";
 
 const W = 40, H = 42, FX = 17, FY = 38;
 const COL = { skin: ["#ad6848", "#cf8a64", "#eab08a"], shirt: ["#365b59", "#527d75", "#83a193"], trou: ["#3f372e", "#51463b", "#75644b"], boot: "#2f241c", hair: "#4a2e1c", hair2: "#6b4428", beard: "#5e3c24", eye: "#1b120c" };
@@ -40,12 +40,12 @@ const ease = p => p < .5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
 function hands(motion, wx, wy, p, two, mouth) {
   const s = Math.sin(p * 6.2832), c = Math.cos(p * 6.2832);
   switch (motion) {
-    case "strike": { const up = p < .7 ? ease(p / .7) : 1 - (p - .7) / .3; return [[wx + 1 - up * 2, wy - up * 8], two ? [wx - up * 2, wy - up * 8 + 1] : [wx - 5, wy + 1]]; }  // raise slowly, bring down hard
-    case "rub": { const d = p < .8 ? p / .8 : 1 - (p - .8) / .2; return [[wx, wy - 5 + d * 7], [wx + 1, wy - 4 + d * 7]]; }            // palms working down a spindle
+    case "strike": { const up = p < .7 ? ease(p / .7) : 1 - ease((p - .7) / .3); return [[wx + 1 - up * 2, wy - up * 8], two ? [wx - up * 2, wy - up * 8 + 1] : [wx - 5, wy + 1]]; }  // raise slowly, bring down hard
+    case "rub": { const d = p < .8 ? ease(p / .8) : 1 - ease((p - .8) / .2); return [[wx, wy - 5 + d * 7], [wx + 1, wy - 4 + d * 7]]; }            // palms working down a spindle
     case "saw": return [[wx + s * 2.5, wy], [wx - 3, wy + 1]];
     case "reach": return [[wx + c * 1, wy + s * 1.5], [wx - 6, wy + 5]];
     case "pick": { const out = p < .35 ? ease(p / .35) : p < .55 ? 1 : p < .9 ? 1 - ease((p - .55) / .35) : 0; return [[lerp(wx - 5, wx, out), lerp(wy + 3, wy, out)], [wx - 5, wy + 4]]; }
-    case "pull": { const d = ease(p); return [[wx - d * 5, wy + d * 1.5], [wx - d * 5 - 1, wy + d * 1.5 + 1]]; }
+    case "pull": { const d = p < .65 ? ease(p / .65) : 1 - ease((p - .65) / .35); return [[wx - d * 5, wy + d * 1.5], [wx - d * 5 - 1, wy + d * 1.5 + 1]]; }
     case "scoop": return [[wx + c * 3, wy + Math.abs(s) * -3], [wx + c * 3 - 2, wy + Math.abs(s) * -3 + 1]];
     case "stir": return [[wx + c * 2, wy + s * 1], [wx - 7, wy + 3]];
     case "wave": return [[wx + 3 + s * 2.5, wy - 12], [wx - 4 - s * 2.5, wy - 12]];
@@ -58,17 +58,18 @@ function hands(motion, wx, wy, p, two, mouth) {
 }
 // ---------------------------------------------------------------- raster helpers
 function brush(P, x0, y0, x1, y1, r, cols, shadeSide = 1) {
+  const grid = P.grid || 1, step = 1 / grid;
   const n = Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2) || 1, nx = -(y1 - y0), ny = x1 - x0, nl = Math.hypot(nx, ny) || 1;
   for (let k = 0; k <= n; k++) {
     const cx = lerp(x0, x1, k / n), cy = lerp(y0, y1, k / n);
-    for (let yy = Math.floor(cy - r); yy <= Math.ceil(cy + r); yy++) for (let xx = Math.floor(cx - r); xx <= Math.ceil(cx + r); xx++) {
-      const dx = xx + .5 - cx, dy = yy + .5 - cy; if (dx * dx + dy * dy > r * r + .25) continue;
+    for (let yy = Math.floor((cy - r) * grid) / grid; yy <= cy + r; yy += step) for (let xx = Math.floor((cx - r) * grid) / grid; xx <= cx + r; xx += step) {
+      const dx = xx + step * .5 - cx, dy = yy + step * .5 - cy; if (dx * dx + dy * dy > r * r + .25) continue;
       const side = (dx * nx + dy * ny) / nl * shadeSide;                    // which side of the limb faces the light
-      P.set(xx, yy, cols[side > r * .35 ? 2 : side < -r * .35 ? 0 : 1]);
+      (P.dot || P.set)(xx, yy, cols[side > r * .35 ? 2 : side < -r * .35 ? 0 : 1]);
     }
   }
 }
-const put = (P, x, y, c) => P.set(Math.round(x), Math.round(y), c);
+const put = (P, x, y, c) => P.set(Math.round(x * (P.grid || 1)) / (P.grid || 1), Math.round(y * (P.grid || 1)) / (P.grid || 1), c);
 function prop(P, tool, hx, hy, ex, ey, p) {
   const dx = hx - ex, dy = hy - ey, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;   // along the forearm
   if (tool === "stick" || tool === "branch") { const L = tool === "branch" ? 9 : 6; brush(P, hx - ux * 2, hy - uy * 2, hx + ux * L, hy + uy * L, .5, [R.bark[1], R.bark[2], R.bark[3]]); }
@@ -83,10 +84,10 @@ function prop(P, tool, hx, hy, ex, ey, p) {
 // ---------------------------------------------------------------- pose and draw one frame
 export function drawRig(P, spec, p) {
   const st = STANCE[spec.stance === "walk" ? "stand" : spec.stance] || STANCE.stand, walking = spec.stance === "walk";
-  // Paint complete shapes directly on the native pixel grid. Only the camera enlarges them.
+  // Solid pixel shapes on a finer motion grid; the head and clothing retain their art-pixel blocks.
   const ox = FX, oy = FY;
   // walking: a gait cycle moves the feet (the far foot half a cycle behind) and bobs the hips
-  let feet = st.feet.map(f => [f[0], f[1]]), bob = 0;
+  let feet = st.feet.map(f => [f[0], f[1]]), bob = Math.sin(p * 6.2832) * .12;
   if (walking) { for (let i = 0; i < 2; i++) { const q = p + i * .5, s = Math.sin(q * 6.2832), c = Math.cos(q * 6.2832); feet[i] = [.5 + s * 3.2, -Math.max(0, c) * 2.2]; } bob = -Math.abs(Math.sin(p * 12.566)) * 1; }
   const hipX = ox + st.hip[0], hipY = oy + st.hip[1] + bob;
   // the spine leans toward the work: the lower and further the work point, the more he bends
@@ -106,7 +107,7 @@ export function drawRig(P, spec, p) {
     const [kx, ky] = ik(hx, hipY, fx, fy, legL[0], legL[1], -1); return { kx, ky, fx, fy, hx };
   };
   const A = [arm(0), arm(1)], L = [leg(0), leg(1)];
-  const drawLeg = (l, far) => { const cols = far ? [COL.trou[0], COL.trou[0], COL.trou[1]] : COL.trou; brush(P, l.hx, hipY, l.kx, l.ky, 1.4, cols); brush(P, l.kx, l.ky, l.fx, l.fy, 1.2, cols); const bx = Math.round(l.fx), by = Math.round(l.fy); for (let i = -1; i <= 2; i++) { P.set(bx + i, by + 1, COL.boot); if (i < 2) P.set(bx + i, by, COL.boot); } };
+  const drawLeg = (l, far) => { const cols = far ? [COL.trou[0], COL.trou[0], COL.trou[1]] : COL.trou; brush(P, l.hx, hipY, l.kx, l.ky, 1.4, cols); brush(P, l.kx, l.ky, l.fx, l.fy, 1.2, cols); const grid = P.grid || 1, bx = Math.round(l.fx * grid) / grid, by = Math.round(l.fy * grid) / grid; for (let i = -1; i <= 2; i++) { P.set(bx + i, by + 1, COL.boot); if (i < 2) P.set(bx + i, by, COL.boot); } };
   const drawArm = (q, far) => { const sc = far ? [COL.shirt[0], COL.shirt[0], COL.shirt[1]] : COL.shirt, kc = far ? [COL.skin[0], COL.skin[0], COL.skin[1]] : COL.skin; brush(P, sh[far ? 0 : 1][0], sh[far ? 0 : 1][1], q.ex, q.ey, 1.35, sc); brush(P, q.ex, q.ey, q.hx, q.hy, 1, kc); put(P, q.ex, q.ey, COL.shirt[2]); brush(P, q.hx, q.hy, q.hx + .5, q.hy, 1, kc); };
   // back to front: far arm, far leg, torso, near leg, head, tool, near arm
   drawArm(A[0], true); if (spec.tool && spec.two) prop(P, spec.tool, A[0].hx, A[0].hy, A[0].ex, A[0].ey, p);
@@ -119,9 +120,9 @@ export function drawRig(P, spec, p) {
   put(P, nX, nY+1, '#d6d4b1'); put(P, nX+1, nY+4, '#c0c4a2');
   brush(P, hipX - 2, hipY - .5, hipX + 2, hipY - .5, .5, ['#4a3628','#4a3628','#73533a']); put(P, hipX+1, hipY, '#c5ad73');
   put(P, nX, nY-1, COL.skin[1]);
-  const look = wy > nY + 4 ? 1 : 0, hx0 = Math.round(nX - 3 + a * 2), hy0 = Math.round(nY - 9 + look);
+  const grid = P.grid || 1, look = wy > nY + 4 ? 1 : 0, hx0 = Math.round((nX - 3 + a * 2) * grid) / grid, hy0 = Math.round((nY - 9 + look) * grid) / grid;
   HEAD[look].forEach((row, y) => { for (let x = 0; x < row.length; x++) { let c = HC[row[x]];
-    if (row[x] === 'e' && (spec.mood === 'tired' || p > .87)) c = COL.skin[1];
+    if (row[x] === 'e' && (spec.mood === 'tired' || p > .96)) c = COL.skin[1];
     if (row[x] === 'S' && spec.mood === 'ill') c = '#d4b287';
     if (c) P.set(hx0 + x, hy0 + y, c); } });
   if (spec.tool && !spec.two) prop(P, spec.tool, A[1].hx, A[1].hy, A[1].ex, A[1].ey, p);
@@ -145,11 +146,11 @@ function sleeping(P) {
   const cc = { H: COL.hair, h: COL.hair2, S: COL.skin[2], s: COL.skin[1], e: COL.eye, B: COL.beard, W: COL.shirt[2], w: COL.shirt[1], v: COL.shirt[0], T: COL.trou[2], K: COL.boot };
   rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) { const c = cc[r[x]]; if (c) P.set(x + 1, y + FY - 7, c); } });
 }
-const cache = new Map();
+const cached = frameCache(384);
 // a frame of an animation: spec + phase, quantised to `frames` steps per cycle and cached
 export function rigSprite(spec, t) {
-  if (spec.stance === "lie") { let s = cache.get("lie"); if (!s) { s = sprite(W, H, sleeping); cache.set("lie", s); } return { img: s, ox: FX, oy: FY }; }
+  if (spec.stance === "lie") return { img: cached('lie', () => detailSprite(W, H, sleeping)), ox: FX, oy: FY, w: W, h: H };
   const period = spec.period || 1000, n = spec.frames || 8, f = Math.floor(((t % period) + period) % period / period * n), key = spec.key + ":" + f + ":" + (spec.mood || "calm");
-  let s = cache.get(key); if (!s) { s = sprite(W, H, P => drawRig(P, spec, f / n)); cache.set(key, s); }
-  return { img: s, ox: FX, oy: FY };
+  const s = cached(key, () => detailSprite(W, H, P => drawRig(P, spec, f / n)));
+  return { img: s, ox: FX, oy: FY, w: W, h: H };
 }

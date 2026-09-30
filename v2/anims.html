@@ -7,20 +7,27 @@
   h1 { font-size:22px; margin:20px 24px 6px; } p { margin:0 24px 20px; }
   .frames { overflow:auto; } canvas { display:block; image-rendering:pixelated; }
 </style>
-<h1>Tomas's animations</h1><p>Every pose and every frame at three times its native size. Scroll across on a phone.</p>
+<h1>Tomas's animations</h1><p>Watch a movement, then browse eight moments from each pose. Scroll across on a phone.</p>
+<p><label>Movement <select id="pose"></select></label><canvas id="live" width="240" height="252"></canvas></p>
 <div class="frames"><canvas id="c"></canvas></div>
 <script type="module">
 import { manSprite, ANIM } from "./src/render/people.js";
 const poses=Object.keys(ANIM),cv=document.getElementById('c');
+const select=document.getElementById('pose'),live=document.getElementById('live'),lg=live.getContext('2d');
+lg.imageSmoothingEnabled=false;
+for(const pose of poses){const option=document.createElement('option');option.value=pose;option.textContent=pose;select.append(option);}
+select.value='walk';
+function frame(t){const s=manSprite(select.value,t);lg.clearRect(0,0,live.width,live.height);lg.drawImage(s.img,0,0,s.w*6,s.h*6);requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
 cv.width=1200;cv.height=poses.length*130;
 const g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.font='16px system-ui';
 poses.forEach((pose,row)=>{
-  const per=ANIM[pose].period||1000,n=ANIM[pose].frames||1;
+  const per=ANIM[pose].period||1000,n=Math.min(8,ANIM[pose].frames||1);
   g.fillStyle=row%2?'#bdc7a6':'#cbd4b7';g.fillRect(0,row*130,cv.width,130);
   g.fillStyle='#453a2c';g.fillText(pose,16,row*130+64);
   for(let f=0;f<n;f++){
     const s=manSprite(pose,f*per/n+1),x=150+f*130,y=row*130+4;
-    g.drawImage(s.img,x,y,s.img.width*3,s.img.height*3);
+    g.drawImage(s.img,x,y,s.w*3,s.h*3);
   }
 });
 window.__poses=poses;

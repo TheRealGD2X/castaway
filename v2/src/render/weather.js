@@ -40,7 +40,7 @@ export function drawWeather(g, V, W, now, sx, sy) {
   // cloud shadow drifting with the wind (only when the sun is up and the sky broken)
   if (x.elev > 0 && x.cloud > .2 && x.cloud < .95) {
     const tex = cloudShadowTexture(), S = tex.width, dir = x.windDir * Math.PI / 4, sp = x.wind * .004;
-    const ox = Math.floor((((sx + now * sp * Math.sin(dir)) % S) + S) % S), oy = Math.floor((((sy - now * sp * Math.cos(dir)) % S) + S) % S);
+    const ox = (((sx + now * sp * Math.sin(dir)) % S) + S) % S, oy = (((sy - now * sp * Math.cos(dir)) % S) + S) % S;
     g.globalAlpha = .09 * Math.min(1, x.cloud * 1.6);
     for (let y = -oy; y < ah; y += S) for (let xx = -ox; xx < aw; xx += S) g.drawImage(tex, xx, y);
     g.globalAlpha = 1;
@@ -53,7 +53,7 @@ export function drawWeather(g, V, W, now, sx, sy) {
     g.fillStyle = "rgba(220,236,238,.40)";
     for (let i = 0; i < n; i++) {
       const hx = (i * 7919) % 1000 / 1000, hy = (i * 104729) % 1000 / 1000, sp = 220 + (i % 5) * 30;
-      const px = Math.floor((hx * (aw + 40) + slant * t * sp * .3) % (aw + 40)) - 20, py = Math.floor((hy * ah + t * sp) % ah);
+      const px = ((hx * (aw + 40) + slant * t * sp * .3) % (aw + 40) + aw + 40) % (aw + 40) - 20, py = (hy * ah + t * sp) % ah;
       for (let k = 0; k < 6; k++) g.fillRect(px + Math.round(slant * k * .3), py + k, 1, 1);
     }
     g.fillStyle = "rgba(226,240,232,.38)";
@@ -63,14 +63,14 @@ export function drawWeather(g, V, W, now, sx, sy) {
   if (x.rain > .05 && x.temp <= 1) {
     g.fillStyle = 'rgba(246,246,232,.85)';
     const n = Math.min(100, Math.floor(aw * ah * x.rain / 1700));
-    for (let i = 0; i < n; i++) { const py = Math.floor((i * 83 + now * .024) % ah), px = Math.floor(((i * 137 + Math.sin(now / 1400 + i) * 8) % aw + aw) % aw); g.fillRect(px, py, 1 + (i % 3 === 0), 1); }
+    for (let i = 0; i < n; i++) { const py = (i * 83 + now * .024) % ah, px = ((i * 137 + Math.sin(now / 1400 + i) * 8) % aw + aw) % aw; g.fillRect(px, py, 1 + (i % 3 === 0), 1); }
   }
   // fog: a pale veil and soft banks of mist drifting with the air
   if (x.fog > .03) {
     g.fillStyle = `rgba(222,228,228,${Math.min(.45, x.fog * .4)})`; g.fillRect(0, 0, aw, ah);
     const tex = fogTexture(), S = tex.width, dx = now * .004 + sx * .6, dy = sy * .6;
     g.globalAlpha = Math.min(.8, x.fog * .8);
-    for (const [ox, oy] of [[dx, dy], [dx * 1.7 + 70, dy + 90]]) { const fx = Math.floor(((ox % S) + S) % S), fy = Math.floor(((oy % S) + S) % S); for (let y = -fy; y < ah; y += S) for (let xx = -fx; xx < aw; xx += S) g.drawImage(tex, xx, y); }
+    for (const [ox, oy] of [[dx, dy], [dx * 1.7 + 70, dy + 90]]) { const fx = ((ox % S) + S) % S, fy = ((oy % S) + S) % S; for (let y = -fy; y < ah; y += S) for (let xx = -fx; xx < aw; xx += S) g.drawImage(tex, xx, y); }
     g.globalAlpha = 1;
   }
   // the light of the sun, or the night

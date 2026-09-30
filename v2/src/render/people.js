@@ -2,6 +2,7 @@
 // (rig.js): a stance, where his hands work, what they do there, and what they hold. To give him a new animation,
 // add a line here; nothing is drawn by hand except his head.
 import { rigSprite } from "./rig.js";
+import { motionFrames } from "./motion.js";
 
 export const ANIM = {
   stand:     { stance: "stand", work: [4, -12], motion: "rest", lean: 0 },
@@ -32,7 +33,10 @@ export const ANIM = {
   sleep:     { stance: "lie" },
   lie:       { stance: "lie" },                                                                         // conserving heat while awake
 };
-for (const k in ANIM) ANIM[k].key = k;
+for (const k in ANIM) {
+  const a = ANIM[k]; a.key = k;
+  if (a.stance !== 'lie') { a.period ||= 4200; a.frames = motionFrames(a.period); }
+}
 export function manSprite(pose, t, M) {
   const mood = M?.B.ill > .2 ? 'ill' : M?.B.fatigue > .7 || M?.B.sleepP > .8 ? 'tired' : 'calm';
   return rigSprite({ ...(ANIM[pose] || ANIM.stand), mood }, t);
