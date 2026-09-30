@@ -21,7 +21,7 @@ export function campSnapshot(W) {
   if (W.camp == null) return [];
   const cx = W.camp % MW + .5, cy = Math.floor(W.camp / MW) + .5;
   return W.structs.filter(s => Math.abs(s.x - cx) < 9 && Math.abs(s.y - cy) < 9)
-    .map(s => ({ k: s.k, label:s.label, x: s.x - cx, y: s.y - cy, dir: s.dir, stage: s.stage, prog: s.prog, stages: s.stages, kg: s.kg || 0, stock:s.stock||0,waterL:s.waterL||0,assembly:s.assembly?JSON.parse(JSON.stringify(s.assembly)):undefined, integrity: s.integrity ?? 1 }));
+    .map(s => ({ k: s.k, label:s.label, x: s.x - cx, y: s.y - cy, dir: s.dir, stage: s.stage, prog: s.prog, stages: s.stages, kg: s.kg || 0, stock:s.stock||0,waterL:s.waterL||0,earthwork:s.earthwork?JSON.parse(JSON.stringify(s.earthwork)):undefined,depositedKg:s.depositedKg||0,assembly:s.assembly?JSON.parse(JSON.stringify(s.assembly)):undefined, integrity: s.integrity ?? 1 }));
 }
 export function observeLife(W, logFrom) {
   const M = W.man; if (!M) return;
@@ -64,7 +64,8 @@ export function heritageTen(W) {
   // Wind pressure is quadratic in gust speed. Wet fibres lose stiffness; bracing spreads the load.
   for (const s of W.structs) {
     s.integrity ??= 1; s.saturation ??= 0;
-    if(s.assembly){const before=s.integrity;assemblyStep(W,s);if(s.integrity<before&&s.integrity<.82&&W.man&&Math.abs(s.x-W.man.x)<6&&Math.abs(s.y-W.man.y)<6)record(W,'damage:'+s.id,'storm','The load strained his '+s.label+'.',{camp:campSnapshot(W)});}
+    if(s.earthwork){s.props=propsOf(s);}
+    else if(s.assembly){const before=s.integrity;assemblyStep(W,s);if(s.integrity<before&&s.integrity<.82&&W.man&&Math.abs(s.x-W.man.x)<6&&Math.abs(s.y-W.man.y)<6)record(W,'damage:'+s.id,'storm','The load strained his '+s.label+'.',{camp:campSnapshot(W)});}
     else {
     s.saturation = clamp(s.saturation + x.rain * .002 - (.0008 + Math.max(0, x.temp) * .00008 + (x.sun || 0) * .000001), 0, 1);
     const area = FAMILIES[s.k].shelter ? 4 : s.k === 'fireRing' ? .05 : 1.2;

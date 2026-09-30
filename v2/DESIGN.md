@@ -244,3 +244,32 @@ Timber forks have bearing strength distinct from fibre lashings. Existing compon
 replacement, recovery and learning apply to homes, including completed parts of unfinished work.
 The renderer projects installed parts, with a cutaway while Tomas is inside. Roof bays use
 triangle rasterisation, so tapered sections keep their actual shape. Test with `homes.test.js`.
+
+
+## Water engineering and sediment accounting
+
+`build/waterworks.js` describes cut dimensions, a downhill outlet and installed stone volume.
+Cuts retain their excavated soil as spoil. Stone volume divided by the crest footprint sets
+barrier height. Pools have finite geometric capacity reduced by deposited sediment volume.
+Hydraulic heads include cut depth; a trench without a low enough outlet can retain water.
+No drain is promised to work on every slope. Engineered rectangular channels use SI Manning
+flow, A R^(2/3) sqrt(head/length) / n; stone barriers use broad-crested overflow,
+0.6 (2/3) sqrt(2g) width head^(3/2). Both are capped by physically available volume above
+the receiving head to prevent negative water or over-draining below a crest. Natural land
+routing and whole lake/stream reservoirs remain coarse ten-minute approximations.
+
+Mineral soil, suspended silt, spoil, deposited beds, exported sediment and drinking removals
+have a separate kilogram ledger. Erosion transfers from finite soil into moving water;
+settling transfers suspended mass into beds rather than creating dirt. Ideal small-grain
+Stokes settling uses density 2650 kg/m3, radius 6 micrometres, viscosity .0013 Pa s and
+an exact deterministic exponential for a well-mixed pool. Geometry, roughness (.06), grain
+size, permeability and erosion coefficients are assumed, not measured island data. This is
+not a calibrated hydraulic solver, a resolved river network, or a microbiological filter.
+Settling does not remove the existing infection dose. The same recorded properties draw
+cuts, spoil, stone crests and silting pools. No new RNG draws are used.
+
+Equation references: [USACE Manning flow](https://www.hec.usace.army.mil/confluence/rasdocs/ras1dtechref/6.6/stable-channel-design-functions/uniform-flow-computations),
+[USGS ideal particle settling](https://pubs.usgs.gov/sir/2007/5008/section5.html).
+`waterworks.test.js` checks independent equations, scaling, crest thresholds, water and mineral
+conservation, lost pool capacity, removal and exact checkpoint replay. Settling is additionally
+compared with its analytic solution at different intervals. New typed arrays have old-save defaults.

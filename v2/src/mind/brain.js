@@ -74,6 +74,7 @@ export function projects(W, M, toDusk) {
     if (fam === "dryingRack") return hasFire && bestShelter(W) ? 17 : 0;
     if (fam === "foodStore") return bestShelter(W) ? 17 : 0;
     if (fam === 'rainCollector') return bestShelter(W) ? 12+Math.min(8,M.B.waterDef*2)+Math.min(8,W.wx.rain*2)+((M.belief?.['water:stream'])||0)*12 : 0;
+    if(s.earthwork&&fam!=='drainage'){const i=s.tile??idx(Math.floor(s.x),Math.floor(s.y)),wet=W.hydro?.pool[i]||0;return bestShelter(W)?Math.min(28,wet*(fam==='weir'?160:200)+(fam==='settlingPool'?M.B.waterDef*3:0)+W.wx.rain*2):0;}
     if (fam === 'drainage') {const i=s.tile??idx(Math.floor(s.x),Math.floor(s.y));return bestShelter(W)?Math.min(28,(W.hydro?.pool[i]||0)*500+W.wx.rain*3):0;}
     if (fam === "bedding") return bestShelter(W) ? 18 + Math.max(0, 12 - W.wx.temp) * 2 : 0;
     if (fam === "woodpile") return bestShelter(W) ? 18 + (W.litterWet > .35 ? 5 : 0) : 0;

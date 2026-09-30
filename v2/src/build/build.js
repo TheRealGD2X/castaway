@@ -9,6 +9,7 @@
 import { MW, MH, T, idx } from "../world/gen.js";
 import { dceil, clamp, dexp } from "../core/dmath.js";
 import { assemblyProps, assemblyWork, installed } from './assembly.js';
+import { waterDesign,waterProps } from './waterworks.js';
 import { homeAssembly } from './homes.js';
 import { ASSEMBLED, TARGETS, propose, legacyAssembly } from './designer.js';
 
@@ -37,6 +38,8 @@ export const FAMILIES = {
       {name:'catchment',need:{poles:2,reeds:8},mins:45,say:'A sloping reed surface leads rain into the basin.'},
     ],props:s=>({capacity:done(s,0)*14*(s.integrity??1),catchArea:done(s,0)*frac(s,1)*2*(s.integrity??1)}),
   },
+  weir: {label:'stone water barrier',minSkill:.6,beside:true,make:()=>[{name:'barrier',need:{stones:18},mins:100,say:'A low stone crest holds back shallow runoff; excess spills over.'}],props:s=>({})},
+  settlingPool: {label:'settling pool',minSkill:.65,beside:true,make:()=>[{name:'excavate',need:{},mins:75,say:'A shallow pit cut into the earth, with spoil retained beside it.'},{name:'lining',need:{stones:4,mud:8},mins:50,say:'Stone edges and a clay lining slow seepage.'}],props:s=>({})},
   drainage: {
     label:'camp drain', minSkill:.3, beside:true,
     make:b=>[{name:'channel',need:{stones:4},mins:40,say:'A shallow channel with stone sides, carrying surface water downhill.'}],
@@ -163,6 +166,7 @@ const frac = (s, k) => s.stage > k ? 1 : s.stage === k ? s.prog : 0;
 const coverOf = (s, k) => Object.keys(s.stages[k].need).find(m => COVER[m]) || "bracken";
 const bedOf = (s, k) => { const m = coverOf(s, k); return clamp(frac(s, k) * (s.stages[k].need[m] || 0) * COVER[m].bed * 2, 0, .95); };
 export const propsOf = s => {
+  if(s.earthwork)return waterProps(s);
   if(s.assembly)return assemblyProps(s);
   const p = FAMILIES[s.k].props(s), integrity = s.integrity ?? 1;
   for (const k of ["rain", "wind", "bed", "dry", "reflect", "bench", "drying"]) if (p[k] != null) p[k] *= integrity;
@@ -238,7 +242,7 @@ export function site(W, M, fam, b, campTile) {
       const dx = x - cx, dy = y - cy, d = dx * dx + dy * dy;
       if (d < 4 || d > 20) continue;
       const spacing = W.structs.reduce((n, s) => n + (Math.abs(s.x - x - .5) < 1.8 && Math.abs(s.y - y - .5) < 1.8 ? 4 : 0), 0);
-      const v = d + spacing - (fam==='drainage'?Math.min(40,(W.hydro?.pool[i]||0)*400):0); if (v < score) { score = v; best = { tile: i, dir: sh?.dir || 0 }; }
+      const v = d + spacing - (['drainage','weir','settlingPool'].includes(fam)?Math.min(40,(W.hydro?.pool[i]||0)*400):0); if (v < score) { score = v; best = { tile: i, dir: sh?.dir || 0 }; }
     }
     return best;
   }
@@ -275,7 +279,7 @@ export function design(W, M, fam, campTile) {
     assembly=propose(wanted,b,W.wx);if(!assembly)return null;
   }
   const d={ k: fam, x: s.tile % MW + .5, y: ((s.tile / MW) | 0) + .5, tile: s.tile, dir: s.dir, stages: assembly?assembly.stages:FAMILIES[fam].make(b), stage: 0, prog: 0 };
-  if(assembly){delete assembly.stages;d.assembly=assembly;d.label=assembly.label;}else{d.assembly=homeAssembly(d);if(!d.assembly)delete d.assembly;}return d;
+  if(assembly){delete assembly.stages;d.assembly=assembly;d.label=assembly.label;}else{d.assembly=homeAssembly(d);if(!d.assembly)delete d.assembly;}const e=waterDesign(d,W);if(e)d.earthwork=e;return d;
 }
 // can he gather everything a stage needs? (he knows where to find it)
 export function feasible(b, stage) {
@@ -285,6 +289,7 @@ export function feasible(b, stage) {
 export function place(W, d) {
   const s = { id: W.nextId++, k: d.k, x: d.x, y: d.y, dir: d.dir, stages: d.stages, stage: 0, prog: 0, have: {}, onsite: {}, started: W.t };
   s.assembly=d.assembly?JSON.parse(JSON.stringify(d.assembly)):homeAssembly(s)||legacyAssembly(s);if(!s.assembly)delete s.assembly;if(s.assembly)s.label=s.assembly.label;
+  s.earthwork=d.earthwork?JSON.parse(JSON.stringify(d.earthwork)):waterDesign(s,W);if(!s.earthwork)delete s.earthwork;
   s.props = propsOf(s); W.structs.push(s); return s;
 }
 // a minute of work on a stage: parts go in as the work goes on

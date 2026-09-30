@@ -20,6 +20,7 @@ import { seasonsInit, seasonsStep } from "./seasons.js";
 import { heritageInit, heritageTen, observeLife } from "./heritage.js";
 import { equipmentStep } from "../mind/crafts.js";
 import { hydroInit, hydroTen, hydroLoad, hydroSave } from './hydro.js';
+import {waterDesign} from '../build/waterworks.js';
 import { homeAssembly } from '../build/homes.js';
 import { legacyAssembly } from '../build/designer.js';
 import { installed } from '../build/assembly.js';
@@ -80,6 +81,7 @@ export function load(s, thoughts) {
   o.ents.forEach((v, i) => DYN.forEach((k, j) => { if (v[j] != null) W.ents[i][k] = v[j]; }));
   W.litter = Float32Array.from(o.litter); W.fires = o.fires; W.structs = o.structs; W.camp = o.camp; o.shore.forEach((kg, i) => { W.shore[i].kg = kg; }); W.water = o.water; W.fish = o.fish; W.animals = o.animals; W.warrens = o.warrens; W.runs = o.runs; W.events = o.events; W.ships = o.ships; W.nextShip = o.nextShip;
   for(const s of W.structs)if(!s.assembly){const a=homeAssembly(s)||legacyAssembly(s);if(a){s.onsite||={};s.have||={};s.assembly=a;s.label=a.label;const used=installed(s,s.stage);for(const m in used){const v=Math.min(s.onsite[m]||0,used[m]);s.onsite[m]=Math.max(0,(s.onsite[m]||0)-v);s.have[m]=(s.have[m]||0)+v;}s.props=propsOf(s);}}
+  for(const s of W.structs)if(!s.earthwork){const e=waterDesign(s,W);if(e){s.earthwork=e;s.props=propsOf(s);}}
   W.surface = o.surface || { ...W.surface, temp: o.wx.temp }; W.traces = o.traces || {}; W.scent = o.scent || {}; W.story = o.story || []; W.storyKeys = o.storyKeys || {};
   hydroLoad(W,o.hydro);
   if (o.man) { W.man = Object.assign(o.man, { known: Uint8Array.from(o.man.known, c => +c) }); }

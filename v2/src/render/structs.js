@@ -1,3 +1,4 @@
+import {waterworkSprite} from './waterworks.js';
 // What he builds, drawn from what is actually there: each structure's family, orientation, the stages done and
 // how far the current one has got. Poles go up one by one, thatch creeps up the roof course by course, stones go
 // round the hearth, logs stack on the woodpile as he brings them. Fires are drawn from their fuel and heat, with
@@ -160,6 +161,7 @@ export function drawPot(g, px, py, now, boiling) {
   if (boiling) for (let i = 0; i < 3; i++) { const l = ((now / 900 + i / 3) % 1); g.fillStyle = `rgba(240,240,236,${(1 - l) * .6})`; g.fillRect(px - 1 + Math.round(Math.sin(now / 400 + i) * 1.5), py - 6 - Math.round(l * 10), 2, 2); }
 }
 export function structSprite(s) {
+  if(s.earthwork)return waterworkSprite(s);
   if(s.assembly)return assemblySprite(s);
   if (["workbench", "dryingRack", "foodStore", "bedding", "rainCollector", "drainage"].includes(s.k)) return household(s);
   switch (s.k) {

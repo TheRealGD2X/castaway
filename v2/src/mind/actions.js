@@ -15,7 +15,7 @@ import { SHELL, lowIn } from "../sim/shore.js";
 import { warmPlace } from "./exposure.js";
 import { craftActions } from "./crafts.js";
 import { FISH } from "../sim/fish.js";
-import { availableWater, takeWater } from '../sim/hydro.js';
+import { availableWater, takeWater,takeCollectedWater } from '../sim/hydro.js';
 import { MATS, MATERIALS, bestShelter, propsOf, woodpile, work as buildWork, finished, FAMILIES, fireRingAt, stillNeeds } from "../build/build.js";
 
 const d2 = (a, b) => dhypot(a.x - b.x, a.y - b.y) * 2;           // metres
@@ -41,8 +41,8 @@ export const ACTIONS = {
     find:(W,M)=>{const s=W.structs.filter(s=>s.props?.capacity>0&&(s.waterL||0)>.3).sort((a,b)=>d2(M,a)-d2(M,b))[0];return s?{...tileXY(idx(Math.floor(s.x),Math.floor(s.y))),tile:idx(Math.floor(s.x),Math.floor(s.y)),sid:s.id}:null;},
     pre:S=>true,eff:S=>{S.watered=1;},cost:(W,M,t)=>walkMin(M,t)+3+riskMin(M,'water:collected',.04),
     exec:work({adjacent:true,mins:3,met:MET.stand,pose:'drink',done:(W,M,t)=>{
-      const s=W.structs.find(s=>s.id===t.sid);if(!s||(s.waterL||0)<.1)return 'fail';const L=Math.min(s.waterL,Math.max(.3,M.B.waterDef+.2));s.waterL-=L;W.hydro.used+=L/1000;bodyDrink(M.B,L);expose(W,M,(s.waterLoad||.8)*L,'water:collected');
-    }}),say:'Rainwater, close to home.',
+      const s=W.structs.find(s=>s.id===t.sid);if(!s||(s.waterL||0)<.1)return 'fail';const L=takeCollectedWater(W,s,Math.max(.3,M.B.waterDef+.2));bodyDrink(M.B,L);expose(W,M,(s.waterLoad||.8)*L,'water:collected');
+    }}),say:'Water, close to home.',
   },
   forage: {
     r: ["food"], w: ["food"],

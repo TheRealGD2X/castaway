@@ -39,10 +39,11 @@ basin.waterL=0;assert.equal(ACTIONS.drinkCollected.find(W,M),null);
 console.log('ok   construction enables finite rain collection and real drinking; empty basins provide none');
 
 const a=load(save(W)),b=load(save(W));
-const ds=FAMILIES.drainage.make({}),drain=place(b,{k:'drainage',x,y,dir:0,stages:ds});drain.stage=ds.length;drain.props=propsOf(drain);
-a.hydro.pool[i]=b.hydro.pool[i]=.06;a.wx.rain=b.wx.rain=0;
+const ditch=W.hydroMap.land.find(q=>W.hydroMap.down[q]>=0&&W.ter[W.hydroMap.down[q]]>1&&W.h[q]-W.h[W.hydroMap.down[q]]>.15/18),dx=ditch%W.MW+.5,dy=Math.floor(ditch/W.MW)+.5;
+const ds=FAMILIES.drainage.make({}),drain=place(b,{k:'drainage',x:dx,y:dy,dir:0,stages:ds});drain.stage=ds.length;drain.props=propsOf(drain);
+a.hydro.pool[ditch]=b.hydro.pool[ditch]=.06;a.wx.rain=b.wx.rain=0;
 for(let n=0;n<12;n++){hydroTen(a);hydroTen(b);}
-assert(b.hydro.pool[i]<a.hydro.pool[i],'a finished drain reduces standing water');
+assert(b.hydro.pool[ditch]<a.hydro.pool[ditch],'a finished drain reduces standing water');
 console.log('ok   installed drainage changes water movement rather than inventing dry ground');
 
 const stream=W.stream[0],available=availableWater(W,stream),used=h.used,massBeforeExtraction=total();
