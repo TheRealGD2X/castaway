@@ -13,11 +13,12 @@ export function fishInit(W) {
 const waterOf = (W, s) => W.ter[s.tile] === T.STREAM ? "stream" : "lake";
 // every 10 minutes: breeding (slow, mostly spring) and the traps fishing
 export function fishTen(W) {
-  for (const k in W.fish) { const N = W.fish[k], K = W.fishK[k]; W.fish[k] = N + N * (1 - N / K) * .00004 * Math.max(.05, Math.min(1, (W.wx.temp - 2) / 10)); }
+  for (const k in W.fish) { const N=W.fish[k],h=W.hydro,quality=h?Math.max(.35,Math.min(1,(k==='stream'?h.streamDepth/.09:h.lakeDepth/.5)*h.oxygen/8)):1,K=Math.max(1,W.fishK[k]*quality);W.fish[k]=Math.max(0,N+N*(1-N/K)*.00004*Math.max(.05,Math.min(1,((h?.temp??W.wx.temp)-2)/10))); }
   for (const s of W.structs) {
     if (s.k !== "fishTrap" || s.stage < s.stages.length) continue;
     const w = waterOf(W, s), N = W.fish[w], dens = N / Math.max(1, W.fishK[w]);
-    const lambda = .015 * dens * (s.integrity ?? 1) * (1 - Math.min(.8, (W.surface?.ice || 0) / 10)) * (w === "stream" ? 1.4 : 1) * (s.fish >= 4 ? 0 : 1);     // fish per 10 minutes
-    if (W.rng.f() < 1 - dexp(-lambda)) { s.fish = (s.fish || 0) + 1; W.fish[w] = N - 1; }
+    const liquid = !W.hydro || W.hydro[w] > .001;
+    const lambda = .015 * dens * (s.integrity ?? 1) * (1 - Math.min(.8, (W.surface?.ice || 0) / 10)) * (w === "stream" ? 1.4 : 1) * (s.fish >= 4 || !liquid ? 0 : 1);     // fish per 10 minutes
+    if (W.rng.f() < 1 - dexp(-lambda) && N >= 1) { s.fish = (s.fish || 0) + 1; W.fish[w] = N - 1; }
   }
 }

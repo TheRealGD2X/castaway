@@ -12,6 +12,7 @@
 import { MW, MH, T, idx, WATER } from "../world/gen.js";
 import { hash3 } from "../core/rng.js";
 import { liquidRain } from "./seasons.js";
+import { availableWater, takeWater } from "./hydro.js";
 import { footfall, record } from "./heritage.js";
 import { bestShelter, propsOf } from "../build/build.js";
 import { dround, dsign, dsq, dhypot, dsin, dcos, clamp, dexp } from "../core/dmath.js";
@@ -161,7 +162,7 @@ function dog(W, a, M, night) {
   if (!tgt) {
     const top = Object.entries(need).sort((p, q) => q[1] - p[1])[0];
     if (top[1] > .45) want = top[0];
-    if (want === "drink") { if (a.water == null || a.noWater === a.water) { let best = null, bd = 1e9; for (let i = MW; i < MW * (MH - 1); i++) { const t = W.ter[i]; if ((t !== T.STREAM && t !== T.LAKE) || i === a.noWater) continue; if (t === T.LAKE && ![1, -1, MW, -MW].some(o => walkable(W, i + o))) continue; const d2 = dsq(i % MW - a.x) + dsq(((i / MW) | 0) - a.y); if (d2 < bd) { bd = d2; best = i; } } a.water = best; } tgt = a.water != null ? { x: a.water % MW + .5, y: ((a.water / MW) | 0) + .5 } : null; }
+    if (want === "drink") { if (a.water == null || a.noWater === a.water || availableWater(W,a.water)<.05) { let best = null, bd = 1e9; for (let i = MW; i < MW * (MH - 1); i++) { const t = W.ter[i]; if ((t !== T.STREAM && t !== T.LAKE) || i === a.noWater || availableWater(W,i)<.05) continue; if (t === T.LAKE && ![1, -1, MW, -MW].some(o => walkable(W, i + o))) continue; const d2 = dsq(i % MW - a.x) + dsq(((i / MW) | 0) - a.y); if (d2 < bd) { bd = d2; best = i; } } a.water = best; } tgt = a.water != null ? { x: a.water % MW + .5, y: ((a.water / MW) | 0) + .5 } : null; }
     else if (want === "warm" || want === "rest") {
       if (protectedHome && (x.rain * 2 + x.wind * .1 > .8)) tgt = { x: home.x, y: home.y };   // to the fire and the man if it trusts him; else a hollow under the trees
       const f = W.fires.find(f => f.lit || f.embers > .05);
@@ -205,7 +206,7 @@ function dog(W, a, M, night) {
         record(W, 'dog-share', 'dog', a.name + ' brought a rabbit back to camp.'); return;
       }
       if (want === "scraps" && dist(a, tgt) < .8) { a.E = clamp(a.E + tgt.kcal / 1500, 0, 1); W.items.splice(W.items.indexOf(tgt), 1); a.act = "eat"; if (tgt.from === "man") { a.trust = clamp(a.trust + .12 * (1 - a.trust), 0, 1); a.fear = clamp(a.fear - .15, 0, 1); a.lastFed = W.t; a.memories.shared++; a.confidence = clamp(a.confidence + .02, 0, .95); } return; }
-      if (want === "drink") { a.thirst = clamp(a.thirst - .2, 0, 1); a.act = "drink"; return; }
+      if (want === "drink") { const litres=takeWater(W,a.water,.25);a.thirst = clamp(a.thirst - litres*.8, 0, 1); a.act = "drink"; return; }
       if (want === "rest" || want === "warm") { a.act = (night || a.tired > .5) ? "sleep" : "lie"; a.curled = man && dist(a, man) < 1.2 && man.B.asleep; return; }
       a.act = want === "company" || want === "retrieve" ? "sit" : want === "track" || want === "hunt" ? "sniff" : "stand"; return;
     }

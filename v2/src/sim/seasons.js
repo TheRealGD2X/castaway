@@ -22,5 +22,5 @@ export function seasonsStep(W, dt = 1) {
 export const liquidRain = W => W.wx.rain * (1 - clamp((1 - W.wx.temp) / 2, 0, 1));
 export function groundCost(W, i) {
   const s = W.surface, path = W.traces?.[i]?.wear || 0;
-  return (1 + Math.min(1.5, (s?.snow || 0) * .03) + Math.min(.4, (s?.ice || 0) * .035)) * (1 - Math.min(.16, path * .012));
+  return (1 + Math.min(1.5, (s?.snow || 0) * .03) + Math.min(.4, (s?.ice || 0) * .035) + Math.min(.5,(W.hydro?.pool[i]||0)*3)) * (1 - Math.min(.16, path * .012));
 }

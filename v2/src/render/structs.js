@@ -159,7 +159,7 @@ export function drawPot(g, px, py, now, boiling) {
   if (boiling) for (let i = 0; i < 3; i++) { const l = ((now / 900 + i / 3) % 1); g.fillStyle = `rgba(240,240,236,${(1 - l) * .6})`; g.fillRect(px - 1 + Math.round(Math.sin(now / 400 + i) * 1.5), py - 6 - Math.round(l * 10), 2, 2); }
 }
 export function structSprite(s) {
-  if (["workbench", "dryingRack", "foodStore", "bedding"].includes(s.k)) return household(s);
+  if (["workbench", "dryingRack", "foodStore", "bedding", "rainCollector", "drainage"].includes(s.k)) return household(s);
   switch (s.k) {
     case "fishTrap": return fishTrap(s);
     case "leanto": return leanto(s);
@@ -190,7 +190,7 @@ export function snowOnRoof(sp, s, snow) {
 // Objects become recognisable as the actual legs, rails, woven shelves and covers go in.
 function household(s) {
   const a = done(s, 0), b = done(s, 1), damage = Math.floor((1 - (s.integrity ?? 1)) * 6), stock = Math.min(6, Math.floor((s.stock || 0) / 500));
-  return memo(`home:${s.k}:${q(a)}:${q(b)}:${damage}:${stock}`, () => ({ img: sprite(34, 29, P => {
+    return memo(`home:${s.k}:${q(a)}:${q(b)}:${damage}:${stock}:${Math.floor((s.waterL||0)/3)}:${s.flow>0}`, () => ({ img: sprite(34, 29, P => {
     const wood = (x,y,X,Y) => { line(P,x,y,X,Y,R.bark[3]); line(P,x+1,y,x===X?X+1:X,Y,R.bark[1]); };
     if (s.k === 'workbench') {
       for (const x of [5,24]) if (a>.3) wood(x,15,x,25);
@@ -207,7 +207,13 @@ function household(s) {
       for(let k=0;k<stock;k++)P.set(10+k*2,17,'#dfc59b');
       for(let y=4;y<13;y++)for(let x=3;x<29;x++)if((13-y)/9<b&&x>damage*2)P.set(x,y,y%3===0?'#98794b':'#c4a775');
       if(b>0)line(P,3,13,29,13,'#6e5538');
-    } else {
+      } else if(s.k==='rainCollector'){
+        if(a>.2)for(let y=20;y<25;y++)for(let x=7;x<28;x++)P.set(x,y,y===20?'#b1ac8d':(x+y)%3?'#786956':'#95806b');
+        if(a>.8){for(let y=21;y<24;y++)for(let x=9;x<26;x++)P.set(x,y,'#775c41');if(s.waterL>.2){for(let x=10;x<26;x++){P.set(x,22,'#71a9a2');if(x%5<3)P.set(x,21,'#a1c9b7');}}}
+        if(b>.1){wood(6,10,6,24);wood(25,17,25,24);for(let x=5;x<5+Math.floor(b*23);x++){const y=10+Math.floor((x-5)*.28);P.set(x,y,x%3?'#b8ad6a':'#8d8e52');P.set(x,y+1,'#737847');}if(b>.8)line(P,27,17,24,21,'#a69060');}
+      } else if(s.k==='drainage'){
+        for(let x=3;x<3+Math.floor(a*27);x++){P.set(x,22,'#655741');P.set(x,23,'#806e51');if(x%4<2){P.set(x,21,'#aaa28a');P.set(x,24,'#8c826b');}if(s.flow>0&&x%5<3)P.set(x,22,'#7ca69c');}
+      } else {
       for(let x=3;x<30;x++)if((x-3)/27<a){P.set(x,23,'#6b5137');P.set(x,24,'#886744');}
       if(a>.6)for(const x of [5,27])wood(x,24,x,27);
       for(let y=18;y<23;y++)for(let x=4;x<30;x++)if((x-4)/26<b)P.set(x,y,y===18?'#c5be87':(x+y)%5===0?'#9a9d65':'#83905d');

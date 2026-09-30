@@ -4,6 +4,7 @@ import { MW, idx, T } from '../world/gen.js';
 import { clamp } from '../core/dmath.js';
 import { finished, FAMILIES, propsOf } from '../build/build.js';
 import { FISH } from '../sim/fish.js';
+import { availableWater } from '../sim/hydro.js';
 
 export const RECIPES = {
   twistCord: { out: 'cord', qty: 6, need: { withies: 3 }, mins: 35, pose: 'weave', name: 'bark cordage' },
@@ -70,14 +71,14 @@ export function craftActions(work) {
     find:(W,M)=>{
       if (!M.inv.line) return null;
       let best=null,bd=1e9;
-      for(let i=MW;i<MW*(W.MH-1);i++)if(M.known[i]&&(W.ter[i]===T.STREAM||W.ter[i]===T.LAKE)) {
+      for(let i=MW;i<MW*(W.MH-1);i++)if(M.known[i]&&(W.ter[i]===T.STREAM||W.ter[i]===T.LAKE)&&availableWater(W,i)>.1) {
         const t={x:i%MW+.5,y:Math.floor(i/MW)+.5,tile:i},d=dist(M,t);if(d<bd){bd=d;best=t;}
       }return best;
     },pre:S=>S.line&&S.raw<2500,eff:S=>{S.raw+=600;},cost:(W,M,t)=>minutes(M,t)+60,
     exec:work({adjacent:true,mins:60,met:MET.sit,pose:'fish',tick:(W,M,t)=>{
-      if(!M.inv.line)return 'fail'; const fish=W.fish; if(!fish)return 'fail';
+      if(!M.inv.line||availableWater(W,t.tile)<.1)return 'fail'; const fish=W.fish; if(!fish)return 'fail';
       const water=W.ter[t.tile]===T.STREAM?"stream":"lake", population=fish[water] || 0, density=population/Math.max(1,W.fishK[water]);
-      if(W.rng.f()<Math.min(.08, density * .05 * (.7+M.skill.forage*.1))) {
+      if(W.rng.f()<Math.min(.08, density * .05 * (.7+M.skill.forage*.1))&&population>=1) {
         const pull=.3+W.rng.f()*.55;
         if(pull>(M.lineStrength||.5)){M.inv.line=0;M.say='The cord parted under the pull.';return 'fail';}
         fish[water]=Math.max(0,fish[water]-1);

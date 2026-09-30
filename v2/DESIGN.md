@@ -158,3 +158,35 @@ the verification machine. Food reserves were low: this is not proof of survival 
 Node and Chromium world saves matched exactly. Phone screenshots were inspected at 430 x 932 and 3x density,
 including the live checkpoint, future home, journal tabs and a controlled snow fixture. Native iPhone Safari
 has not been checked. Test futures and the snow fixture were not written into the live checkpoint.
+
+## Water balance and presentation
+
+`sim/hydro.js` integrates water every ten simulated minutes, in cubic metres. Rain and snow supply the island;
+snow melts from heat and sunlight. Tile soil holds moisture, infiltrates and feeds a groundwater reservoir.
+Surface hollows accumulate puddles, freeze, evaporate and transfer water downhill. Worn ground infiltrates
+more slowly. Lake and stream storage receive runoff and groundwater, discharge by depth, and can spill onto
+stream banks. This is a coarse island water balance: lake and stream are aggregate reservoirs, rather than
+a full fluid solver. It does not simulate the ocean's volume or resolve individual waves as fluid particles.
+
+`W.water` remains the existing pathogen concentration. `W.hydro` holds volumes, flow, temperature, oxygen,
+sediment, wave energy and cumulative input/output counters. Flow affects stream flushing; depth, temperature
+and oxygen affect fish carrying capacity. Drinking and filling the boiling pot remove actual water, as does
+the dog's drinking. A stone/clay rain basin and reed catchment can become planner projects; installed parts
+determine collecting area and capacity. Captured water has germs, leaks, evaporates and overflows. Camp drains
+change surface retention and downhill transfer; standing water contributes to walking cost. Seeded chance
+can detach actual bank litter into saved drifting packets; material leaving the stream is recorded.
+
+The renderer precomputes shore distances and texture once. Each frame shades only the visible art pixels,
+using a sine lookup table and a reused viewport buffer. Wavelets and shore crests shade continuously.
+Wide zoom reuses interior shading in small blocks while
+retaining every shoreline pixel, to bound drawing cost. Depth bands, shallow caustics, wind ripples, wave
+crests, wet shore wash, stream currents, rain rings and lake ice read physical state. Nearby tree reflections
+use clipped distortion strips; litter packets follow the drawn stream. These are presentation effects,
+not extra simulation steps. Stream depth and lake level change the drawn shore. Flow and distance control
+soft stream sound, while installed collecting surfaces add quiet rain sound. No rendering consumes RNG.
+
+Run `node test/water.test.js` for water/material conservation, drainage, finite collection and extraction,
+old checkpoint defaults and replay. The health test advances flow alongside water quality. Water release
+verification also includes the required suite, a five-day life replay, both fresh and production-checkpoint
+65-day survival/replay runs, and phone-sized rendering/motion checks. Benchmark results and limits are reported
+with the release; desktop Chromium emulation does not establish native iPhone Safari performance.

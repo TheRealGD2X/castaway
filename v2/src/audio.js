@@ -24,13 +24,15 @@ export function audioStart() {
   master = gain(0); master.connect(comp); master.gain.setTargetAtTime(.55, ctx.currentTime, 1.5);
   const brown = noiseBuffer(ctx, "brown"), pink = noiseBuffer(ctx, "pink"), white = noiseBuffer(ctx, "white");
   parts = {
-    sea: gain(), sea2: gain(), wind: gain(), windF: filt("bandpass", 500, .6), rain: gain(), fire: gain(), white,
+    sea: gain(), sea2: gain(), stream:gain(), roofRain:gain(), wind: gain(), windF: filt("bandpass", 500, .6), rain: gain(), fire: gain(), white,
   };
   loop(brown, filt("lowpass", 420), parts.sea).connect(master);
   loop(pink, filt("lowpass", 900), filt("highpass", 120), parts.sea2).connect(master);
   loop(pink, parts.windF, parts.wind).connect(master);
   loop(white, filt("highpass", 1800), filt("lowpass", 7000), parts.rain).connect(master);
   loop(brown, filt("lowpass", 180), parts.fire).connect(master);                       // the low roar of a fire
+  loop(pink,filt('bandpass',720,.5),filt('lowpass',1700),parts.stream).connect(master);
+  loop(brown,filt('bandpass',550,.5),parts.roofRain).connect(master);
 }
 export function audioStop() { if (ctx) master.gain.setTargetAtTime(0, ctx.currentTime, .4); }
 // one-off sounds
@@ -53,12 +55,16 @@ let lastHorn = 0;
 export function audioUpdate(W, V, now) {
   if (!ctx || !parts || ctx.state !== "running") return;
   const x = W.wx, T = ctx.currentTime, cx = Math.floor(V.cam.x / 16), cy = Math.floor(V.cam.y / 16), i = Math.max(0, Math.min(W.ter.length - 1, cy * W.MW + cx));
-  const shore = Math.max(0, 1 - (W.dsea[i] || 0) / 14), swell = .55 + .45 * Math.sin(now / 1400) * Math.sin(now / 3700 + 1);
+  const shore = Math.max(0, 1 - (W.dsea[i] || 0) / 14), swell = .65 + .25 * Math.sin(now / (1400+(W.hydro?.wave||0)*500));
   parts.sea.gain.setTargetAtTime((.08 + .5 * shore) * (.6 + x.wind / 20) * swell, T, .3);
   parts.sea2.gain.setTargetAtTime((.02 + .12 * shore) * (1.2 - swell * .6), T, .5);
   const gust = x.wind / 14 + Math.max(0, Math.sin(now / 2300) * Math.sin(now / 5100)) * x.wind / 25;
   parts.wind.gain.setTargetAtTime(Math.min(.35, gust * .22), T, .5); parts.windF.frequency.setTargetAtTime(350 + gust * 500, T, .8);
   parts.rain.gain.setTargetAtTime(Math.min(.22, x.rain * .06), T, 1);
+  let stream=0;for(const j of W.stream||[]){const d=Math.hypot(j%W.MW-V.cam.x/16,Math.floor(j/W.MW)-V.cam.y/16);stream=Math.max(stream,Math.max(0,1-d/12));}
+  parts.stream.gain.setTargetAtTime(stream*Math.min(.11,.025+Math.sqrt(W.hydro?.flow||0)*.4),T,.7);
+  let roof=0;for(const s of W.structs){const d=Math.hypot(s.x-V.cam.x/16,s.y-V.cam.y/16);roof=Math.max(roof,(s.props?.rain||s.props?.catchArea||0)*Math.max(0,1-d/8));}
+  parts.roofRain.gain.setTargetAtTime(Math.min(.08,roof*x.rain*.025),T,.8);
   let fire = 0; for (const F of W.fires) { const d = Math.hypot(F.x - V.cam.x / 16, F.y - V.cam.y / 16); if (F.lit) fire = Math.max(fire, Math.min(1, F.heat / 8000) * Math.max(0, 1 - d / 14)); }
   parts.fire.gain.setTargetAtTime(fire * .25, T, .4);
   if (fire > .05 && Math.random() < fire * .25) crackle(.05 + Math.random() * .08 * fire);

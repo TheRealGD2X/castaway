@@ -26,6 +26,18 @@ const OCT = [[1, 0], [.7071, .7071], [0, 1], [-.7071, .7071], [-1, 0], [-.7071, 
 // ------------------------------------------------------------------ families
 // each: minSkill (build skill needed to attempt it), make(brief) -> stages, props(struct) -> what it does now
 export const FAMILIES = {
+  rainCollector: {
+    label:'rain collector', minSkill:.45, beside:true,
+    make:b=>[
+      {name:'basin',need:{stones:8,mud:9},mins:55,say:'A shallow stone basin, sealed with kneaded clay.'},
+      {name:'catchment',need:{poles:2,reeds:8},mins:45,say:'A sloping reed surface leads rain into the basin.'},
+    ],props:s=>({capacity:done(s,0)*14*(s.integrity??1),catchArea:done(s,0)*frac(s,1)*2*(s.integrity??1)}),
+  },
+  drainage: {
+    label:'camp drain', minSkill:.3, beside:true,
+    make:b=>[{name:'channel',need:{stones:4},mins:40,say:'A shallow channel with stone sides, carrying surface water downhill.'}],
+    props:s=>({drainage:frac(s,0)*(s.integrity??1)}),
+  },
   workbench: {
     label: "workbench", minSkill: .3, beside: true,
     make: b => [
@@ -221,7 +233,7 @@ export function site(W, M, fam, b, campTile) {
       const dx = x - cx, dy = y - cy, d = dx * dx + dy * dy;
       if (d < 4 || d > 20) continue;
       const spacing = W.structs.reduce((n, s) => n + (Math.abs(s.x - x - .5) < 1.8 && Math.abs(s.y - y - .5) < 1.8 ? 4 : 0), 0);
-      const v = d + spacing; if (v < score) { score = v; best = { tile: i, dir: sh?.dir || 0 }; }
+      const v = d + spacing - (fam==='drainage'?Math.min(40,(W.hydro?.pool[i]||0)*400):0); if (v < score) { score = v; best = { tile: i, dir: sh?.dir || 0 }; }
     }
     return best;
   }

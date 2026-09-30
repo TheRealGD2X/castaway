@@ -28,7 +28,8 @@ export function drawGroundLife(g,V,W,sx,sy,terr) {
       g.globalAlpha=1;
     }
     if(q?.ash>.02){g.globalAlpha=Math.min(.8,q.ash*.4);g.fillStyle='#756956';g.fillRect(px+4,py+6,9,5);g.fillStyle='#b4a88a';g.fillRect(px+5,py+7,5,1);g.globalAlpha=1;}
-    if(s.puddle>.6&&(t===T.MARSH||h<.12)&&!W.treeAt[i]){g.fillStyle=s.ice>.2?'#a8c6c5':'#638b89';g.fillRect(px+4,py+9,9,3);g.fillRect(px+6,py+8,5,1);g.fillStyle=s.ice>.2?'#d8e8dd':'#a4bbb0';g.fillRect(px+5,py+9,4,1);}
+    const water=W.hydro?(W.hydro.pool[i]||0)*250:s.puddle,ice=W.hydro?(W.hydro.ice[i]||0)*250:s.ice;
+    if(water+ice>.6&&!W.treeAt[i]){const r=Math.min(6,Math.sqrt(water+ice)*1.4);g.fillStyle=ice>.2?'#a8c6c5':'#638b89';g.fillRect(px+8-r,py+9,r*2,2);g.fillRect(px+9-r*.7,py+8,r*1.4,1);g.fillStyle=ice>.2?'#d8e8dd':'#a4bbb0';g.fillRect(px+8-r*.6,py+9,r*.7,1);}
     if(s.frost>.12&&h<.7){g.globalAlpha=Math.min(.65,s.frost);g.fillStyle='#d7dfc9';g.fillRect(px+2,py+5,3,1);g.fillRect(px+11,py+11,2,1);g.globalAlpha=1;}
   }
   if(s.snow>.1&&terr){const layer=snowLayer(W,terr);g.drawImage(layer,-sx,-sy);}

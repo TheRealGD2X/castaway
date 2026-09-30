@@ -2,6 +2,7 @@
 // Integer art zoom stays crisp; a finer presentation grid allows gentle motion between art-pixel positions.
 import { jointedDog } from "./dogrig.js";
 import { drawGroundLife } from "./groundlife.js";
+import { createWaterRenderer } from './water.js';
 import { TS } from "./terrain.js";
 import { tree, shrub, rock, shadow, branch } from "./sprites.js";
 import { drawWeather } from "./weather.js";
@@ -27,6 +28,7 @@ export function createView(cv, world, terr) {
   const V = { cam: { x: world.cx * TS, y: world.cy * TS }, k: 0, aw: 0, ah: 0 };
   let lastDraw = null;
   const canopyAlpha = new Map();
+  const waterRenderer = createWaterRenderer(terr,world);
   V.resize = () => {
     const dpr = window.devicePixelRatio || 1;
     if (!V.k) V.k = Math.max(3, Math.round(dpr * 3));
@@ -58,14 +60,7 @@ export function createView(cv, world, terr) {
     const x0 = Math.max(0, sx), y0 = Math.max(0, sy), x1 = Math.min(terr.PW, sx + aw), y1 = Math.min(terr.PH, sy + ah);
     if (x1 > x0 && y1 > y0) g.drawImage(terr.cv, x0, y0, x1 - x0, y1 - y0, x0 - sx, y0 - sy, x1 - x0, y1 - y0);
     drawGroundLife(g, V, world, sx, sy, terr);
-    // water sparkle: a few bright pixels that come and go
-    const fr = Math.floor(now / 400);
-    for (let ty = Math.max(0, (sy / TS) | 0); ty <= Math.min(world.MH - 1, ((sy + ah) / TS) | 0); ty++) for (let tx = Math.max(0, (sx / TS) | 0); tx <= Math.min(world.MW - 1, ((sx + aw) / TS) | 0); tx++) {
-      const t = world.ter[ty * world.MW + tx]; if (!(t === 0 || t === 1 || t === 7)) continue;
-      const h = hash3(tx, ty, fr); if (h > .09) continue;
-      const px = tx * TS + ((hash3(tx, ty, fr + 1) * 13) | 0) - sx, py = ty * TS + ((hash3(tx, ty, fr + 2) * 13) | 0) - sy;
-      g.fillStyle = h < .08 ? "#e8fbf6" : R.water[4]; g.fillRect(px, py, h < .08 ? 2 : 1, 1);
-    }
+    waterRenderer.draw(g,V,world,now,sx,sy);
     // things lying on the ground (branches the wind brought down)
     for (const it of world.items) { const px = Math.round(it.x * TS) - sx, py = Math.round(it.y * TS) - sy; if (px < -30 || py < -10 || px > aw + 30 || py > ah + 10) continue; if (it.k === "branch") { const b = branch(it.len || (it.kg > 1.2 ? 2 : 1), it.id, it.moist); g.drawImage(b.img, px - (b.img.width >> 1), py - b.img.height + b.ay); } }
     // what he has made and the man himself, merged into the back-to-front order of trees and plants

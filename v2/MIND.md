@@ -50,3 +50,9 @@ reports felt surface temperature, snow, frost and ice, and weather can describe 
 Inventory can include cord, basket, line, axe, wrap, greenPot and clayPot. A green pot is unfired; only clayPot
 is a finished ceramic pot. Tomas's own planner handles crafting, fishing, preservation and repair from needs,
 materials and experience. Do not assume he completed a recipe or a house unless the brief says so.
+
+`canBuild` also includes `build:rainCollector` (a stone/clay basin and reed collecting surface) and
+`build:drainage` (a camp drain). They use the existing building intention format. Optional `freshWater`
+context describes a stream he has seen and litres in his own collecting basins. Collection depends on
+installed parts and actual precipitation; an empty basin supplies nothing, and collected water is not
+guaranteed sterile. The thought input format and all existing brief keys remain unchanged.

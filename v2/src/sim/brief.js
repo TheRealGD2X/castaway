@@ -18,6 +18,7 @@ export function brief(W) {
     doing: M.doing || "", why: M.why || "", said: M.say || "",
     has: Object.fromEntries(Object.entries(M.inv).filter(([, v]) => v > .01).map(([k, v]) => [k, +(+v).toFixed(1)])),
     ground: { surfaceC: +(W.surface?.temp || 0).toFixed(1), snowMm: +(W.surface?.snow || 0).toFixed(1), frost: (W.surface?.frost || 0) > .2, iceMm: +(W.surface?.ice || 0).toFixed(1) },
+    freshWater: { stream: W.stream?.some(i=>M.known[i]) ? (W.hydro.streamDepth<.04 ? "running very shallow" : W.hydro.flow>.025 ? "flowing strongly" : "flowing gently") : "not seen", collectedLitres: dround(W.structs.reduce((v,s)=>v+(s.waterL||0),0)*10)/10 },
     skills: Object.fromEntries(Object.entries(M.skill).map(([k, v]) => [k, +v.toFixed(2)])),
     built: W.structs.map(s => ({ what: FAMILIES[s.k].label, condition: (s.integrity ?? 1) < .88 ? "damaged" : "sound", stage: finished(s) ? "finished" : `${s.stages[s.stage].name} next (${s.stage}/${s.stages.length} stages done)` })),
     canBuild: Object.entries(FAMILIES).map(([k, F]) => ({ k: "build:" + k, what: F.label, able: M.skill.build >= F.minSkill })),

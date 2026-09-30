@@ -28,7 +28,8 @@ export function waterTen(W) {
   for (const k in SRC) {
     const s = SRC[k], target = s.base * (.6 + warm);
     let c = W.water[k] + x.rain * s.runoff * (10 / 60) * .1;
-    c = target + (c - target) * dexp(-10 / (s.flushH * 60) * (1 + (x.sun || 0) / 800));
+    const flow = k==='stream'&&W.hydro ? clamp(W.hydro.flow/.006,.25,3) : 1;
+    c = target + (c - target) * dexp(-10 / (s.flushH * 60) * flow * (1 + (x.sun || 0) / 800));
     W.water[k] = +c.toFixed(4);
   }
 }

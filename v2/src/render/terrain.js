@@ -31,9 +31,11 @@ export function paintTerrain(W, opt = {}) {
 
   }
   // the stream: a winding channel through its tiles (a smooth curve with a little meander), cut into the ground
+  let streamCurve=[];
   if (W.stream && W.stream.length > 1) {
     const P0 = W.stream.map((i, k) => { const x = (i % MW) * TS + 8, y = ((i / MW) | 0) * TS + 8, m = (vnoise(k * .45, 0, s + 360) - .5) * 26; return [x + m, y + (vnoise(k * .45, 7, s + 361) - .5) * 18]; });
     { const L = P0[P0.length - 1], Pv = P0[P0.length - 2]; P0.push([L[0] + (L[0] - Pv[0]) * 1.5, L[1] + (L[1] - Pv[1]) * 1.5]); }
+    streamCurve=P0;
     const cr = (a, b, c, d, t) => .5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
     for (let k = 0; k < P0.length - 1; k++) {
       const a = P0[Math.max(0, k - 1)], b = P0[k], c = P0[k + 1], d = P0[Math.min(P0.length - 1, k + 2)];
@@ -54,7 +56,7 @@ export function paintTerrain(W, opt = {}) {
   for (let k = 0; k < q.length; k++) { const i = q[k], x = i % MW, y = (i / MW) | 0; for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + ax, ny = y + ay; if (nx < 0 || ny < 0 || nx >= MW || ny >= MH) continue; const j = ny * MW + nx; if (dl[j] > dl[i] + 1) { dl[j] = dl[i] + 1; q.push(j); } } }
   // true distance (in pixels) from water to the nearest land, by a two-pass chamfer transform
   const wd = new Float32Array(PW * PH);
-  for (let i = 0; i < PW * PH; i++) wd[i] = WATER(mat[i]) && mat[i] !== T.STREAM ? 1e6 : 0;
+  for (let i = 0; i < PW * PH; i++) wd[i] = WATER(mat[i]) ? 1e6 : 0;
   for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) { const i = y * PW + x; if (!wd[i]) continue; let v = wd[i]; if (x > 0) v = Math.min(v, wd[i - 1] + 1); if (y > 0) { v = Math.min(v, wd[i - PW] + 1); if (x > 0) v = Math.min(v, wd[i - PW - 1] + 1.414); if (x < PW - 1) v = Math.min(v, wd[i - PW + 1] + 1.414); } wd[i] = v; }
   for (let y = PH - 1; y >= 0; y--) for (let x = PW - 1; x >= 0; x--) { const i = y * PW + x; if (!wd[i]) continue; let v = wd[i]; if (x < PW - 1) v = Math.min(v, wd[i + 1] + 1); if (y < PH - 1) { v = Math.min(v, wd[i + PW] + 1); if (x < PW - 1) v = Math.min(v, wd[i + PW + 1] + 1.414); if (x > 0) v = Math.min(v, wd[i + PW - 1] + 1.414); } wd[i] = v; }
   const depth = (px, py) => { const fx = px / TS - .5, fy = py / TS - .5, x0 = Math.max(0, Math.min(MW - 2, fx | 0)), y0 = Math.max(0, Math.min(MH - 2, fy | 0)), u = Math.max(0, Math.min(1, fx - x0)), v = Math.max(0, Math.min(1, fy - y0)), i = y0 * MW + x0; return dl[i] * (1 - u) * (1 - v) + dl[i + 1] * u * (1 - v) + dl[i + MW] * (1 - u) * v + dl[i + MW + 1] * u * v; };
@@ -131,5 +133,5 @@ export function paintTerrain(W, opt = {}) {
     g.globalCompositeOperation = 'source-atop'; g.fillStyle = `rgba(177,146,81,${Math.min(.16, autumn * .16)})`; g.fillRect(0, 0, PW, PH); g.globalCompositeOperation = 'source-over';
   };
   recolor(aut);
-  return { cv, mat, PW, PH, recolor };
+  return { cv, mat, wd, streamCurve, PW, PH, recolor };
 }
