@@ -15,6 +15,7 @@ import { visible } from './senses.js';
 import { localWeather } from './atmosphere.js';
 import { walkable, floodDepth } from '../mind/path.js';
 import { elevation } from './geomorph.js';
+import { seaLevel } from './ocean.js';
 
 export function arrive(W) {
   // he washes up on a sandy beach, the nearest to the middle of the island's southern shore
@@ -46,9 +47,10 @@ export function look(W) {
     else if (e.k === "flint" || e.k === "fern" || e.k === "boulder" || e.k === "stones" || e.k === "reeds") seen("e" + e.id, { k: e.k, x: e.x, y: e.y, n: e.n ?? 1 });
   }
   for (const it of W.items) if (dsq(it.x - cx) + dsq(it.y - cy) <= r2 && visible(W,M,it)) seen("i" + it.id, { k: it.k, x: it.x, y: it.y, kg: it.kg, moist: it.moist });
-  for (const k in M.mem) if (k[0] === "i" && !W.items.some(it => "i" + it.id === k)) { const m = M.mem[k]; if (dsq(m.x - cx) + dsq(m.y - cy) <= r2 && visible(W,M,m)) delete M.mem[k]; }   // gone (he sees it isn't there)
+  const remainingItems=new Set(W.items.map(it=>"i"+it.id));
+  for (const k in M.mem) if (k[0] === "i" && !remainingItems.has(k)) { const m = M.mem[k]; if (dsq(m.x - cx) + dsq(m.y - cy) <= r2 && visible(W,M,m)) delete M.mem[k]; }   // gone (he sees it isn't there)
   // the shore: beds he can see when the tide has uncovered them (and how deep they lie, so when they'll show again)
-  for (const b of W.shore) if (dsq(b.x - cx) + dsq(b.y - cy) <= r2 && W.wx.tide < -b.depth && visible(W,M,b)) seen("s" + b.id, { k: b.k, x: b.x, y: b.y, kg: b.kg, depth: b.depth, tile: b.tile });
+  for (const b of W.shore) if (dsq(b.x - cx) + dsq(b.y - cy) <= r2 && seaLevel(W,b.x,b.y) < -b.depth && visible(W,M,b)) seen("s" + b.id, { k: b.k, x: b.x, y: b.y, kg: b.kg, depth: b.depth, tile: b.tile });
   // animals: the dog (where it was, how it seemed), rabbits by their warren (so he knows where they run)
   for (const a of W.animals) {
     if (dsq(a.x - cx) + dsq(a.y - cy) > r2 || a.adrift || a.dead || !visible(W,M,a)) continue;
@@ -68,8 +70,9 @@ export function bodyContext(W, M, met) {
   fireW *= sh.fire * (1 + sh.reflect);
   // a dog asleep against him is a hot-water bottle (a dog's body gives off about 50 W; he gets some of it)
   for (const a of W.animals) if (a.sp === "dog" && a.curled && !a.dead) fireW += a.contactHeatW||0;
-  return { met, airT: indoor?.airT??x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: x.rain*(1-Math.max(0,Math.min(1,(1-x.temp)/2))), blanket: M.inv.wrap ? .35 * (1 - (M.wrapWet || 0) * .6) : 0, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: indoor?.hum??x.hum, fireW, lying: M.B.asleep || M.pose === "lie", bedding: sh.bed, groundT: indoor?.wallT??W.surface?.temp, sleepQ: 1 };
+  return { met, airT: indoor?.airT??x.temp, wind: x.wind, windBlock: 1 - (1 - underTree * .5) * (1 - sh.wind), rain: x.rain*(1-Math.max(0,Math.min(1,(1-x.temp)/2)))+(W.ocean?.spray[i]||0), immersion:floodDepth(W,i),waterT:W.ocean?coastalTemperature(W,i):W.hydro.temp,blanket: M.inv.wrap ? .35 * (1 - (M.wrapWet || 0) * .6) : 0, rainBlock: 1 - (1 - underTree) * (1 - sh.rain), sun: x.sun, hum: indoor?.hum??x.hum, fireW, lying: M.B.asleep || M.pose === "lie", bedding: sh.bed, groundT: indoor?.wallT??W.surface?.temp, sleepQ: 1 };
 }
+const coastalTemperature=(W,i)=>{const g=W.ocean.grids[2],cell=Math.floor(Math.floor(i/W.MW)/4)*g.nx+Math.floor((i%W.MW)/4),V=g.volume[cell]*g.fractions[0];return V>.001?g.heat[cell]/(1025*3990*V):W.hydro.temp;};
 // walk along the path: real speed (about 1.2 m/s on firm grass), slower on rough ground, when tired or cold
 export function walk(W, M, minutes = 1) {
   if (!M.path || M.path.length < 2) { M.path = null; return true; }

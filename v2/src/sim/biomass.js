@@ -24,7 +24,8 @@ export function growPlants(W){
     const leaf=clamp(e.leafKg/Math.max(.01,SP[e.k]?.kind==='tree'?5*size:size),0,1);
     const temp=clamp((wx.temp-2)/16,0,1)*clamp((40-wx.temp)/15,0,1);
     const water=W.hydro?.soil[i]||0,n=W.soilN[i];
-    const growth=Math.min(solar*Math.min(4,4*size)*.012*leaf*temp/18e6,water*2,n/.01);
+    const salt=(W.hydro.saltSoil?.[i]||0)/Math.max(.0001,water),osmotic=1/(1+salt*salt/4);
+    const growth=Math.min(solar*Math.min(4,4*size)*.012*leaf*temp*osmotic/18e6,water*2,n/.01);
     e.reserveKg+=growth;b.assimilatedKg+=growth;W.soilN[i]-=growth*.01;
     if(W.hydro){W.hydro.soil[i]-=growth*.5;W.hydro.evap+=growth*.5;}
     const respiration=Math.min(e.reserveKg,e.liveKg*.000002*Math.max(0,wx.temp+5)/15);e.reserveKg-=respiration;b.respiredKg+=respiration;W.soilN[i]+=respiration*.01;

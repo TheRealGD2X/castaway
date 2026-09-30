@@ -3,7 +3,7 @@
 const TAU = Math.PI * 2;
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 const KEYS = ['sea', 'seaPan', 'wave', 'wind', 'leaves', 'gust', 'rain', 'rainRate', 'roof', 'roofPan', 'roofSoft',
-  'stream', 'streamPan', 'flow', 'fire', 'firePan', 'fireMoisture', 'muffling','work','workPan','workHz'];
+  'stream', 'streamPan', 'flow', 'fire', 'firePan', 'fireMoisture', 'muffling','work','workPan','workHz','oceanActive','surfPulse'];
 const cutoff = (hz, rate) => 1 - Math.exp(-TAU * hz / rate);
 
 class Texture {
@@ -54,7 +54,7 @@ export class AcousticField {
     for (let i = 0; i < n; i++, this.frame++) {
       for (const k of KEYS) p[k] += this.smooth * (this.target[k] - p[k]);
       for (let k = 0; k < 3; k++) { this.phase[k] += this.omega[k]; if (this.phase[k] > TAU) this.phase[k] -= TAU; }
-      const crest = Math.max(0, .5 + .25 * Math.sin(this.phase[0]) + .17 * Math.sin(this.phase[1]) + .08 * Math.sin(this.phase[2]));
+      const crest = p.oceanActive>.5?p.surfPulse:Math.max(0, .5 + .25 * Math.sin(this.phase[0]) + .17 * Math.sin(this.phase[1]) + .08 * Math.sin(this.phase[2]));
       const surge = .3 + .7 * crest * crest, wash = .2 + .8 * crest;
       // Small entrained bubbles: Minnaert resonance, rho=1000, gamma=1.4, P=101325.
       if (this.random() < Math.min(18, p.flow * 160) * dt && p.stream > .0001) {

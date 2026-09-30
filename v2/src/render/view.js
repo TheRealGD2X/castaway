@@ -9,6 +9,9 @@ import { drawWeather } from "./weather.js";
 import { SKY, R, mix } from "./palette.js";
 import { hash3 } from "../core/rng.js";
 import { manSprite } from "./people.js";
+import { seaLevel } from "../sim/ocean.js";
+import { oceanSurface,surfaceAt } from './ocean-surface.js';
+import { displaySeconds } from './simulation-clock.js';
 import { visibility } from "../sim/ships.js";
 import { sprite } from "./pix.js";
 import { dogSprite, raftSprite, gullSprite, rabbitSprite, snareSprite, scrapsSprite } from "./beasts.js";
@@ -61,6 +64,12 @@ export function createView(cv, world, terr) {
     if (x1 > x0 && y1 > y0) g.drawImage(terr.cv, x0, y0, x1 - x0, y1 - y0, x0 - sx, y0 - sy, x1 - x0, y1 - y0);
     drawGroundLife(g, V, world, sx, sy, terr);
     waterRenderer.draw(g,V,world,now,sx,sy);
+    // Marine packets retain their simulated positions and ride the same surface.
+    for(const q of world.ocean?.drifters || []) {
+      const px=q.x*TS-sx,py=q.y*TS-sy;if(px<-30||px>aw+30||py<-30||py>ah+30)continue;
+      const lift=surfaceAt(oceanSurface(world,displaySeconds(world,now)),q.x*2,q.y*2,{}).height*8,b=branch(q.len||1,q.id,1);
+      g.drawImage(b.img,px-(b.img.width>>1),py-lift-b.img.height+b.ay);
+    }
     // things lying on the ground (branches the wind brought down)
     for (const it of world.items) { const px = Math.round(it.x * TS) - sx, py = Math.round(it.y * TS) - sy; if (px < -30 || py < -10 || px > aw + 30 || py > ah + 10) continue; if (it.k === "branch") { const b = branch(it.len || (it.kg > 1.2 ? 2 : 1), it.id, it.moist); g.drawImage(b.img, px - (b.img.width >> 1), py - b.img.height + b.ay); } }
     // what he has made and the man himself, merged into the back-to-front order of trees and plants
@@ -87,6 +96,7 @@ export function createView(cv, world, terr) {
       if (a.sp === "dog") sp = a.adrift ? raftSprite(now) : jointedDog(a, now);
       else if (a.sp === "gull") { sp = gullSprite(a.act === "fly" || a.air ? "fly" : a.act, now, a.id); if (a.air) lift = 10 + Math.round(Math.sin(now / 500 + a.id) * 2); }
       else sp = rabbitSprite(a.act, now, a.id);
+      if(world.ocean&&(a.adrift||a.act==='swim'))lift=surfaceAt(oceanSurface(world,displaySeconds(world,now)),ax*2,ay*2,{}).height*8;
       if (world.ter[Math.floor(ay + 1) * world.MW + Math.floor(ax)] <= 1) {
         g.save(); g.globalAlpha=.12; g.translate(px,py+6); g.scale((face<0?-1:1)*size,-.35*size); g.drawImage(sp.img,-sp.ox,-sp.oy,sp.w || sp.img.width,sp.h || sp.img.height); g.restore();
       }
@@ -98,7 +108,7 @@ export function createView(cv, world, terr) {
     for (const it of world.items) if (it.k === "scraps" || it.k === "quarry") { const sp = scrapsSprite(); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy) }); }
     for (const F of world.fires) dyn.push({ y: F.y, f: () => { const fx = Math.round(F.x * TS) - sx, fy = Math.round(F.y * TS) - sy + 3; drawFire(g, F, fx, fy, now, windX); if (M && M.boiling && world.t - M.boiling < 2) drawPot(g, fx + 5, fy + 1, now, true); } });
     // the shore at low water: beds the tide has uncovered
-    for (const b of world.shore) if (world.wx.tide < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - world.wx.tide) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy); g.globalAlpha = 1; }
+    for (const b of world.shore) if (seaLevel(world,b.x,b.y) < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - seaLevel(world,b.x,b.y)) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy); g.globalAlpha = 1; }
     if (M) {
       const p = V.manPos(now), pose = M.pose === "walk" && (M.inv.stones || 0) > 0 ? "stonewalk" : M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now, M, world, p);
       const inside = world.structs.find(q => (q.k === "leanto" || q.k === "debrisHut" || q.k === "roundhouse") && q.stage > 0 && Math.abs(q.x - p.x) < .6 && Math.abs(q.y - p.y) < .6);

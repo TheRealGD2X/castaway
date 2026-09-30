@@ -36,6 +36,7 @@ import { foodwebInit, foodwebTen, foodwebSave } from './foodweb.js';
 import { atmosphereInit, atmosphereSave, localWeather, returnEvaporation } from './atmosphere.js';
 import { sensoryStep } from './senses.js';
 import { ensureAnimal } from './animal-body.js';
+import { oceanInit,oceanTen,oceanSave } from './ocean.js';
 
 export function createWorld(seed, born, opt) {
   const W = generate(seed);
@@ -45,6 +46,7 @@ export function createWorld(seed, born, opt) {
   W.fires = []; W.structs = []; W.camp = null;
   biomassInit(W); reliefInit(W);
   foodwebInit(W);
+  oceanInit(W);
   // where the trees stand (shade, rain cover, slower walking) and a spatial index of everything rooted in place
   W.treeAt = new Uint8Array(MW * MH); W.grid = Array.from({ length: MW * MH }, () => []);
   for (const e of W.ents) { const i = Math.floor(e.y) * MW + Math.floor(e.x); W.grid[i].push(e); if (SP[e.k] && SP[e.k].kind === "tree") W.treeAt[i] = 1; }
@@ -61,7 +63,7 @@ export function step(W) {
   W.t++;
   envStep(W); seasonsStep(W);
   const logFrom = W.man?.log.length || 0,oldEvap=W.hydro.evap;
-  if (W.t % 10 === 0) { ecoTen(W); hydroTen(W); waterTen(W); foodwebTen(W);fishTen(W); heritageTen(W); }
+  if (W.t % 10 === 0) { ecoTen(W); hydroTen(W); waterTen(W); oceanTen(W);foodwebTen(W);fishTen(W); heritageTen(W); }
   if (cal(W.born, W.t).mod === 360) { ecoDay(W); shoreDay(W); animalsDay(W, cal(W.born, W.t).doy); }
   returnEvaporation(W,W.hydro.evap-oldEvap);
   animalsStep(W); shipsStep(W); shipsWatch(W);
@@ -87,7 +89,7 @@ const DYN = ["deadKg", "aut", "fall", "fruit", "n", "shoots", "liveKg", "reserve
 export function save(W) {
   return JSON.stringify({ v: 2, seed: W.seed, born: W.born, t: W.t, rng: W.rng.save(), wx: W.wx, nextId: W.nextId,
     ents: W.ents.map(e => DYN.map(k => e[k] ?? null)), litter: Array.from(W.litter), litterWet: W.litterWet, items: W.items, fires: W.fires, structs: W.structs, camp: W.camp, shore: W.shore.map(b => b.kg), water: W.water, fish: W.fish, animals: W.animals, warrens: W.warrens, runs: W.runs || {}, events: W.events || [], ships: W.ships, nextShip: W.nextShip,
-    surface: W.surface, hydro: hydroSave(W), atmosphere:atmosphereSave(W),foodweb:foodwebSave(W),odour:W.odour, bio:W.bio,soilN:Array.from(W.soilN),relief:Array.from(W.relief),traces: W.traces, scent: W.scent, story: W.story, storyKeys: W.storyKeys,
+    surface: W.surface, hydro: hydroSave(W), atmosphere:atmosphereSave(W),ocean:oceanSave(W),foodweb:foodwebSave(W),odour:W.odour, bio:W.bio,soilN:Array.from(W.soilN),relief:Array.from(W.relief),traces: W.traces, scent: W.scent, story: W.story, storyKeys: W.storyKeys,
     man: W.man ? Object.assign({}, W.man, { known: Array.from(W.man.known).join("") }) : null });
 }
 export function load(s, thoughts) {
@@ -102,9 +104,17 @@ export function load(s, thoughts) {
   hydroLoad(W,o.hydro);
   W.soilN=o.soilN;biomassInit(W,o.bio);reliefInit(W,o.relief);for(let i=0;i<W.relief.length;i++)if(W.relief[i]){reroute(W,i);for(const j of [i-1,i+1,i-W.MW,i+W.MW])if(j>=0&&j<W.relief.length)reroute(W,j);}
   atmosphereInit(W,o.atmosphere);foodwebInit(W,o.foodweb);for(const a of W.animals)ensureAnimal(a);
+  oceanInit(W,o.ocean);
   W.odour=o.odour;
   if(W.hydro.lakeBed)for(const i of W.hydroMap.lake)touchRelief(W,i);
   if (o.man) { W.man = Object.assign(o.man, { known: Uint8Array.from(o.man.known, c => +c) }); }
+  // JSON cannot preserve the planner's references to existing structures. Restore
+  // those links; proposed structures without an installed id remain snapshots.
+  for (const p of W.man?.projCache?.list || []) {
+    if (p.s?.id == null) continue;
+    const existing = W.structs.find(s => s.id === p.s.id);
+    if (existing) p.s = existing;
+  }
   // Existing memories are already part of his past; the first future fire or sighting is not his first ever.
   if (!o.storyKeys && W.man) {
     if (W.man.log.some(l => l[1] === "fire")) W.storyKeys["first-fire"] = 1;

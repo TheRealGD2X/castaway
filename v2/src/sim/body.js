@@ -31,6 +31,7 @@ export function bodyStep(B, ctx) {
   // clothes dry by body heat (more when working), wind, dry air, sun and a fire: a few hours on a breezy day
   const dryK = .0006 + .004 * Math.max(0, 1.1 - (ctx.hum ?? .85)) + (met > 2 ? .00025 * met : 0) + (ctx.fireW || 0) / 180000 + (ctx.sun || 0) / 900000;
   B.wet = clamp(B.wet + rain * .015 - (B.wet > 0 ? dryK * (1 + wind / 6) : 0), 0, 1);
+  B.wet=clamp(B.wet+Math.max(0,ctx.immersion||0)*.2,0,1);
   // skin temperature: vessels close in the cold (skin cools, holding heat in) and open when he's warm (skin flushes)
   const cold = Math.max(0, 33 - ctx.airT), Ts = Math.min(36, 33 - Math.min(5.5, cold * .22) - Math.max(0, 36.9 - B.core) * .8 + Math.max(0, B.core - 36.95) * 9);
   const Rcl = (B.clo + (ctx.blanket || 0)) * .155 * (1 - .65 * B.wet);
@@ -39,6 +40,7 @@ export function bodyStep(B, ctx) {
   let loss = A * (Ts - ctx.airT) / (Rcl + Rair);
   loss += B.wet * 38 * (1 + wind / 6) * (ctx.airT < 20 ? 1 : .5);          // evaporation from wet clothes
   if (ctx.lying) loss += .45 * (Ts - (ctx.groundT ?? ctx.airT + 1.5)) * 4 * (1 - (ctx.bedding || 0) * .85);   // the ground draws heat
+  loss+=Math.min(1.8,Math.max(0,ctx.immersion||0)*1.2)*25*(Ts-(ctx.waterT??ctx.airT));
   loss += 10 + (met > 3 ? met * 4 : 0);                                     // breath
   const gain = (ctx.fireW || 0) + (ctx.sun || 0) * .3 * (1 - (ctx.rainBlock || 0));
   // thermoregulation: sweat when hot, shiver when cold (less when exhausted or out of fuel)
@@ -51,6 +53,9 @@ export function bodyStep(B, ctx) {
   // ---- water (litres of deficit): breath and skin always, sweat, the kidneys; drinking is done by actions
   const urine = .00052 * clamp(1 - B.waterDef / 4, .25, 1);                 // kidneys save water as he dries out
   B.waterDef += .00052 + urine + ill * .0025 + sweatW / 2.43e6 * 60 + (met > 2 ? .00006 * met : 0);
+  // Reduced osmotic clearance: excess ingested salt needs urine at an assumed
+  // maximum 20 g/L. This is not a complete kidney model.
+  const saltCleared=Math.min(B.saltExcess||0,.00002);B.saltExcess=(B.saltExcess||0)-saltCleared;B.saltExcreted=(B.saltExcreted||0)+saltCleared;B.waterDef+=saltCleared/.02;
   // ---- sleep and fatigue
   if (B.asleep) B.sleepP = Math.max(0, B.sleepP - B.sleepP / 150 * (ctx.sleepQ ?? 1));
   else B.sleepP = Math.min(1, B.sleepP + (1 - B.sleepP) / 1000);
@@ -79,4 +84,4 @@ export function feel(B) {
   };
 }
 export function eat(B, kcal) { B.gut = Math.min(3000, B.gut + kcal); }
-export function drink(B, litres) { B.waterDef = Math.max(-.5, B.waterDef - litres); }
+export function drink(B, litres,saltKg=0) { B.waterDef = Math.max(-.5, B.waterDef - litres);B.saltExcess=(B.saltExcess||0)+Math.max(0,saltKg); }

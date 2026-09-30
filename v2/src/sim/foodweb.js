@@ -3,6 +3,7 @@
 import { T } from '../world/gen.js';
 import { clamp, dexp } from '../core/dmath.js';
 import { hash3 } from '../core/rng.js';
+import { marineTake,syncMarine,oceanSample } from './ocean.js';
 export const DRY_KCAL=4000;
 export function foodwebInit(W,o){
   const n=W.ter.length,grass=new Float64Array(n);for(let i=0;i<n;i++)if(W.ter[i]===T.GRASS||W.ter[i]===T.MEADOW)grass[i]=.12+.12*hash3(i,18,W.seed);
@@ -12,8 +13,8 @@ export function foodwebInit(W,o){
   if(o?.grass)W.foodweb.grass=Float64Array.from(o.grass);
 }
 export const foodwebSave=W=>({...W.foodweb,grass:Array.from(W.foodweb.grass)});
-export function webMass(W){const f=W.foodweb;return f.grass.reduce((a,b)=>a+b,0)+f.prey.stream+f.prey.lake+f.plankton+f.marineFishDry+f.detritus+W.shore.reduce((v,b)=>v+b.kg*(b.k==='mussels'?.075:.06),0)+Object.values(W.fish).reduce((v,n)=>v+n*330/DRY_KCAL,0);}
-export function marineCatch(W,dryKg){const f=W.foodweb,kg=Math.min(f.marineFishDry,Math.max(0,dryKg));f.marineFishDry-=kg;f.grazed+=kg;return kg;}
+export function webMass(W){const f=W.foodweb;return f.grass.reduce((a,b)=>a+b,0)+f.prey.stream+f.prey.lake+f.plankton+f.marineFishDry+(f.oceanOrganic||0)+f.detritus+W.shore.reduce((v,b)=>v+b.kg*(b.k==='mussels'?.075:.06),0)+Object.values(W.fish).reduce((v,n)=>v+n*330/DRY_KCAL,0);}
+export function marineCatch(W,dryKg,x=W.cx,y=W.cy){const f=W.foodweb;let kg;if(W.ocean){kg=marineTake(W,x,y,'adult',dryKg);kg+=marineTake(W,x,y,'juvenile',Math.max(0,dryKg-kg));}else{kg=Math.min(f.marineFishDry,Math.max(0,dryKg));f.marineFishDry-=kg;}f.grazed+=kg;return kg;}
 export function graze(W,tile,kg){const f=W.foodweb,taken=Math.min(f.grass[tile]||0,Math.max(0,kg));f.grass[tile]-=taken;f.grazed+=taken;return taken;}
 export function harvestShell(W,b,kg,animal=false){const v=Math.min(b.kg,Math.max(0,kg));b.kg-=v;const dry=v*(b.k==='mussels'?.075:.06);W.foodweb[animal?'grazed':'harvested']+=dry;return v;}
 export function harvestFish(W,water,n=1){const v=Math.min(W.fish[water]||0,Math.max(0,n));W.fish[water]-=v;W.foodweb.harvested+=v*330/DRY_KCAL;return v;}
@@ -24,7 +25,7 @@ export function foodwebTen(W,dt=10){
   f.soilTemp+=(x.temp-f.soilTemp)*(1-dexp(-dt/4167)); // 0.5 m diffusion time, alpha=5e-7 m²/s
   for(const i of W.hydroMap.land){const g=f.grass[i];if(W.ter[i]!==T.GRASS&&W.ter[i]!==T.MEADOW)continue;
     // PAR/conversion folded into 1.2% of incident sunlight, 18 MJ/kg dry matter.
-    const gross=Math.min(light*4*.012/18e6*Math.max(0,1-g/.5)*temp,(h.soil[i]||0)*2,(W.soilN[i]||0)/.01);
+    const salt=(h.saltSoil?.[i]||0)/Math.max(.0001,h.soil[i]||0),osmotic=1/(1+salt*salt/4),gross=Math.min(light*4*.012/18e6*Math.max(0,1-g/.5)*temp*osmotic,(h.soil[i]||0)*2,(W.soilN[i]||0)/.01);
     f.grass[i]+=gross;f.assimilated+=gross;W.soilN[i]-=gross*.01;h.soil[i]-=gross*.5;h.evap+=gross*.5;
     const respiration=f.grass[i]*grassRespiration;f.grass[i]-=respiration;f.respired+=respiration;W.soilN[i]+=respiration*.01;f.nutrientReturned+=respiration*.01;
     const senescent=f.grass[i]*grassSenescence;f.grass[i]-=senescent;f.detritus+=senescent;f.detritusN+=senescent*.01;
@@ -32,7 +33,7 @@ export function foodwebTen(W,dt=10){
   // Plankton and aquatic invertebrate production draws sunlight; substrate
   // area limits photosynthesis. Explicit dissolved nutrient inventory below.
   f.aquaticN??=(f.area.stream+f.area.lake+f.area.sea)*.002;
-  for(const k of ['stream','lake','sea']){
+  for(const k of (W.ocean?['stream','lake']:['stream','lake','sea'])){
     const stock=k==='sea'?f.plankton:f.prey[k],area=f.area[k],thermal=clamp((h.temp+2)/18,0,1),cap=area*(k==='sea'?.035:.025);
     const gross=Math.min(light*area*.006/18e6*thermal*Math.max(0,1-stock/Math.max(.001,cap)),f.aquaticN/.01);
     f.aquaticN-=gross*.01;f.assimilated+=gross;const total=stock+gross,resp=total*(1-dexp(-dt*.00001*thermal));f.respired+=resp;f.aquaticN+=resp*.01;
@@ -40,7 +41,7 @@ export function foodwebTen(W,dt=10){
   }
   // Coastal flushing replaces a finite fraction of the water, with assumed
   // dry stock at the model boundary specified as 0.012 kg/m².
-  const exchange=1-dexp(-dt/720),incoming=f.area.sea*.012*exchange,out=f.plankton*exchange;
+  if(!W.ocean){const exchange=1-dexp(-dt/720),incoming=f.area.sea*.012*exchange,out=f.plankton*exchange;
   f.plankton+=incoming-out;f.imported+=incoming;f.exported+=out;
   // A mobile coastal fish cohort feeds on real plankton. The same tidal
   // flushing imports/exports fish biomass across the open ocean boundary.
@@ -48,8 +49,9 @@ export function foodwebTen(W,dt=10){
   f.marineFishDry+=fishIn-fishOut;f.imported+=fishIn;f.exported+=fishOut;
   const meal=Math.min(f.plankton,f.marineFishDry*.00002*dt),maintenance=Math.min(f.marineFishDry,f.marineFishDry*.000002*dt);
   f.plankton-=meal;f.marineFishDry+=meal*.2-maintenance;f.detritus+=meal*.6;f.detritusN+=meal*.6*.01;f.respired+=meal*.2+maintenance;f.aquaticN+=(meal*.2+maintenance)*.01;
-  for(const b of W.shore){if(W.wx.tide<-b.depth)continue;const factor=b.k==='mussels'?.075:.06,cap=(b.k==='mussels'?14:10)*(.5+b.depth/3);
-    const food=Math.min(f.plankton,b.kg*.000002*dt*clamp((h.temp+2)/18,0,1));f.plankton-=food;
+  }
+  for(const b of W.shore){const sea=W.ocean?oceanSample(W,b.x,b.y):null;if((sea?.eta??W.wx.tide)<-b.depth)continue;const factor=b.k==='mussels'?.075:.06,cap=(b.k==='mussels'?14:10)*(.5+b.depth/3);
+    const wanted=b.kg*.000002*dt*clamp(((sea?.temp??h.temp)+2)/18,0,1)*clamp((sea?.oxygen??8)/8,0,1)*clamp(1-Math.abs((sea?.salinity??35)-33)/33,0,1),food=W.ocean?marineTake(W,b.x,b.y,'phyto',wanted,'shell'):Math.min(f.plankton,wanted);if(!W.ocean)f.plankton-=food;
     const growth=Math.min(food*.35,Math.max(0,cap-b.kg)*factor);b.kg+=growth/factor;f.detritus+=food*.45;f.detritusN+=food*.45*.01;f.respired+=food*.2+(food*.35-growth);f.aquaticN+=(food*.2+food*.35-growth)*.01;
   }
   for(const k of ['stream','lake']){const count=W.fish[k],quality=clamp(h.oxygen/8,0,1)*clamp((h.temp-1)/14,0,1);

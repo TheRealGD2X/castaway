@@ -1,4 +1,4 @@
-import {structureDetails,toolDetails,inventoryRows,batchRows,effortRows,animalDetails,sensoryRows} from './inspection.js';
+import {structureDetails,toolDetails,inventoryRows,batchRows,effortRows,animalDetails,sensoryRows,oceanDetails} from './inspection.js';
 import {dogSprite,gullSprite,rabbitSprite} from './beasts.js';
 import {structSprite} from './structs.js';
 import {manSprite} from './people.js';
@@ -17,7 +17,8 @@ export function setupInspection(cv,V,getWorld){
   const rows=list=>list.map(q=>`<div class="inspect-row"><span>${esc(q.label)}</span><span>${esc(q.value)}</span></div>`).join('');
   const materials=list=>list.map(q=>`<div class="inspect-row inspect-material"><span>${esc(q.label)}${q.condition?`<small>${esc(q.condition)}</small>`:''}</span><span>${esc(q.value)}</span></div>`).join('');
   function draw(){const W=getWorld(),M=W.man;lastWorld=W;lastMinute=W.t;let title,body,sp=null;
-    if(target.sid!=null){const s=W.structs.find(s=>s.id===target.sid);if(!s){close();return;}const d=structureDetails(s);title=d.title;sp=structSprite(s);
+    if(target.ocean){const d=oceanDetails(W,target.x,target.y);title=d.title;body=rows(d.fields);}
+    else if(target.sid!=null){const s=W.structs.find(s=>s.id===target.sid);if(!s){close();return;}const d=structureDetails(s);title=d.title;sp=structSprite(s);
       body=rows(d.fields)+(d.materials.length?'<h3>Installed materials</h3>'+materials(d.materials):'<p class="inspect-note">The site is waiting for its first parts.</p>')+(d.onsite.length?'<h3>Brought to the site</h3>'+rows(d.onsite):'');
       if(d.comparison){body+='<h3>Why this design?</h3><p class="inspect-note">He compared '+d.comparison.alternatives+' possible assemblies. These were his estimates when he chose it.</p>'+d.comparison.choices.map((q,i)=>`<div class="inspect-choice">${i===0?'Chosen':'Alternative'}: ${esc(q.cover||'open frame')}<small>About ${Math.round(q.labourMinutes)} minutes of work · ${Math.round(q.predictedKg)} kg estimated extra load${q.protection>0?' · '+Math.round(q.protection*100)+'% rain kept off the surface':''}</small></div>`).join('');}
       body+='<p class="inspect-note">Shown from the parts actually installed. Strength and protection are simplified estimates; damage and wetness change them.</p>';
@@ -45,7 +46,8 @@ export function setupInspection(cv,V,getWorld){
     const rect=cv.getBoundingClientRect(),raster=V.raster||1,snap=n=>Math.round(n*raster)/raster,sx=snap(V.cam.x-V.aw/2),sy=snap(V.cam.y-V.ah/2),x=(e.clientX-rect.left)*V.aw/rect.width+sx,y=(e.clientY-rect.top)*V.ah/rect.height+sy,W=getWorld(),m=V.manPos(performance.now());
     if(Math.abs(x-m.x*16)<11&&y>m.y*16-30&&y<m.y*16+7){show({});return;}
     for(const a of W.animals||[]){if(a.dead||a.adrift||a.under)continue;const f=Math.max(0,Math.min(1,(Date.now()-W.born)/60000-W.t)),ax=(a.px+(a.x-a.px)*f)*16,ay=(a.py+(a.y-a.py)*f)*16;if(Math.abs(x-ax)<10&&y>ay-12&&y<ay+7){show({animal:a.id});return;}}
-    for(const s of W.structs.slice().sort((a,b)=>b.y-a.y)){const sp=structSprite({...s,open:Math.abs(s.x-W.man.x)<.7&&Math.abs(s.y-W.man.y)<.7});if(!sp)continue;const a=Math.floor(x-(Math.round(s.x*16)-sp.ox)),b=Math.floor(y-(Math.round(s.y*16)+5-sp.oy));if(a<0||b<0||a>=sp.img.width||b>=sp.img.height)continue;const px=sp.img.getContext('2d').getImageData(Math.max(0,a-2),Math.max(0,b-2),Math.min(5,sp.img.width-a),Math.min(5,sp.img.height-b)).data;if(px.some((n,k)=>k%4===3&&n)){show({sid:s.id});break;}}
+    for(const s of W.structs.slice().sort((a,b)=>b.y-a.y)){const sp=structSprite({...s,open:Math.abs(s.x-W.man.x)<.7&&Math.abs(s.y-W.man.y)<.7});if(!sp)continue;const a=Math.floor(x-(Math.round(s.x*16)-sp.ox)),b=Math.floor(y-(Math.round(s.y*16)+5-sp.oy));if(a<0||b<0||a>=sp.img.width||b>=sp.img.height)continue;const px=sp.img.getContext('2d').getImageData(Math.max(0,a-2),Math.max(0,b-2),Math.min(5,sp.img.width-a),Math.min(5,sp.img.height-b)).data;if(px.some((n,k)=>k%4===3&&n)){show({sid:s.id});return;}}
+    const tx=Math.floor(x/16),ty=Math.floor(y/16);if(W.ocean&&tx>=0&&ty>=0&&tx<W.MW&&ty<W.MH&&W.ter[ty*W.MW+tx]<=1)show({ocean:true,x:x/16,y:y/16});
   });
   return{show,close,refresh(){if(target&&(lastWorld!==getWorld()||lastMinute!==getWorld().t)){const scroll=root.querySelector('.inspect-scroll')?.scrollTop||0,a=document.activeElement,key=a?.dataset.sid?`[data-sid="${a.dataset.sid}"]`:a?.dataset.tool?`[data-tool="${a.dataset.tool}"]`:a?.classList.contains('inspect-back')?'.inspect-back':'.inspect-close';draw();const el=root.querySelector('.inspect-scroll');if(el)el.scrollTop=scroll;if(!root.hidden)root.querySelector(key)?.focus({preventScroll:true});}}};
 }

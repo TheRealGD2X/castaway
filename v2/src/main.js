@@ -19,14 +19,15 @@ const cp = test ? null : await getJSON("checkpoint.json");
 let world = cp ? load(cp.blob, thoughts) : createWorld(test ? +(qs.get("seed") || SEED) : SEED, BORN, { thoughts });
 const BORN0 = world.born;
 const due = () => Math.floor((Date.now() - BORN0) / 60000);
-for (let n = qs.get("t") ? +qs.get("t") : due() + (+qs.get("ff") || 0); world.t < n;) step(world);
+async function catchUp(W,n){while(W.t<n){const start=performance.now();do{step(W);}while(W.t<n&&performance.now()-start<12);if(W.t<n)await new Promise(resolve=>setTimeout(resolve,0));}}
+await catchUp(world,qs.has('t')?+qs.get('t'):due()+(+qs.get('ff')||0));
 // every quarter of an hour: has his deeper mind had new thoughts? if one should already have happened, start again
 // from the newest checkpoint so this screen stays true to everyone else's
 if (!test) setInterval(async () => {
   const nt = await getJSON("mind.json"); if (!nt || nt.length === thoughts.length) return;
   thoughts = nt; const c2 = await getJSON("checkpoint.json");
   const W2 = c2 && c2.t > world.t - 5000 ? load(c2.blob, thoughts) : null; if (!W2) return;
-  for (let n = due(); W2.t < n;) step(W2);
+  await catchUp(W2,due());
   world = W2; V.world(world); window.__v2.world = world;
 }, 15 * 60000);
 function seasonOf(doy) {                                  // leaf colour and leaf fall by the real calendar
@@ -36,7 +37,7 @@ function seasonOf(doy) {                                  // leaf colour and lea
 }
 const now0 = Date.now(), c0 = cal(world.born, world.t), qd = qs.get("doy"), doy = qd ? +qd : c0.doy;
 let terr = paintTerrain(world, { autumn: seasonOf(doy).autumn });
-setInterval(() => { for (let n = due(); world.t < n;) step(world); }, 1000);
+let catching=false;if(!test)setInterval(async()=>{if(catching)return;catching=true;try{await catchUp(world,due());}finally{catching=false;}},1000);
 const cv = document.getElementById("c"), V = createView(cv, world, terr);
 V.flower = seasonOf(doy).flower;
 addEventListener("resize", () => V.resize());

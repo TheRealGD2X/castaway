@@ -135,7 +135,7 @@ export function assemblyWork(s,share) {
   if(s.prog>=1){s.stage++;s.prog=0;return true;}return false;
 }
 export function assemblyStep(W,s,dt=10) {
-  const x=W.wx;s.saturation=clamp((s.saturation||0)+x.rain*dt*.0002-(.00008+Math.max(0,x.temp)*.000008+(x.sun||0)*.0000001)*dt,0,1);
+  const x=W.wx,tile=Math.floor(s.y)*W.MW+Math.floor(s.x);s.saturation=clamp((s.saturation||0)+(x.rain+(W.ocean?.spray[tile]||0))*dt*.0002-(.00008+Math.max(0,x.temp)*.000008+(x.sun||0)*.0000001)*dt,0,1);
   const state=analyse(s),wind=.6*x.gust*x.gust*state.props.windArea,snow=(W.surface?.snow||0)*state.panels.reduce((n,p)=>n+p.projected*p.f,0)*9.81;
   let lowest=1;
   for(const p of s.assembly.parts){

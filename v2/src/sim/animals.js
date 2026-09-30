@@ -21,6 +21,7 @@ import { footfall, record } from "./heritage.js";
 import { bestShelter, propsOf } from "../build/build.js";
 import { dround, dsign, dsq, dhypot, dsin, dcos, clamp, dexp } from "../core/dmath.js";
 import { findPath, walkable } from "../mind/path.js";
+import { driftObject,seaLevel,oceanSample } from './ocean.js';
 
 const NAMES = ["Bosun", "Tarry", "Moss", "Rigger", "Nell", "Skipper", "Brack"];
 const land = (W, x, y) => { const i = idx(Math.floor(x), Math.floor(y)); return !WATER(W.ter[i]) || W.ter[i] === T.STREAM; };
@@ -70,19 +71,19 @@ function gull(W, a, M, night) {
   if(a.thirst>.4&&W.ter[idx(Math.floor(a.x),Math.floor(a.y))]<=1){drinkAnimal(a,.005);W.foodweb.animalWaterImported=(W.foodweb.animalWaterImported||0)+.005;}
   const near = threats(W, a, M).find(t => dist(t, a) < (a.air ? 2 : 4.5) && visible(W,a,t));
   if (near && !a.air) { a.air = 1; a.act = "fly"; const ang = W.rng.f() * 6.283; a.tx = clamp(a.x + dcos(ang) * 14, 2, MW - 3); a.ty = clamp(a.y + dsin(ang) * 10, 2, MH - 3); }
-  if (a.air) { if (moveTo(W, a, 250, true)) { a.air = 0; a.act = W.shore.some(b=>b.id===a.bed&&dist(b,a)<.8&&W.wx.tide<-b.depth)?"peck":"stand";if(a.act!=='peck'&&!land(W, a.x, a.y))a.act="swim"; } return; }
+  if (a.air) { if (moveTo(W, a, 250, true)) { a.air = 0; a.act = W.shore.some(b=>b.id===a.bed&&dist(b,a)<.8&&seaLevel(W,b.x,b.y)<-b.depth)?"peck":"stand";if(a.act!=='peck'&&!land(W, a.x, a.y))a.act="swim"; } return; }
   // choose where to be: exposed shellfish beds at low water, otherwise loaf on the shore (or roost at night)
   if (W.rng.f() < .02) {
     let tgt = null;
-    if (!night || a.E<.2) { const beds = W.shore.filter(b => W.wx.tide < -b.depth&&b.kg>.02); if (beds.length) tgt = beds[(W.rng.f() * beds.length) | 0]; }
+    if (!night || a.E<.2) { const beds = W.shore.filter(b => seaLevel(W,b.x,b.y) < -b.depth&&b.kg>.02); if (beds.length) tgt = beds[(W.rng.f() * beds.length) | 0]; }
     if (tgt) { a.bed=tgt.id;a.tx = tgt.x + W.rng.f() - .5; a.ty = tgt.y + W.rng.f() - .5; a.act = "peck";  }
     else if(!night&&a.E<.8){let sea=null;for(let k=0;k<12;k++){const px=clamp(a.x+(W.rng.f()-.5)*20,1,MW-2),py=clamp(a.y+(W.rng.f()-.5)*20,1,MH-2);if(W.ter[idx(Math.floor(px),Math.floor(py))]===T.SEA){sea={x:px,y:py};break;}}if(sea){a.tx=sea.x;a.ty=sea.y;a.act='swim';}}
     else { a.tx = clamp(a.x + (W.rng.f() - .5) * 3,1,MW-2); a.ty = clamp(a.y + (W.rng.f() - .5) * 2,1,MH-2); a.act = night ? "roost" : "stand"; }
     if (dist(a, { x: a.tx, y: a.ty }) > 3) { a.air = 1; a.act = "fly"; }
   }
   moveTo(W, a, 6, true);
-  if(a.act==='peck'&&a.E<.9){const bed=W.shore.find(b=>dist(b,a)<.8&&W.wx.tide<-b.depth);if(bed){const kg=harvestShell(W,bed,.008,true),dry=kg*(bed.k==='mussels'?.075:.06);ingest(W,a,dry,.8);drinkAnimal(a,Math.max(0,kg/3-dry));W.foodweb.animalWaterImported=(W.foodweb.animalWaterImported||0)+Math.max(0,kg/3-dry);}}
-  if(a.E<.8&&W.ter[idx(Math.floor(a.x),Math.floor(a.y))]===T.SEA){a.act='swim';const density=W.foodweb.marineFishDry/Math.max(.001,W.foodweb.area.sea*.0005);if(W.rng.f()<1-dexp(-.0025*density)){const dry=marineCatch(W,.0825);ingest(W,a,dry,.85);drinkAnimal(a,dry*2);W.foodweb.animalWaterImported=(W.foodweb.animalWaterImported||0)+dry*2;}}
+  if(a.act==='peck'&&a.E<.9){const bed=W.shore.find(b=>dist(b,a)<.8&&seaLevel(W,b.x,b.y)<-b.depth);if(bed){const kg=harvestShell(W,bed,.008,true),dry=kg*(bed.k==='mussels'?.075:.06);ingest(W,a,dry,.8);drinkAnimal(a,Math.max(0,kg/3-dry));W.foodweb.animalWaterImported=(W.foodweb.animalWaterImported||0)+Math.max(0,kg/3-dry);}}
+  if(a.E<.8&&W.ter[idx(Math.floor(a.x),Math.floor(a.y))]===T.SEA){a.act='swim';const density=(oceanSample(W,a.x,a.y)?.fish||0)/.00011;if(W.rng.f()<1-dexp(-.0025*density)){const dry=marineCatch(W,.0825,a.x,a.y);ingest(W,a,dry,.85);drinkAnimal(a,dry*2);W.foodweb.animalWaterImported=(W.foodweb.animalWaterImported||0)+dry*2;}}
 }
 // ------------------------------------------------------------ rabbits
 function rabbit(W, a, M, night, dusk) {
@@ -134,17 +135,11 @@ export function animalsDay(W, doy) {
 function dog(W, a, M, night) {
   const x = W.wx;
   a.confidence ??= .15; a.huntSkill ??= .05; a.places ??= {}; a.memories ??= { shared: 0, catches: 0 };
-  // adrift: the hatch cover goes where wind and tide take it: leeway with the wind, the tidal stream along and onto
-  // the island (the flood sets in toward the land), until it grounds
+  // The raft follows the resolved current, wave drift and windage. Swept
+  // contact prevents it crossing the island between minute samples.
   if (a.adrift) {
-    const oct = [[1, 0], [.71, .71], [0, 1], [-.71, .71], [-1, 0], [-.71, -.71], [0, -1], [.71, -.71]][x.windDir | 0];
-    const flood = x.tide - (a.lastTide ?? x.tide); a.lastTide = x.tide;
-    const cx = W.cx - a.x, cy = W.cy - a.y, cd = dhypot(cx, cy) || 1;
-    // leeway about 3% of the wind speed; the flood stream sets in toward the land at up to half a metre a second
-    const vx = oct[0] * x.wind * .9 + cx / cd * (flood > 0 ? 12 : 2) + (-cy / cd) * 5 * dsign(flood);
-    const vy = oct[1] * x.wind * .9 + cy / cd * (flood > 0 ? 12 : 2) + (cx / cd) * 5 * dsign(flood);
-    a.x += vx; a.y += vy; a.act = "adrift";
-    if (a.x > 1 && a.y > 1 && a.x < MW - 2 && a.y < MH - 2 && land(W, a.x, a.y)) { a.adrift = 0; a.ashore = W.t; a.act = "shake"; a.tx = a.x; a.ty = a.y; (W.events || (W.events = [])).push([W.t, "dog ashore"]); }
+    const grounded=driftObject(W,a,60,.03);a.act = "adrift";
+    if (grounded) { a.adrift = 0; a.ashore = W.t; a.act = "shake"; a.tx = a.x; a.ty = a.y; (W.events || (W.events = [])).push([W.t, "dog ashore"]); }
     return;
   }
   const localTile = idx(Math.floor(a.x), Math.floor(a.y));
@@ -192,7 +187,7 @@ function dog(W, a, M, night) {
       if (!tgt && a.den != null) tgt = { x: a.den % MW + .5, y: ((a.den / MW) | 0) + .9 };
       if (!tgt) tgt = { x: a.x, y: a.y };                                   // nowhere better: it lies down where it is
     } else if (want === "eat") {   // hungry: go and beg where the man is, if bold enough; else forage the tideline
-      const beds=W.shore.filter(b=>b.kg>.02&&W.wx.tide<-b.depth);let edible=null;for(const b of beds)if(!edible||dist(a,b)<dist(a,edible))edible=b;
+      const beds=W.shore.filter(b=>b.kg>.02&&seaLevel(W,b.x,b.y)<-b.depth);let edible=null;for(const b of beds)if(!edible||dist(a,b)<dist(a,edible))edible=b;
       if(edible&&a.E<.2)tgt=edible;
       else if (man && bold > -.1 && W.t-a.lastFed<240) tgt = { x: man.x + (a.x < man.x ? -1.8 + bold : 1.8 - bold), y: man.y + .6 };
       else if ((night || W.wx.elev < .15) && W.warrens.length) { let w = W.warrens[0]; for (const q of W.warrens) if (dist(q, a) < dist(w, a)) w = q; tgt = { x: w.x + 3, y: w.y + 2 }; want = "hunt"; }   // dusk: rabbits are out; it goes hunting
@@ -230,7 +225,7 @@ function dog(W, a, M, night) {
       }
       if (want === "scraps" && dist(a, tgt) < .8) { const dry=(tgt.foodBatches||[]).reduce((v,b)=>v+b.dryKg,0);ingest(W,a,dry,.85);W.foodweb.harvested-=dry; W.items.splice(W.items.indexOf(tgt), 1); a.act = "eat"; if (tgt.from === "man") { a.trust = clamp(a.trust + .12 * (1 - a.trust), 0, 1); a.fear = clamp(a.fear - .15, 0, 1); a.lastFed = W.t; a.memories.shared++; a.confidence = clamp(a.confidence + .02, 0, .95); } return; }
       if (want === "drink") { const litres=takeWater(W,a.water,.25);drinkAnimal(a,litres); a.act = "drink"; return; }
-      if(want==='eat'&&tgt.id){const bed=W.shore.find(b=>b.id===tgt.id&&W.wx.tide<-b.depth);if(bed&&dist(a,bed)<.8){const kg=harvestShell(W,bed,.02,true),dry=kg*(bed.k==='mussels'?.075:.06);ingest(W,a,dry,.75);drinkAnimal(a,Math.max(0,kg/3-dry));W.foodweb.animalWaterImported=(W.foodweb.animalWaterImported||0)+Math.max(0,kg/3-dry);a.act='eat';return;}}
+      if(want==='eat'&&tgt.id){const bed=W.shore.find(b=>b.id===tgt.id&&seaLevel(W,b.x,b.y)<-b.depth);if(bed&&dist(a,bed)<.8){const kg=harvestShell(W,bed,.02,true),dry=kg*(bed.k==='mussels'?.075:.06);ingest(W,a,dry,.75);drinkAnimal(a,Math.max(0,kg/3-dry));W.foodweb.animalWaterImported=(W.foodweb.animalWaterImported||0)+Math.max(0,kg/3-dry);a.act='eat';return;}}
       if (want === "rest" || want === "warm") { a.act = (night || a.tired > .5) ? "sleep" : "lie"; a.curled = man && dist(a, man) < 1.2 && man.B.asleep; return; }
       a.act = want === "company" || want === "retrieve" ? "sit" : want === "track" || want === "hunt" ? "sniff" : "stand"; return;
     }

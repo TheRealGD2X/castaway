@@ -25,6 +25,7 @@ import { warmPlace } from "./exposure.js";
 import { craftActions } from "./crafts.js";
 import { FISH } from "../sim/fish.js";
 import { availableWater, takeWater,takeCollectedWater } from '../sim/hydro.js';
+import { seaLevel } from '../sim/ocean.js';
 import { MATS, MATERIALS, bestShelter, propsOf, woodpile, work as buildWork, finished, FAMILIES, fireRingAt, stillNeeds } from "../build/build.js";
 
 const d2 = (a, b) => dhypot(a.x - b.x, a.y - b.y) * 2;           // metres
@@ -42,7 +43,7 @@ export const ACTIONS = {
     // the nearest fresh water, weighed by how much he's come to distrust each kind
     find: (W, M) => { let best = null, bc = 1e9; for (const [tt, src] of [[T.STREAM, "stream"], [T.LAKE, "lake"], [T.MARSH, "marsh"]]) { const i = nearestKnownTile(W, M, j => W.ter[j] === tt && availableWater(W,j)>.3); if (i < 0) continue; const t = { tile: i, ...tileXY(i), src }, c = walkMin(M, t) + riskMin(M, "water:" + src); if (c < bc) { bc = c; best = t; } } return best; },
     pre: S => true, eff: S => { S.watered = 1; }, cost: (W, M, t) => walkMin(M, t) + 3 + riskMin(M, "water:" + t.src),
-    exec: work({ adjacent: true, mins: 3, met: MET.stand, pose: "drink", done: (W, M, t) => { const L = takeWater(W,t.tile,Math.max(.3,M.B.waterDef+.2));if(L<.1)return 'fail';bodyDrink(M.B,L);expose(W,M,W.water[t.src||'stream']*L,'water:'+(t.src||'stream')); } }),
+    exec: work({ adjacent: true, mins: 3, met: MET.stand, pose: "drink", done: (W, M, t) => { const L = takeWater(W,t.tile,Math.max(.3,M.B.waterDef+.2));if(L<.1)return 'fail';bodyDrink(M.B,L,W.hydro.lastTakenSalt||0);expose(W,M,W.water[t.src||'stream']*L,'water:'+(t.src||'stream')); } }),
     say: "Water first.",
   },
   drinkCollected: {
@@ -50,7 +51,7 @@ export const ACTIONS = {
     find:(W,M)=>{const s=W.structs.filter(s=>s.props?.capacity>0&&(s.waterL||0)>.3).sort((a,b)=>d2(M,a)-d2(M,b))[0];return s?{...tileXY(idx(Math.floor(s.x),Math.floor(s.y))),tile:idx(Math.floor(s.x),Math.floor(s.y)),sid:s.id}:null;},
     pre:S=>true,eff:S=>{S.watered=1;},cost:(W,M,t)=>walkMin(M,t)+3+riskMin(M,'water:collected',.04),
     exec:work({adjacent:true,mins:3,met:MET.stand,pose:'drink',done:(W,M,t)=>{
-      const s=W.structs.find(s=>s.id===t.sid);if(!s||(s.waterL||0)<.1)return 'fail';const L=takeCollectedWater(W,s,Math.max(.3,M.B.waterDef+.2));bodyDrink(M.B,L);expose(W,M,(s.waterLoad||.8)*L,'water:collected');
+      const s=W.structs.find(s=>s.id===t.sid);if(!s||(s.waterL||0)<.1)return 'fail';const L=takeCollectedWater(W,s,Math.max(.3,M.B.waterDef+.2));bodyDrink(M.B,L,W.hydro.lastTakenSalt||0);expose(W,M,(s.waterLoad||.8)*L,'water:collected');
     }}),say:'Water, close to home.',
   },
   forage: {
@@ -165,7 +166,7 @@ export const ACTIONS = {
   drinkBoiled: {
     r: ["clean"], w: ["watered", "clean"],
     find: () => ({ x: null }), pre: S => S.clean >= .5, eff: S => { S.watered = 1; S.clean = Math.max(0, S.clean - 1.2); }, cost: () => 3,
-    exec: work({ here: true, mins: 3, met: MET.sit, pose: "drink", done: (W, M) => { const L = Math.min(M.inv.clean || 0, Math.max(.3, M.B.waterDef + .2)); bodyDrink(M.B, L); M.inv.clean -= L; } }),
+    exec: work({ here: true, mins: 3, met: MET.sit, pose: "drink", done: (W, M) => { const L = Math.min(M.inv.clean || 0, Math.max(.3, M.B.waterDef + .2)); const salt=(M.cleanSalt||0)*L/Math.max(.0001,M.inv.clean||0);bodyDrink(M.B, L,salt);M.cleanSalt=(M.cleanSalt||0)-salt;M.inv.clean -= L; } }),
   },
   gatherTinder: {
     r: ["tinder"], w: ["tinder"],
@@ -330,9 +331,9 @@ function shellfishExec(W, M, t, st) {
   if (!st.phase) { st.phase = "go"; if (!goTo(W, M, t.tile, true)) return "fail"; st.wait = 0; }
   if (st.phase === "go") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) st.phase = "wait"; return "go"; }
   const b = W.shore.find(q => "s" + q.id === t.key); if (!b) return "fail";
-  if (st.phase === "wait") { if (W.wx.tide < -b.depth) { st.phase = "pick"; st.left = 30; } else { M.pose = "sit"; M.met = MET.sit; if (++st.wait > 420) return "fail"; return "work"; } }
+  if (st.phase === "wait") { if (seaLevel(W,b.x,b.y) < -b.depth) { st.phase = "pick"; st.left = 30; } else { M.pose = "sit"; M.met = MET.sit; if (++st.wait > 420) return "fail"; return "work"; } }
   M.pose = "crouch"; M.met = MET.gather; M.face = b.x > M.x ? 1 : -1;
-  if (W.wx.tide >= -b.depth) { M.say = "The tide's turned."; return st.got ? "done" : "fail"; }        // the water's back over them
+  if (seaLevel(W,b.x,b.y) >= -b.depth) { M.say = "The tide's turned."; return st.got ? "done" : "fail"; }
   const kg = harvestShell(W,b,.12*workRate(W,M)); st.got = (st.got || 0) + kg;
   addRaw(M, kg * SHELL[b.k].kcalKg, W.water.sea * .03, b.k);
   st.left-=workRate(W,M);if (st.left <= 0 || b.kg < .2) { M.mem[t.key] && (M.mem[t.key].kg = b.kg); return "done"; }
@@ -356,12 +357,12 @@ function feedDogExec(W, M, t, st) {
 function boilExec(W, M, t, st) {
   if (!st.phase) { st.phase = "fetch"; if (!goTo(W, M, t.water, true)) return "fail"; }
   if (st.phase === "fetch") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) { st.phase = "fill"; st.left = 2; } return "go"; }
-    if (st.phase === "fill") { M.pose = "drink"; if (--st.left > 0) return "work";st.water=takeWater(W,t.water,1.5);if(st.water<.1)return 'fail'; st.phase = "back"; if (!goTo(W, M, idx(Math.floor(t.x), Math.floor(t.y)), true)) return "fail"; return "go"; }
+    if (st.phase === "fill") { M.pose = "drink"; if (--st.left > 0) return "work";st.water=takeWater(W,t.water,1.5);st.salt=W.hydro.lastTakenSalt||0;if(st.water<.1)return 'fail'; st.phase = "back"; if (!goTo(W, M, idx(Math.floor(t.x), Math.floor(t.y)), true)) return "fail"; return "go"; }
   if (st.phase === "back") { M.pose = "walk"; M.met = MET.walk; if (walk(W, M)) { st.phase = "boil"; st.left = 20; } return "go"; }
   const F = fireAt(W, t); if (!F || !F.lit) { M.say = "The fire's gone out under it."; return "fail"; }
   M.pose = "tend"; M.met = MET.sit; M.face = F.x > M.x ? 1 : -1; M.boiling = W.t;
   if (--st.left > 0) return "work";
-    M.inv.clean = (M.inv.clean || 0) + (st.water??1.5); return "done";
+    M.inv.clean = (M.inv.clean || 0) + (st.water??1.5);M.cleanSalt=(M.cleanSalt||0)+(st.salt||0); return "done";
 }
 function addInv(M, k, v, moist) { if (k === "fuel") { const o = M.inv.fuel || 0; M.fuelMoist = o + v > 0 ? ((M.fuelMoist ?? .25) * o + (moist ?? .25) * v) / (o + v) : .25; } M.inv[k] = (M.inv[k] || 0) + v; M.carry = (M.inv.fuel || 0) + (M.inv.kindling || 0); }
 const fireAt = (W, t) => W.fires.find(f => "fire" + f.id === t.key) || W.fires.find(f => Math.abs(f.x - t.x) < 1.5 && Math.abs(f.y - t.y) < 1.5);

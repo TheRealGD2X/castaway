@@ -50,7 +50,7 @@ export function dogSprite(pose, t) {
 }
 // the dog adrift on the hatch cover, riding the swell
 export function raftSprite(t) {
-  const f = Math.floor(t / 700) % 2;
+  const f = 0; // vertical displacement is supplied by the shared ocean surface
   return memo(`raft:${f}`, () => ({ img: sprite(18, 12, P => {
     rect(P, 1, 8 + f, 16, 3, (i, j) => j === 0 ? R.bark[3] : R.bark[1 + (i % 4 === 0 ? 1 : 0)]);
     const q = { set: (x, y, c) => P.set(x + 1, y - 3 + f, c) }; dogPaint(q, "lie", 0);

@@ -5,6 +5,10 @@ import { hash3 } from '../core/rng.js';
 import { canvas } from './pix.js';
 import { tree } from './sprites.js';
 import { localWeather } from '../sim/atmosphere.js';
+import { coastal } from '../sim/ocean.js';
+import { oceanSurface,surfaceAt,oceanPoint } from './ocean-surface.js';
+import { concentration } from '../sim/ocean-grid.js';
+import { displaySeconds } from './simulation-clock.js';
 const LUT=new Float32Array(4096),TURN=4096/(Math.PI*2);
 for(let i=0;i<LUT.length;i++)LUT[i]=Math.sin(i/TURN);
 const sin=p=>LUT[(p|0)&4095],clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -17,11 +21,12 @@ export function createWaterRenderer(terr,W) {
   const visit=(i,j)=>{if(landDistance[j]+1<landDistance[i]){landDistance[i]=landDistance[j]+1;nearest[i]=nearest[j];}};
   for(let y=0;y<PH;y++)for(let x=0;x<PW;x++){const i=y*PW+x;if(x)visit(i,i-1);if(y)visit(i,i-PW);}
   for(let y=PH-1;y>=0;y--)for(let x=PW-1;x>=0;x--){const i=y*PW+x;if(x<PW-1)visit(i,i+1);if(y<PH-1)visit(i,i+PW);}
-  let cv,cg,im,ref,rg,oldW=0,oldH=0,oldRaster=0;
+  let cv,cg,im,ref,rg,oldW=0,oldH=0,oldRaster=0;const sample={},macro={},point={};
   const resize=V=>{if(V.aw===oldW&&V.ah===oldH&&V.raster===oldRaster)return;oldW=V.aw;oldH=V.ah;oldRaster=V.raster;
     cv=canvas(V.aw+1,V.ah+1);cg=cv.getContext('2d');im=cg.createImageData(cv.width,cv.height);ref=canvas(V.aw*V.raster,V.ah*V.raster);rg=ref.getContext('2d');rg.imageSmoothingEnabled=false;rg.setTransform(V.raster,0,0,V.raster,0,0);};
   function draw(g,V,W,now,sx,sy) {
     resize(V);const h=W.hydro||{},t=now/1000,x=localWeather(W,V.cam.x/16,V.cam.y/16),D=im.data;D.fill(0);
+    const seconds=displaySeconds(W,now),ocean=W.ocean?coastal(W):null,field=ocean?oceanSurface(W,seconds,{x:sx/8-4,y:sy/8-4,width:V.aw/8+8,height:V.ah/8+8}):null;
     const wave=h.wave??.1,sun=clamp((x.sun||0)/450,0,1),period=.72/(1+wave*.2),time=t*TURN;
     const dir=x.windDir*Math.PI/4,dx=Math.cos(dir)*.11,dy=Math.sin(dir)*.11,wind=Math.min(1,x.wind/14);
     const tide=x.tide*.9,streamWidth=(Math.sqrt(Math.max(.001,h.streamDepth??.14)/.14)-1)*2.8,lakeWidth=((h.lakeDepth??.65)-.65)*6;
@@ -35,6 +40,13 @@ export function createWaterRenderer(terr,W) {
         const wx=Math.floor(sx+xx),outside=wx<0||wx>=PW||wy<0||wy>=PH;
         const i=row+clamp(wx,0,PW-1),m=outside?T.DEEP:mat[i],water=WATER(m),kind=water?m:nearest[i],sea=kind<=1;
         const poolTile=tileRow+Math.floor(wx/16),pool=(h.pool?.[poolTile]||0)/4;
+        if(ocean&&sea&&(water||landDistance[i]<=7)){
+          const X=wx/8,Y=wy/8; oceanPoint(W,X,Y,point);macroAt(point.g,point.x,point.y,macro);const depth=Math.max(0,macro.level-macro.bed),z=outside?macro.bed:bedAt(W,X,Y)+macro.relief,level=macro.level;
+          surfaceAt(field,X,Y,sample);const physicalDepth=Math.max(0,level+sample.height-z),o=(y*cv.width+xx)*4;if(!water&&physicalDepth<=0)continue;
+          const dp=physicalDepth,attenuation=1-Math.exp(-dp*.16),sediment=macro.sediment,plankton=macro.plankton,shade=clamp(-sample.nx*.8-sample.ny*.5,-.6,.6)*24+sample.height*5,crest=macro.foam*clamp(.5+sample.height/Math.max(.03,depth)*2,0,1),turbid=clamp(sediment*2,0,.65),green=clamp(plankton*15,0,.2);
+          const wet=1-Math.exp(-dp/.08),grain=(outside?hash3(wx,wy,W.seed+809):texture[i]/255)*4;
+          for(let c=0;c<3;c++){const base=shallow[c]+(abyss[c]-shallow[c])*attenuation+shade+(c===1?green*55:0),murky=base+([117,139,104][c]-base)*turbid,lit=murky+(foam[c]-murky)*crest,dry=[130,139,107][c]+grain;D[o+c]=clamp(dry+(lit-dry)*wet,0,255);}D[o+3]=water?255:clamp(physicalDepth*180+40,0,225);continue;
+        }
         if(!water&&pool>.005&&W.ter[poolTile]>1){const o=(y*cv.width+xx)*4;D[o]=66;D[o+1]=116;D[o+2]=110;D[o+3]=Math.min(200,35+pool*700);continue;}
         if(!water&&(landDistance[i]>7||m===T.ROCK))continue;
         if(stride>1&&water&&(outside||wd[i]>stride*3)){
@@ -71,7 +83,7 @@ export function createWaterRenderer(terr,W) {
     const grid=V.raster,snap=v=>Math.round(v*grid)/grid;
     for(let gy=Math.floor(sy/24);gy<=Math.floor((sy+V.ah)/24);gy++)for(let gx=Math.floor(sx/24);gx<=Math.floor((sx+V.aw)/24);gx++){
       const q=hash3(gx,gy,W.seed+833),px=gx*24+q*19,py=gy*24+hash3(gx,gy,W.seed+834)*19,ix=Math.floor(px),iy=Math.floor(py);
-      const outside=ix<0||iy<0||ix>=PW||iy>=PH,i=iy*PW+ix,kind=outside?T.DEEP:mat[i];if(!WATER(kind)||kind===T.STREAM||(!outside&&wd[i]<5))continue;
+      const outside=ix<0||iy<0||ix>=PW||iy>=PH,i=iy*PW+ix,kind=outside?T.DEEP:mat[i];if(!WATER(kind)||kind===T.STREAM||(ocean&&kind<=1)||(!outside&&wd[i]<5))continue;
       const phase=t*.62+q*15,life=(1+Math.sin(phase))*.5,length=2+q*4+wind*3;
       const frozen=kind===T.LAKE?lakeIce:0,alpha=life*life*(.14+sun*.16+wind*.1)*(1-frozen);
       const px0=snap(px-sx+Math.sin(phase*.7)*(1+wave*2)),py0=snap(py-sy+Math.cos(phase*.7)*(.5+wave));
@@ -84,7 +96,7 @@ export function createWaterRenderer(terr,W) {
       const baseX=Math.floor(e.x*16),baseY=Math.floor(e.y*16),i=baseY*PW+baseX;if(baseX<0||baseY<0||baseX>=PW||baseY>=PH||landDistance[i]>28)continue;
       const s=tree(e.k,e.size,e.id,{autumn:e.aut||0,fall:e.fall||0,snow:W.surface?.snow||0});if(!s.crown)continue;
       rg.save();rg.translate(px,py+2);rg.scale(1,-.42);rg.globalAlpha=reflect;
-      for(let y=0;y<s.crown.height;y+=3){const band=Math.min(3,s.crown.height-y),shift=Math.sin(now/1100+y*.35+e.id)*(.25+wave*.5);rg.drawImage(s.crown,0,y,s.crown.width,band,-s.cx+shift,-s.trunk.height-s.crown.height+6+y,s.crown.width,band);}rg.restore();
+      for(let y=0;y<s.crown.height;y+=3){const band=Math.min(3,s.crown.height-y),shift=field?surfaceAt(field,e.x*2,e.y*2+y/8,sample).nx*2:Math.sin(now/1100+y*.35+e.id)*(.25+wave*.5);rg.drawImage(s.crown,0,y,s.crown.width,band,-s.cx+shift,-s.trunk.height-s.crown.height+6+y,s.crown.width,band);}rg.restore();
     }
     const fraction=clamp((W.t%10+((Date.now()-W.born)/60000-W.t))/10,0,1),curve=terr.streamCurve;
     for(const q of h.debris||[]){
@@ -105,4 +117,14 @@ export function createWaterRenderer(terr,W) {
     }
   }
   return{draw};
+}
+function bedAt(W,x,y){const X=clamp(x/2-.5,0,W.MW-1),Y=clamp(y/2-.5,0,W.MH-1),ix=Math.min(W.MW-2,Math.floor(X)),iy=Math.min(W.MH-2,Math.floor(Y)),fx=X-ix,fy=Y-iy;let z=0;for(let q=0;q<4;q++){const i=(iy+(q>>1))*W.MW+ix+(q&1);z+=((q&1)?fx:1-fx)*((q>>1)?fy:1-fy)*(W.ocean.coastBed[i]+(W.relief?.[i]||0));}return z;}
+
+// Interpolate resolved fields without drawing the finite-volume mesh. Dry
+// neighbours cannot raise the water surface to the height of their land bed.
+function macroAt(g,x,y,out){
+ const X=clamp(x/g.dx-.5,0,g.nx-1),Y=clamp(y/g.dy-.5,0,g.ny-1),ix=Math.min(g.nx-2,Math.floor(X)),iy=Math.min(g.ny-2,Math.floor(Y)),fx=X-ix,fy=Y-iy;
+ out.level=out.bed=out.relief=out.foam=out.sediment=out.plankton=0;let wet=0;
+ for(let q=0;q<4;q++){const i=(iy+(q>>1))*g.nx+ix+(q&1),weight=(q&1?fx:1-fx)*(q>>1?fy:1-fy);out.bed+=weight*g.bed[i];out.relief+=weight*(g.bed[i]-(g.baseBed?.[i]??g.bed[i]));if(g.volume[i]<=g.area[i]*.001)continue;wet+=weight;out.level+=weight*g.eta[i];out.foam+=weight*g.foam[i];out.sediment+=weight*concentration(g,i,'sediment',0);out.plankton+=weight*concentration(g,i,'phyto',0);}
+ if(wet){out.level/=wet;out.foam/=wet;out.sediment/=wet;out.plankton/=wet;}else out.level=out.bed;
 }

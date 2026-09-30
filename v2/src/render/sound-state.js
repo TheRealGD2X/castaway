@@ -4,6 +4,9 @@ import { elevation } from '../sim/geomorph.js';
 import { shipXY } from '../sim/ships.js';
 import { localWeather } from '../sim/atmosphere.js';
 import { transmission } from '../sim/senses.js';
+import { coastal } from '../sim/ocean.js';
+import { waveHeight,phaseAt,OMEGA } from '../sim/ocean-waves.js';
+import { RHO,G } from '../sim/ocean-grid.js';
 
 const clamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
 const safe = v => Number.isFinite(v) ? Math.max(0, v) : 0;
@@ -22,7 +25,7 @@ function insideFloor(s, x, y) {
   return inside;
 }
 
-export function acousticState(W, V) {
+export function acousticState(W, V,seconds=W.t*60) {
   const x = Number.isFinite(V.cam.x) ? V.cam.x / 16 : W.cx;
   const y = Number.isFinite(V.cam.y) ? V.cam.y / 16 : W.cy;
   const wx = localWeather(W,x,y) || {}, wind = safe(wx.wind), gust = safe(wx.gust || wind);
@@ -39,8 +42,8 @@ export function acousticState(W, V) {
     const sx = i % W.MW + .5, sy = Math.floor(i / W.MW) + .5, d = dist(sx, sy);
     if (d < shoreDistance) { shoreDistance = d; shoreX = sx; }
   }
-  const wave = safe(W.hydro?.wave), shoreGain = 1 / Math.sqrt(1 + shoreDistance / 10);
-  const waveEnergy = 1000 * 9.81 * wave * wave / 8;
+  let wave = safe(W.hydro?.wave), shoreGain = 1 / Math.sqrt(1 + shoreDistance / 10),waveEnergy = 1000 * 9.81 * wave * wave / 8,surfPulse=0,oceanActive=0;
+  if(W.ocean){const g=coastal(W);waveEnergy=0;let strongest=-1,strongPower=0,panSum=0;for(let i=0;i<g.n;i++){const sx=(i%g.nx+.5)*4,sy=(Math.floor(i/g.nx)+.5)*4,power=g.breaking[i]*g.area[i]*distanceGain(dist(sx,sy),8)**2;waveEnergy+=power;panSum+=power*sx;if(power>strongPower){strongPower=power;strongest=i;}}shoreGain=1;shoreX=waveEnergy?panSum/waveEnergy:x;oceanActive=1;if(strongest>=0){wave=waveHeight(g,strongest);let height=0;for(let b=0;b<24;b++){const amplitude=Math.sqrt(Math.max(0,2*g.action[b*g.n+strongest]*OMEGA[Math.floor(b/8)]/g.area[strongest]/RHO/G));height+=amplitude*Math.sin(phaseAt(g,b,strongest,(strongest%g.nx+.5)*g.dx,(Math.floor(strongest/g.nx)+.5)*g.dy,seconds,W.seed));}surfPulse=clamp(.5+height/Math.max(.05,wave));}}
   const rain = safe(wx.rain) * (1 - clamp((1 - (wx.temp ?? 10)) / 2));
   let leafPower = 0;
   for (const e of W.ents || []) if (e.leafKg > 0) leafPower += .5*1.2*safe(localWeather(W,e.x,e.y).wind)**3*Math.min(1, e.leafKg / 8) * distanceGain(dist(e.x, e.y), 3) ** 2/6;
@@ -78,7 +81,7 @@ export function acousticState(W, V) {
   const work=W.man?.workContact,active=work?.t===W.t&&W.man?.act?.st.phase!=='go',workGain=active?distanceGain(dist(work.x,work.y),2)*transmission(W,{x,y},work,true):0;
   return {
     // Source energy maps to a gentle listening range, not calibrated dB SPL.
-    sea: quiet(waveEnergy, 250, .23) * shoreGain * outdoor, seaPan: pan(shoreX), wave,
+    sea: quiet(waveEnergy, 250, .23) * shoreGain * outdoor, seaPan: pan(shoreX), wave,oceanActive,surfPulse,
     wind: quiet(.5 * 1.2 * wind ** 3, 300, .055) * outdoor,
     leaves: quiet(leafPower, 300, .09) * outdoor, gust: clamp(gust / Math.max(1, wind), 1, 2),
     rain: quiet(rainPower(rain, 4), .04, .12) * outdoor, rainRate: rain,

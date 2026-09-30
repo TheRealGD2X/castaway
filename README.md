@@ -46,3 +46,10 @@ water that draws puddles and blocks flooded paths. See [the model equations, bou
 and tests](v2/SIMULATION.md). These are deterministic reduced models with explicit
 assumptions; conservation tests establish numerical consistency, not complete accuracy
 against real weather, animal physiology or measured sound.
+
+The ocean now stores water and salt across an offshore region, shelf and island mesh.
+Currents transport heat, nutrients, oxygen, marine populations and sediment; tides,
+river discharge, spray and drifting wood connect it to life on shore. Waves have saved
+directional energy and propagation phase. The water, floating objects and surf sounds
+read those fields. Tap the sea to inspect salt content, depth, current, temperature
+and waves. See [the ocean equations, resolution and limits](v2/OCEAN.md).

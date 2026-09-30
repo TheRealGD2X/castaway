@@ -1,5 +1,6 @@
 // Read-only acoustic presentation. The worklet clock, never the display frame rate, produces sound.
 import { acousticState } from './render/sound-state.js';
+import { displaySeconds } from './render/simulation-clock.js';
 
 let ctx, master, field, loading, enabled = false, lastUpdate = -Infinity, suspendTimer;
 const seenHorns = new Set();
@@ -54,12 +55,12 @@ export function audioStop() {
   suspendTimer = setTimeout(() => { if (!enabled && ctx?.state === 'running') ctx.suspend().catch(() => {}); }, 1100);
 }
 
-export function audioUpdate(W, V) {
+export function audioUpdate(W, V,now=performance.now()) {
   if (!enabled || !field || ctx.state !== 'running') return;
   const t = ctx.currentTime;
   if (t - lastUpdate < .2) return; // five state snapshots/sec; audio itself is sample-continuous
   lastUpdate = t;
-  const state = acousticState(W, V);
+  const state = acousticState(W, V,displaySeconds(W,now));
   field.port.postMessage({ state, seed: W.seed });
   for(const voice of state.voices||[]){const key=`voice:${W.seed}:${voice.id}:${voice.t}`;if(!seenHorns.has(key)){seenHorns.add(key);field.port.postMessage({voice});}}
   for (const sh of W.ships || []) {

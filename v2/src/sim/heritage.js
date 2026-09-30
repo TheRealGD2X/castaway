@@ -3,6 +3,8 @@ import { MW, idx, T } from '../world/gen.js';
 import { clamp } from '../core/dmath.js';
 import { propsOf, FAMILIES } from '../build/build.js';
 import { assemblyStep } from '../build/assembly.js';
+import { oceanSample,driftObject,addDrifter } from './ocean.js';
+import { elevation } from './geomorph.js';
 
 export function heritageInit(W) { W.traces = {}; W.scent = {}; W.story = []; W.storyKeys = {}; }
 export function footfall(W, x, y, load = 1) {
@@ -78,12 +80,13 @@ export function heritageTen(W) {
     if (!s.foodBatches && s.stock > 0) s.load = (s.load || 0) * (1 + Math.max(0, x.temp - 3) * .0006 * (1 - (s.props?.dry || 0) * .5));
   }
   // Wave run-up transports loose beach wood only while the water physically reaches it.
-  const oct = [[1,0],[.7071,.7071],[0,1],[-.7071,.7071],[-1,0],[-.7071,-.7071],[0,-1],[.7071,-.7071]][x.windDir];
+  const departed=new Set();
   for (const it of W.items) if (it.k === 'branch') {
     const i = idx(Math.floor(it.x), Math.floor(it.y));
-    if (W.dsea[i] <= 1 && W.h[i] < .15 + x.tide * .015 + x.wind * x.wind * .0006) {
-      const nx = clamp(it.x + oct[0] * .06, 1, W.MW - 2), ny = clamp(it.y + oct[1] * .06, 1, W.MH - 2), j = idx(Math.floor(nx), Math.floor(ny));
-      if (W.ter[j] === T.SAND || W.ter[j] === T.SHINGLE) { it.x = nx; it.y = ny; it.moist = Math.max(it.moist || 0, .5); }
+    const outside=it.x<0||it.y<0||it.x>=W.MW||it.y>=W.MH;
+    const sea=W.ocean?oceanSample(W,it.x,it.y):null;if(sea&&(outside||W.dsea[i]<=2&&sea.eta+sea.wave/2>elevation(W,i))){if(!outside)driftObject(W,it,600,.02);it.moist=Math.max(it.moist||0,.5);
+      if(it.x<0||it.y<0||it.x>=W.MW||it.y>=W.MH){addDrifter(W,{x:it.x,y:it.y,kg:it.kg,len:it.len,windage:.02});departed.add(it);}
     }
   }
+  if(departed.size)W.items=W.items.filter(it=>!departed.has(it));
 }

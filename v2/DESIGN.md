@@ -166,7 +166,9 @@ snow melts from heat and sunlight. Tile soil holds moisture, infiltrates and fee
 Surface hollows accumulate puddles, freeze, evaporate and transfer water downhill. Worn ground infiltrates
 more slowly. Lake and stream storage receive runoff and groundwater, discharge by depth, and can spill onto
 stream banks. This is a coarse island water balance: lake and stream are aggregate reservoirs, rather than
-a full fluid solver. It does not simulate the ocean's volume or resolve individual waves as fluid particles.
+a full fluid solver. The nested ocean now has its own finite-volume circulation,
+salt/heat/tracer inventories and directional wave action. It reconstructs linear waves
+from solved energy and phase rather than resolving fluid particles. See [OCEAN.md](OCEAN.md).
 
 `W.water` remains the existing pathogen concentration. `W.hydro` holds volumes, flow, temperature, oxygen,
 sediment, wave energy and cumulative input/output counters. Flow affects stream flushing; depth, temperature
@@ -495,11 +497,11 @@ different times cannot recover historical acoustic microstructure from minute-le
 
 `render/sound-state.js` derives source strengths from existing conditions:
 
-- Surf uses the hydrology wave scale with the linear-wave energy form `rho*g*H²/8`.
-  The audio interpretation of that coarse scale as H is assumed. A three-component wave
-  spectrum (8, 13 and 21 m wavelengths, `omega²=g*k`) gives continuous wash interference;
-  wave phases, breaking noise and frequencies are presentation approximations, not the
-  renderer's exact individual waves or a resolved breaking-wave fluid calculation.
+- Coupled surf reads actual ocean breaking watts, source distance and saved wave action.
+  Its wash uses the same solved phase and display clock as the renderer, with three
+  periods (6, 10 and 16 seconds) and eight directions. Procedural acoustic noise and
+  quiet compression remain approximations; individual breaking-wave acoustics are
+  unresolved. The former hydrology wave scale remains only for uncoupled compatibility.
 - Wind excitation scales with `rho*U³/2`; leaf rustle also needs actual remaining foliage.
   Gusts read existing weather. Acoustic conversion efficiencies and texture filters are
   assumed; this is not a computational aeroacoustic solver or species-specific leaf mechanics.

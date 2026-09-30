@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { createWorld, load, save } from '../src/sim/world.js';
 import { acousticState, rainPower, distanceGain } from '../src/render/sound-state.js';
 import { AcousticField } from '../src/render/sound-field.js';
+import {coastal,oceanCell} from '../src/sim/ocean.js';
 
 const W = createWorld(1404719350, Date.UTC(2026, 8, 25, 5));
 const V = { cam: { x: W.cx * 16, y: W.cy * 16 } };
@@ -27,6 +28,7 @@ W.ents.forEach((e, i) => e.leafKg = foliage[i]);
 W.hydro.wave = .6;
 const shore = [...W.ter].findIndex((v, i) => v > 1 && W.dsea[i] === 1);
 const shoreV = { cam: { x: (shore % W.MW + .5) * 16, y: (Math.floor(shore / W.MW) + .5) * 16 } };
+coastal(W).breaking[oceanCell(W,shore%W.MW+.5,Math.floor(shore/W.MW)+.5)]=1;
 assert.ok(acousticState(W, shoreV).sea > acousticState(W, V).sea);
 const far = { cam: { x: 100000, y: -100000 } };
 assert.ok(acousticState(W, far).sea < acousticState(W, shoreV).sea * .05, 'camera outside map must retain actual distance');

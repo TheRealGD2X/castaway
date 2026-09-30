@@ -21,8 +21,10 @@ export function sunAt(ms) {
 }
 // tide height (m) about mean sea level: the lunar semidiurnal tide with spring-neap modulation
 export function tideAt(t) {
-  const m2 = dsin(TAU * t / 745.2 + 1.1), sn = .75 + .25 * dcos(TAU * t / 21262);
-  return 1.9 * sn * m2;
+  // NOAA M2, S2, N2, K1, O1 angular speeds (degrees/hour). Amplitudes/phases
+  // describe an idealised Hebridean boundary, not a calibrated tide station.
+  const h=t/60*PI/180;
+  return 1.35*dsin(28.9841042*h+1.1)+.4*dsin(30*h+1.35)+.18*dsin(28.4397295*h+.4)+.12*dsin(15.0410686*h+2)+.1*dsin(13.9430356*h+.7);
 }
 export function envInit(W) {
   const c = climateAt(cal(W.born, 0).doy);

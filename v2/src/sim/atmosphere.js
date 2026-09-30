@@ -63,7 +63,8 @@ export function atmosphereStep(W,climate,sun,dt=1){
   const a=W.atmosphere;if(!a)return;a.t=W.t;const seconds=dt*60,n=a.h.length,T=array(n),base=climate.tmean+273.15;
   // Prescribed ocean boundary with 45-day thermal inertia, rather than SST
   // instantly following the land air temperature. Not a resolved ocean model.
-  a.seaTemp??=climate.tmean+1;a.seaTemp+=(climate.tmean+1-a.seaTemp)*(1-dexp(-dt/(45*1440)));
+  a.seaTemp??=climate.tmean+1;if(!W.ocean)a.seaTemp+=(climate.tmean+1-a.seaTemp)*(1-dexp(-dt/(45*1440)));
+  a.oceanEvap??=Array(48).fill(0);a.oceanRain??=Array(48).fill(0);
   const z=F*seconds/2,co=(1-z*z)/(1+z*z),si=2*z/(1+z*z),drag=dexp(-seconds/21600),thermal=1-dexp(-dt/180),condRate=1-dexp(-dt/5),dissolveRate=1-dexp(-dt/10),rainRate=1-dexp(-dt/30);
   for(let i=0;i<n;i++)T[i]=a.heat[i]/a.h[i]-273.15;
   // Staggered pressure gradients and midpoint rotation about a prescribed
@@ -87,11 +88,12 @@ export function atmosphereStep(W,climate,sun,dt=1){
     const heat=(equilibrium-temp)*thermal;temp+=heat;const capacity=a.h[i]*RHO*CP*COLUMN/400;a.heatExternal+=heat*capacity;
     // Bulk aerodynamic ocean evaporation: CE U (rho_v,s - rho_v,a).
     // SST is an explicitly prescribed seasonal ocean boundary; CE=0.0013.
-    const saturated=saturation(temp)*COLUMN,evap=.0013*Math.max(.5,Math.sqrt(a.u[i]*a.u[i]+a.v[i]*a.v[i]))*Math.max(0,saturation(a.seaTemp)-a.vapour[i]/COLUMN)*seconds;
+    const saturated=saturation(temp)*COLUMN,SST=a.seaTemps?.[i]??a.seaTemp,evap=.0013*Math.max(.5,Math.sqrt(a.u[i]*a.u[i]+a.v[i]*a.v[i]))*Math.max(0,saturation(SST)-a.vapour[i]/COLUMN)*seconds;
+    a.oceanEvap[i]+=evap;
     a.vapour[i]+=evap;a.evaporated+=evap;a.latentExternal+=evap*LV;
     const cond=Math.max(0,a.vapour[i]-saturated)*condRate;a.vapour[i]-=cond;a.cloud[i]+=cond;temp+=cond*LV/capacity;
     const dissolve=Math.min(a.cloud[i],Math.max(0,saturation(temp)*COLUMN-a.vapour[i])*dissolveRate);a.cloud[i]-=dissolve;a.vapour[i]+=dissolve;temp-=dissolve*LV/capacity;
-    const rain=a.cloud[i]*rainRate;a.cloud[i]-=rain;a.precipitated+=rain;a.rain[i]=rain*60/dt;a.heat[i]=a.h[i]*(temp+273.15);
+    const rain=a.cloud[i]*rainRate;a.cloud[i]-=rain;a.precipitated+=rain;a.rain[i]=rain*60/dt;a.heat[i]=a.h[i]*(temp+273.15);a.oceanRain[i]+=rain;
   }
   const centre=28,temp=a.heat[centre]/a.h[centre]-273.15,u=(a.u[centre]+a.u[centre-1])*.5,v=(a.v[centre]+a.v[centre-NX])*.5;
   const wx=W.wx;wx.temp=temp;wx.wind=Math.sqrt(u*u+v*v);wx.u=u;wx.v=v;wx.gust=Math.max(wx.wind,Math.sqrt(a.u[centre]*a.u[centre]+a.v[centre]*a.v[centre]));wx.cloud=clamp(a.cloud[centre]/.6,0,1);wx.hum=clamp(a.vapour[centre]/Math.max(.001,saturation(temp)*COLUMN),0,1);wx.rain=a.rain[centre];wx.fog=clamp(a.cloud[centre]/.1,0,1)*clamp((wx.hum-.95)/.05,0,1);wx.pressure=101325+RHO*9.81*(a.h[centre]-400);

@@ -35,10 +35,12 @@ respiration, plus maintenance. Freshwater cohorts consume finite prey; oxygen, t
 and depth reduce feeding, and poor habitat transfers mortality to detritus. Growth cannot
 create fish when prey is absent. Human catches and traps debit the same cohort stocks.
 
-The visible sea tiles form an **open ocean boundary**. A 12-hour exponential water
-exchange imports and exports specified concentrations: 0.012 kg/m² plankton and
-0.0005 kg/m² coastal fish dry matter. Those concentrations and exchange times are
-assumptions. Incoming biomass is accounted as an import; the ocean is not a closed pond.
+Marine stocks now live in the nested ocean's transported spatial arrays, including
+plankton, zooplankton, juvenile/adult fish and detritus. The former 12-hour aggregate
+exchange applies only to old uncoupled worlds; coupled worlds exchange finite parcels
+through solved currents. External concentrations remain declared boundary assumptions.
+See [the ocean model](OCEAN.md) for resolution, C/N/O2 conversions and exact budget
+boundaries. Local shellfish and gulls debit these actual spatial stocks.
 Animal carcasses, undigested food and senescence become finite waste. Nitrogen is an
 effective fixed 1% of dry matter; this is not a complete elemental cycle or food-composition
 model. Soil and aquatic nutrient destinations are explicitly separate.
@@ -116,8 +118,10 @@ correlated fields, with 12-hour and 30-hour correlation scales. Six-hour momentu
 three-hour thermal exchanges supply explicit external forcing. They are **empirical
 boundary closures**, not a resolved global atmosphere or numerical weather forecast.
 Solar geometry and seasonal forcing use the existing astronomical/climate functions.
-The prescribed sea temperature has a 45-day thermal response; it is not a solved ocean
-heat budget. Diagnostic “high”, “ridge”, “low” and “front” labels describe current cloud/rain
+The coupled ocean's surface heat inventory now supplies sea temperature. The older
+45-day prescribed response remains only for uncoupled compatibility. Bulk sea-cover
+and wet-mask differences are documented in [OCEAN.md](OCEAN.md); this is not a fully
+closed global atmosphere/ocean heat budget. Diagnostic “high”, “ridge”, “low” and “front” labels describe current cloud/rain
 and never schedule rain or a gale. Real weather is neither downloaded nor replayed.
 
 Ocean evaporation uses the bulk form
