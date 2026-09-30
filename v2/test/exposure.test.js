@@ -3,6 +3,7 @@ import { createWorld, save, load, step } from "../src/sim/world.js";
 import { newBody, bodyStep, feel, MET } from "../src/sim/body.js";
 import { bodyContext, here } from "../src/sim/man.js";
 import { newFire } from "../src/sim/fire.js";
+import { homeAssembly } from "../src/build/homes.js";
 import { FAMILIES, propsOf } from "../src/build/build.js";
 import { ACTIONS } from "../src/mind/actions.js";
 import { think } from "../src/mind/brain.js";
@@ -22,7 +23,7 @@ function scene() {
   M.B = newBody(); M.B.core = 34; M.B.wet = 1; M.B.glyco = 20;
   const stages = FAMILIES.debrisHut.make({ bedMat: "bracken" });
   const home = { id: W.nextId++, k: "debrisHut", x: M.x + 1, y: M.y, dir: 0, stages, stage: stages.length, prog: 0, have: { poles: 11, debris: 32 }, onsite: {}, started: 0 };
-  home.props = propsOf(home); W.structs.push(home);
+  home.assembly=homeAssembly(home);home.props = propsOf(home); W.structs.push(home);
   W.camp = tile;
   const F = newFire(M.x - 1, M.y); F.id = W.nextId++; F.lit = true; F.heat = 5000; W.fires.push(F);
   M.mem["fire" + F.id] = { k: "fire", x: F.x, y: F.y, lit: true, embers: 0, fuelKg: 6, t: W.t };

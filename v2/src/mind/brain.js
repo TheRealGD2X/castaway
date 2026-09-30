@@ -52,7 +52,7 @@ export function projects(W, M, toDusk) {
   const hasFire = W.fires.length > 0 || W.camp != null;
   const worth = (fam, s) => {
     const F = FAMILIES[fam];
-    if(s.assembly){
+    if(s.assembly&&!F.shelter&&fam!=="bedding"){
       if(!bestShelter(W))return 0;
       const p=propsOf({...s,stage:s.stages.length,prog:0}),has=k=>W.structs.reduce((v,q)=>q.id===s.id?v:Math.max(v,(q.props||propsOf(q))[k]||0),0);
       const bench=Math.max(0,p.bench-has('bench'))*18,drying=Math.max(0,p.drying-has('drying'))*(hasFire?17:0),store=Math.max(0,p.store*p.dry-has('store')*has('dry'))*17;

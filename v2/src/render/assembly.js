@@ -7,14 +7,20 @@ import { fitted, analyse } from '../build/assembly.js';
 const cache=new Map(),ramp={poles:['#62432e','#946637','#bf965e','#ddbd85'],withies:['#65492c','#9c7542','#c4a374','#dfc496'],reeds:['#6b542c','#aa873f','#ccb266','#e1ca82'],bracken:['#674526','#916332','#b08944','#d1aa63'],boughs:['#344733','#516742','#799156','#9da572'],debris:['#593e28','#87633a','#b18b55','#c5ad78'],mud:['#624133','#916245','#b8875e','#cea67a'],stones:['#4d5149','#76796a','#a2a28a','#c6bda2']};
 const line=(P,a,b,c,width=1)=>{const n=Math.max(Math.abs(b[0]-a[0]),Math.abs(b[1]-a[1]),1);for(let k=0;k<=n;k++)for(let t=0;t<width;t++)P.set(Math.round(a[0]+(b[0]-a[0])*k/n)+t,Math.round(a[1]+(b[1]-a[1])*k/n),c);};
 function quad(P,points,paint,f=1) {
-  const [a,b,,d]=points,u=[b[0]-a[0],b[1]-a[1]],v=[d[0]-a[0],d[1]-a[1]],det=u[0]*v[1]-u[1]*v[0];if(Math.abs(det)<.1)return;
-  const minx=Math.floor(Math.min(...points.map(p=>p[0]))),maxx=Math.ceil(Math.max(...points.map(p=>p[0]))),miny=Math.floor(Math.min(...points.map(p=>p[1]))),maxy=Math.ceil(Math.max(...points.map(p=>p[1])));
-  for(let y=miny;y<=maxy;y++)for(let x=minx;x<=maxx;x++){const dx=x-a[0],dy=y-a[1],s=(dx*v[1]-dy*v[0])/det,t=(u[0]*dy-u[1]*dx)/det;if(s>=0&&s<=f&&t>=0&&t<=1)P.set(x,y,paint(s,t,x,y));}
+  // Two triangles also cover tapered roof bays correctly.
+  for(const ids of [[0,1,2],[0,2,3]]){
+    const [a,b,c]=ids.map(k=>points[k]),det=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1]);if(Math.abs(det)<.1)continue;
+    const uv=[[0,0],[1,0],[1,1],[0,1]];
+    for(let y=Math.floor(Math.min(a[1],b[1],c[1]));y<=Math.ceil(Math.max(a[1],b[1],c[1]));y++)for(let x=Math.floor(Math.min(a[0],b[0],c[0]));x<=Math.ceil(Math.max(a[0],b[0],c[0]));x++){
+      const u=((b[1]-c[1])*(x-c[0])+(c[0]-b[0])*(y-c[1]))/det,v=((c[1]-a[1])*(x-c[0])+(a[0]-c[0])*(y-c[1]))/det,t=1-u-v;
+      if(u<0||v<0||t<0)continue;const s=u*uv[ids[0]][0]+v*uv[ids[1]][0]+t*uv[ids[2]][0],z=u*uv[ids[0]][1]+v*uv[ids[1]][1]+t*uv[ids[2]][1];if(s<=f)P.set(x,y,paint(s,z,x,y));
+    }
+  }
 }
 export function assemblySprite(s) {
-  const a=s.assembly,key=JSON.stringify([s.dir,s.stage,Math.floor((s.prog||0)*32),Math.floor((s.saturation||0)*16),Math.floor((s.waterL||0)*2),Math.floor((s.stock||0)/500),a.nodes,a.parts.map(p=>[p.kind,p.mat,p.amount,p.a,p.b,p.node,p.points,p.center,p.size,p.removed,Math.floor((p.condition??1)*16),Math.floor((p.sag||0)*24)])]);
+  const a=s.assembly,key=JSON.stringify([s.dir,!!s.open,s.stage,Math.floor((s.prog||0)*32),Math.floor((s.saturation||0)*16),Math.floor((s.waterL||0)*2),Math.floor((s.stock||0)/500),a.nodes,a.parts.map(p=>[p.kind,p.mat,p.amount,p.a,p.b,p.node,p.points,p.center,p.size,p.removed,Math.floor((p.condition??1)*16),Math.floor((p.sag||0)*24)])]);
   if(cache.has(key))return cache.get(key);
-  const state=analyse(s),ox=48,oy=61,w=96,h=72,rotation=[[1,0],[0,1],[-1,0],[0,-1]][s.dir||0];
+  const state=analyse(s),ox=64,oy=85,w=128,h=96,rotation=[[1,0],[0,1],[-1,0],[0,-1]][s.dir||0];
   const rotate=p=>[p[0]*rotation[0]-p[1]*rotation[1],p[0]*rotation[1]+p[1]*rotation[0],p[2]];
   const project=p=>{const [x,y,z]=rotate(p);return[ox+x*16+y*8,oy+y*6-z*18];};
   const points=p=>p.kind==='bar'?[a.nodes[p.a],a.nodes[p.b]]:p.points||[p.center||a.nodes[p.node]||[0,0,0]];
@@ -30,7 +36,7 @@ export function assemblySprite(s) {
       }else if(p.kind==='joint'){
         const [x,y]=project(a.nodes[p.node]);for(let k=0;k<Math.ceil(p.amount*5*f*life);k++)line(P,[x-1,y-2+k],[x+2,y-1+k],k%2?c[1]:c[3]);
       }else if(p.kind==='panel'){
-        const q=state.panels.find(q=>q.p===p),fell=q.support<.05,poly=p.points.map(v=>project(fell?[v[0],v[1],.03]:v));
+        const q=state.panels.find(q=>q.p===p);if(s.open&&a.habitat&&q.z>.35&&((q.normal>.1)||q.ny*rotation[0]+q.nx*rotation[1]>.1))continue;const fell=q.support<.05,poly=p.points.map(v=>project(fell?[v[0],v[1],.03]:v));
         quad(P,poly,(u,v,x,y)=>{
           if(((x*13+y*7+p.id*19)%17)/17>life)return null;
           if(p.mat==='poles'){const row=Math.floor(v*Math.max(3,p.amount*3));return v*Math.max(3,p.amount*3)-row<.12?c[0]:c[((x+row*3)%11===0)?3:2];}

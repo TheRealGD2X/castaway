@@ -132,7 +132,7 @@ export function craftGoals(W,M,S) {
   if(S.greenPot&&!S.clayPot&&(M.potDry||0)>=.8&&S.fire===2)goal('clayPot',18,'His dried clay pot needs enough heat in the coals to harden');
   const damage=A_REPAIR(W,M);
   if(damage&&!damage.assembly)goal('repaired',32+(1-(damage.integrity??1))*65,'Repairing the '+FAMILIES[damage.k].label+' would restore its protection');
-  const broken=W.structs.flatMap(s=>s.assembly&&finished(s)&&dist(M,s)<25?s.assembly.parts.filter(p=>p.kind!=='stock'&&(p.condition??1)<.88).map(p=>({s,p})):[]).sort((a,b)=>a.p.condition-b.p.condition)[0];
+  const broken=W.structs.flatMap(s=>s.assembly&&dist(M,s)<25?s.assembly.parts.filter(p=>s.stage>p.stage&&p.kind!=='stock'&&(p.condition??1)<.88).map(p=>({s,p})):[]).sort((a,b)=>a.p.condition-b.p.condition)[0];
   if(broken){const {s,p}=broken,qty=dceil(p.amount),t={...point(s),pid:p.id};G.push({k:'repair:'+s.id+':'+p.id,vars:['repaired'],want:S=>S.repaired,v:28+(1-p.condition)*45,why:'Replacing the strained '+p.mat+' in his '+s.label,
     acts:{repairPart:{r:[p.mat,'repaired'],w:[p.mat,'repaired'],provides:['repaired'],find:()=>t,pre:S=>S[p.mat]>=qty&&!S.repaired,eff:S=>{S[p.mat]-=qty;S.repaired=1;},cost:()=>minutes(M,t)+12+p.amount*6}}});}
   if(S.food>2200&&W.structs.some(s=>(s.props?.store||0)>.4))goal('stored',15,'Keeping surplus food dry in his store');

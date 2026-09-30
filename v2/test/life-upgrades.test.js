@@ -28,11 +28,11 @@ const tile=W.ter.findIndex((t,i)=>t===3&&!W.treeAt[i]),x=tile%W.MW+.5,y=Math.flo
 M.x=x;M.y=y;M.path=null;
 const make=k=>{const stages=FAMILIES[k].make({cover:'bracken',bedMat:'boughs'}),s=place(W,{k,x,y,dir:0,stages});s.stage=stages.length;s.props=propsOf(s);return s;};
 const hut=make('leanto'),bed=make('bedding');hut.props.bed=0;assert(shelterAt(W,x,y).bed>.9);
-const before=hut.props.rain;hut.integrity=.55;hut.props=propsOf(hut);assert(hut.props.rain<before*.6);
-W.wx.gust=40;W.wx.rain=8;W.surface.snow=0;const old=hut.integrity;heritageTen(W);assert(hut.integrity<old);
-M.inv={poles:1,cord:1,debris:2};let st={},t={sid:hut.id,x,y,tile};
-for(let n=0;n<70;n++){W.t++;const r=ACTIONS.repairHome.exec(W,M,t,st);if(r==='done')break;}
-assert(hut.integrity>.9);assert.equal(M.inv.cord,0);assert.equal(M.inv.poles,0);
+const before=hut.props.rain,roof=hut.assembly.parts.find(p=>p.kind==='panel'&&p.stage===1);roof.condition=.15;hut.props=propsOf(hut);assert(hut.props.rain<before*.7);
+W.wx.gust=40;W.wx.rain=8;W.surface.snow=0;const old=roof.condition;heritageTen(W);assert(roof.condition<old);
+W.wx.gust=0;M.inv={bracken:20};let st={},t={sid:hut.id,pid:roof.id,x,y,tile};
+for(let n=0;n<350;n++){W.t++;const r=ACTIONS.repairPart.exec(W,M,t,st);if(r==='done')break;}
+assert(roof.condition>.9);assert(M.inv.bracken<20);
 console.log('ok   installed bedding and storm damage change real shelter protection; repair consumes materials');
 
 M.inv={withies:3};st={};

@@ -205,7 +205,7 @@ enough to observe strain; those beliefs influence proposed designs. No mechanics
 weighing target shortfall, safety and labour. Workbenches, drying racks, food shelves, rain collectors and
 combined camp inventions use this model. Missing useful functions can produce a combined construction,
 which competes with existing projects and bodily needs in the normal planner. It may prefer a simpler project.
-Legacy shelters, hearths, bedding and traps retain their existing physical models; this is a foundation for
+Hearths and traps retain their existing physical models; this is a foundation for
 extending procedural objects, not unrestricted invention or a general rigid-body/finite-element solver.
 Support and stress calculations are engineering approximations, including conservative contact friction.
 
@@ -228,3 +228,19 @@ It covers name-independent functions, misplaced roofs, supports, bindings, tippi
 repair accounting, recovery, witnessed strain, water conservation, historical snapshots and old-save replay.
 Release checks also include fresh and production-checkpoint 65-day survival/replay, advance.js, Node versus
 Chromium checkpoint equality, phone screenshots and render timing. Safari on an actual iPhone is untested.
+
+
+## Homes from shared parts
+
+`build/homes.js` converts lean-tos, debris huts, octagonal roundhouses and raised bedding
+into forked timber supports, ribs, woven wall bays, clay daub, separate roof sections and
+bedding panels. Original stage names and material budgets are preserved on old saves.
+A roof needs connected supports; its actual footprint, coverage and material density determine
+rain interception. Wall and roof normals determine directional wind shielding. A doorway and
+smoke opening are gaps in the geometry. The clear line towards the camp hearth determines
+radiant transmission. Bedding resistance follows thickness, loose material density and wet
+thermal conductivity; wet fibres conserve less heat. No additional warmth is granted on completion.
+Timber forks have bearing strength distinct from fibre lashings. Existing component stress,
+replacement, recovery and learning apply to homes, including completed parts of unfinished work.
+The renderer projects installed parts, with a cutaway while Tomas is inside. Roof bays use
+triangle rasterisation, so tapered sections keep their actual shape. Test with `homes.test.js`.

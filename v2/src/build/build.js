@@ -9,6 +9,7 @@
 import { MW, MH, T, idx } from "../world/gen.js";
 import { dceil, clamp, dexp } from "../core/dmath.js";
 import { assemblyProps, assemblyWork, installed } from './assembly.js';
+import { homeAssembly } from './homes.js';
 import { ASSEMBLED, TARGETS, propose, legacyAssembly } from './designer.js';
 
 // what each material is and how much of it one trip brings (an armful, a pair of poles dragged, a load of stones)
@@ -179,7 +180,7 @@ export function shelterAt(W, x, y) {
     if (!FAMILIES[s.k].shelter || Math.abs(s.x - x) > .95 || Math.abs(s.y - y) > .95) continue;
     // a one-sided shelter blocks wind blowing toward its open side (coming over its back), less from the side
     const d = DIRV[s.dir], face = p.side ? clamp(.25 + .75 * (wd[0] * d[0] + wd[1] * d[1]), 0, 1) : 1;
-    o.rain = Math.max(o.rain, p.rain); o.wind = Math.max(o.wind, p.wind * face); o.bed = Math.max(o.bed, p.bed); o.fire = Math.min(o.fire, p.fire ?? 1);
+    o.rain = Math.max(o.rain, p.rain); o.wind = Math.max(o.wind, p.windByDir ? (()=>{const local=[wd[0]*d[0]+wd[1]*d[1],-wd[0]*d[1]+wd[1]*d[0]],axis=Math.abs(local[0])>=Math.abs(local[1])?(local[0]>=0?0:2):(local[1]>=0?1:3);return p.windByDir[axis];})() : p.wind * face); o.bed = Math.max(o.bed, p.bed); o.fire = Math.min(o.fire, p.fire ?? 1);
   }
   return o;
 }
@@ -274,7 +275,7 @@ export function design(W, M, fam, campTile) {
     assembly=propose(wanted,b,W.wx);if(!assembly)return null;
   }
   const d={ k: fam, x: s.tile % MW + .5, y: ((s.tile / MW) | 0) + .5, tile: s.tile, dir: s.dir, stages: assembly?assembly.stages:FAMILIES[fam].make(b), stage: 0, prog: 0 };
-  if(assembly){delete assembly.stages;d.assembly=assembly;d.label=assembly.label;}return d;
+  if(assembly){delete assembly.stages;d.assembly=assembly;d.label=assembly.label;}else{d.assembly=homeAssembly(d);if(!d.assembly)delete d.assembly;}return d;
 }
 // can he gather everything a stage needs? (he knows where to find it)
 export function feasible(b, stage) {
@@ -283,7 +284,7 @@ export function feasible(b, stage) {
 // raise a structure in the world when its first stage begins
 export function place(W, d) {
   const s = { id: W.nextId++, k: d.k, x: d.x, y: d.y, dir: d.dir, stages: d.stages, stage: 0, prog: 0, have: {}, onsite: {}, started: W.t };
-  s.assembly=d.assembly?JSON.parse(JSON.stringify(d.assembly)):legacyAssembly(s);if(!s.assembly)delete s.assembly;if(s.assembly)s.label=s.assembly.label;
+  s.assembly=d.assembly?JSON.parse(JSON.stringify(d.assembly)):homeAssembly(s)||legacyAssembly(s);if(!s.assembly)delete s.assembly;if(s.assembly)s.label=s.assembly.label;
   s.props = propsOf(s); W.structs.push(s); return s;
 }
 // a minute of work on a stage: parts go in as the work goes on

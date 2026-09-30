@@ -2,7 +2,7 @@
 import { clamp, dexp } from '../core/dmath.js';
 
 export const MAT = {
-  poles:   {kg:1.5,density:650,young:6e9,bend:24e6,tension:12e6,seal:0,leak:5,recover:.85},
+  poles:   {kg:1.5,density:650,young:6e9,bend:24e6,tension:12e6,joint:3000,seal:0,leak:5,recover:.85},
   withies: {kg:.18,density:600,young:8e8,bend:12e6,tension:4e6,seal:.04,leak:8,recover:.55},
   reeds:   {kg:.25,density:350,young:2e8,bend:3e6,tension:1e6,seal:1.5,leak:4,recover:.5},
   bracken: {kg:.3,density:150,young:1e6,bend:1e5,tension:1e4,seal:1.8,leak:4,recover:.45},
@@ -30,8 +30,10 @@ function inside(poly,x,y) {if(poly.length<3)return false;for(let n=0;n<poly.leng
 export function panelGeometry(p) {
   const [a,b,,d]=p.points,u=b.map((v,k)=>v-a[k]),v=d.map((v,k)=>v-a[k]);
   const cross=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
-  const area=Math.sqrt(cross[0]*cross[0]+cross[1]*cross[1]+cross[2]*cross[2]);
-  return{area,projected:Math.abs(cross[2]),normal:area?Math.abs(cross[2])/area:0,z:p.points.reduce((v,a)=>v+a[2],0)/4};
+  const norm=Math.sqrt(cross[0]*cross[0]+cross[1]*cross[1]+cross[2]*cross[2]);
+  const c=p.points[2],tri=(b,c)=>{const u=b.map((v,k)=>v-a[k]),v=c.map((v,k)=>v-a[k]),q=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];return Math.sqrt(q[0]*q[0]+q[1]*q[1]+q[2]*q[2])/2;};
+  const area=tri(b,c)+tri(c,d);
+  return{area,projected:projectedOverlap(p.points,p.points),normal:norm?Math.abs(cross[2])/norm:0,nx:norm?cross[0]/norm:0,ny:norm?cross[1]/norm:0,z:p.points.reduce((v,a)=>v+a[2],0)/4};
 }
 // Intersection in the ground plane: a roof beside a shelf offers no protection.
 export function projectedOverlap(a,b) {
@@ -53,7 +55,7 @@ export function analyse(s) {
     const f=fitted(s,p),life=p.condition??1,m=MAT[p.mat],active=f*life;
     if(f<=0)continue;const kg=p.amount*m.kg*f;
     const pos=p.kind==='bar'?a.nodes[p.a].map((v,k)=>(v+a.nodes[p.b][k])/2):p.center||p.points?.[0]||a.nodes[p.node]||[0,0,0];mass+=kg;mx+=pos[0]*kg;my+=pos[1]*kg;if((p.kind==='stock'||p.kind==='shell')&&pos[2]<.06)groundMass+=kg;
-    if(p.kind==='joint'){const cap=p.amount*500*active*(1-wet*.45)*(p.quality??.85);bond[p.node]+=cap;jointCapacity+=cap;}
+    if(p.kind==='joint'){const cap=p.amount*(m.joint||500)*active*(1-wet*.45)*(p.quality??.85);bond[p.node]+=cap;jointCapacity+=cap;}
     if(p.kind==='bar'){
       const u=a.nodes[p.a],v=a.nodes[p.b],length=Math.max(.05,dist(u,v)),volume=p.amount*m.kg/m.density,r=Math.sqrt(volume/(PI*length));
       const r2=r*r,r3=r2*r,r4=r2*r2,vertical=Math.abs(v[2]-u[2])/length>.7;
@@ -62,7 +64,7 @@ export function analyse(s) {
       if(active>0){if(u[2]<=.001)anchors.push(u);if(v[2]<=.001)anchors.push(v);}
     }
     if(p.kind==='panel'){
-      const geo=panelGeometry(p),seal=1-dexp(-p.amount*m.kg/Math.max(.02,geo.area)*m.seal*active);
+      const geo=panelGeometry(p),seal=(1-dexp(-p.amount*m.kg/Math.max(.02,geo.area)*m.seal*life))*f;
       panels.push({p,...geo,seal,f:active});windArea+=geo.area*active*(1-geo.normal*.65);
     }
     if(p.kind==='shell'){
@@ -102,6 +104,25 @@ export function analyse(s) {
   const props={mass,stable,maxLoadKg,windArea,capacity:waterCapacity,catchArea,leakL:leak,
     bench:clamp(surface/.5,0,1)*clamp(maxLoadKg/12,0,1),store:clamp(surface/.4,0,1)*clamp(maxLoadKg/5,0,1),storageKg:Math.min(maxLoadKg,surface*30),dry:cover,
     drying:clamp(hanging/2.5,0,1)*clamp(maxLoadKg/3,0,1),hangingMetres:hanging};
+  if(a.floor){
+    const floorArea=projectedOverlap(a.floor,a.floor),span=Math.sqrt(floorArea),dirs=[[1,0],[0,1],[-1,0],[0,-1]];
+    let rain=0,bed=0,bedR=0,fire=1;const wind=[0,0,0,0];
+    for(const q of panels){
+      if(q.z>.35&&q.normal>.1){rain+=projectedOverlap(q.p.points,a.floor)*q.seal;}
+      if(q.normal>.99&&q.z<.35){
+        const bulk={bracken:18,boughs:26,debris:15,reeds:20}[q.p.mat];
+        if(bulk){const thickness=q.p.amount*MAT[q.p.mat].kg/Math.max(.01,q.area)/bulk;
+          const resistance=thickness/(.045+wet*.25)*q.f;bedR=Math.max(bedR,resistance);bed=Math.max(bed,clamp(1-dexp(-resistance*2.5),0,.95));}
+      }
+      if(Math.abs(q.nx)>.001){const pos=q.p.points[0],hit=pos[0]-(q.ny*(0-pos[1])+q.normal*(.3-pos[2]))/q.nx;
+        if(hit>0&&inside(footprint(q.p.points.map(v=>[v[1],v[2]])),0,.3))fire*=1-q.seal;}
+      if(q.z>.3)for(let k=0;k<4;k++)wind[k]+=Math.max(0,-(q.nx*dirs[k][0]+q.ny*dirs[k][1]))*q.area*q.seal/Math.max(.1,span*(a.ceiling||1.2));
+    }
+    Object.assign(props,{bed,bedR});
+    if(a.habitat){const seal=clamp(rain/Math.max(.01,floorArea),0,1),shield=wind.map(v=>clamp(v,0,.98));
+      const enclosure=shield.reduce((v,q)=>v+q,0)/4;
+      Object.assign(props,{rain:seal,wind:Math.max(...shield),windByDir:shield,side:0,fire,workspace:seal*enclosure,indoorFire:seal*enclosure});}
+  }
   return{props,bars,panels,shells,loadN:(total-groundMass-(shells.some(q=>q.p.center[2]<.06)?s.waterL||0:0))*9.81,frameCapacity,cx,cy};
 }
 export const assemblyProps=s=>analyse(s).props;
@@ -118,7 +139,7 @@ export function assemblyStep(W,s,dt=10) {
   let lowest=1;
   for(const p of s.assembly.parts){
     const f=fitted(s,p);if(!f)continue;p.condition??=1;if(p.kind==='stock')continue;
-    const bar=state.bars.find(b=>b.p===p),nominal=bar?.nominal|| (p.kind==='joint'?p.amount*500*(p.quality??.85):p.kind==='shell'?600:400);
+    const bar=state.bars.find(b=>b.p===p),nominal=bar?.nominal|| (p.kind==='joint'?p.amount*(MAT[p.mat].joint||500)*(p.quality??.85):p.kind==='shell'?600:400);
     const force=(state.loadN+wind+snow)/Math.max(1,p.kind==='joint'?s.assembly.parts.filter(p=>p.kind==='joint').length:state.bars.length);
     const strength=nominal*p.condition*(1-s.saturation*.35);
     p.stress=force/Math.max(.1,strength);p.condition=clamp(p.condition-Math.max(0,p.stress-1)*dt*.0005,0,1);
