@@ -62,9 +62,21 @@ act.addEventListener("click", () => { showWhy = !showWhy; why.style.display = sh
 // sound: off until you tap the speaker (phones only allow sound after a tap); remembered for next time
 const sb = document.getElementById("snd"); let soundOn = false;
 const pref = (() => { try { return localStorage.getItem("cw2-sound") === "1"; } catch (e) { return false; } })();
-function setSound(on) { soundOn = on; sb.textContent = on ? "♪" : "♪̸"; sb.style.opacity = on ? 1 : .6; if (on) audioStart(); else audioStop(); try { localStorage.setItem("cw2-sound", on ? "1" : "0"); } catch (e) {} }
+function setSound(on) {
+  soundOn = on; sb.textContent = on ? "♪" : "♪̸"; sb.style.opacity = on ? 1 : .6;
+  sb.setAttribute('aria-pressed', String(on)); sb.setAttribute('aria-label', on ? 'Mute island sounds' : 'Listen to the island');
+  sb.title = on ? 'Mute island sounds' : 'Listen to the island';
+  if (on) audioStart().catch(() => { setSound(false); sb.title = 'Sound could not start. Tap to try again.'; }); else audioStop();
+  try { localStorage.setItem("cw2-sound", on ? "1" : "0"); } catch (e) {}
+}
 sb.addEventListener("click", () => setSound(!soundOn));
-if (pref) addEventListener("pointerdown", () => { if (!soundOn) setSound(true); }, { once: true });
+// Tapping the sound button with a remembered preference should toggle once, not twice.
+if (pref) addEventListener("pointerdown", e => { if (e.target !== sb && !soundOn) setSound(true); }, { once: true });
+document.addEventListener('castaway-audio-error', () => { setSound(false); sb.title = 'Sound paused. Tap to try again.'; });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) audioStop();
+  else if (soundOn) audioStart().catch(() => setSound(false));
+});
 // Story, diary and camp: three readable views of the same simulated life.
 const inspection=setupInspection(cv,V,()=>world);
 setupJournal(document.getElementById('jbtn'), document.getElementById('journal'), () => world,()=>inspection.show({camp:true}));

@@ -31,3 +31,8 @@ progress. Loads and hills affect effort, flowing water erodes and deposits actua
 and Tomas adjusts his estimates after completed work. Tap him to see separate meals and
 carrying weight, or tap his shelter to see its inside conditions. See the six process models
 and their conservation tests in `v2/DESIGN.md`.
+
+Tap the sound button for a softer, continuous island soundscape: surf, wind through remaining
+foliage, liquid rain on installed coverings, flowing streams and burning fuel. Sound is generated
+from the current world and camera position, with no recordings or repeating sound clips.
+The acoustic models and listening levels are approximations, documented in `v2/DESIGN.md`.

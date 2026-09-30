@@ -478,3 +478,71 @@ Primary references for the equations and model boundaries:
 - [USGS boundary shear and sediment mobility](https://pubs.usgs.gov/sir/2008/5093/section6.html).
 
 These sources motivate the model form; they do not calibrate this island's chosen constants.
+
+## Continuous island acoustics
+
+`audio.js` reads the world at five snapshots per second; `render/sound-worklet.js` renders
+stereo pressure continuously on the audio thread using `render/sound-field.js`. No sample clips,
+repeating noise buffers, display-frame random chances, music or invented wildlife calls remain.
+An audio-only seeded xorshift generator supplies unresolved turbulent excitation. It never
+reads or advances `W.rng`, supplies resources, alters an animal or writes a checkpoint.
+For identical seed, sample rate, listener/state input sequence and audio sample count the
+PCM is repeatable, including when audio blocks or display refresh rates differ. Different
+device sample rates/filter implementations need not yield bit-identical sound. Opening at
+different times cannot recover historical acoustic microstructure from minute-level saves.
+
+`render/sound-state.js` derives source strengths from existing conditions:
+
+- Surf uses the hydrology wave scale with the linear-wave energy form `rho*g*H²/8`.
+  The audio interpretation of that coarse scale as H is assumed. A three-component wave
+  spectrum (8, 13 and 21 m wavelengths, `omega²=g*k`) gives continuous wash interference;
+  wave phases, breaking noise and frequencies are presentation approximations, not the
+  renderer's exact individual waves or a resolved breaking-wave fluid calculation.
+- Wind excitation scales with `rho*U³/2`; leaf rustle also needs actual remaining foliage.
+  Gusts read existing weather. Acoustic conversion efficiencies and texture filters are
+  assumed; this is not a computational aeroacoustic solver or species-specific leaf mechanics.
+- Rain uses the same liquid fraction as the surface simulation. Impact kinetic power is
+  `rain_m_per_second * area * rho * v²/2`, with an assumed 6 m/s drop speed. Snow does not
+  make liquid-rain hiss. Installed supported panels supply their actual projected area,
+  fitted fraction and condition; leaf/reed/bracken coverings have softer impact textures.
+  Collapsed, removed and unpaid panels supply no elevated roof rain. Sheltered listeners
+  use the rotated floor footprint and installed enclosure for softer outdoor transmission.
+- Stream excitation needs actual discharge (`hydro.flow` m³/min converted to m³/s) and
+  the nearest segment's downhill head, with available gravitational power `rho*g*Q*head`.
+  A small bubble population has Minnaert resonance `f=sqrt(3*gamma*P/rho)/(2*pi*r)` with
+  assumed 2.5–8 mm radii. Bubble counts, entrainment fraction and damping remain approximations;
+  no individual bubbles are inserted into the coarse conserved hydrology.
+- Fires need actual lit fuel and heat output. Heat, banking and log moisture set the
+  combustion texture and small softened fracture impulses. Individual wood cells and
+  combustion acoustics are unresolved. No fire sound is created by merely selecting a task.
+- Horns are rendered only for an existing ship's current saved `horn` signal, deduplicated
+  by ship ID and event minute. Pressure attenuates over the actual kilometre-scale distance;
+  old signals do not play when reopening. No extra horns, bird songs or owl calls are scheduled.
+
+Compact-source pressure uses `radius/sqrt(radius²+distance²)` in metres; the extended
+shore uses slower spreading from the nearest coastal tile. Multiple fires/panels use an
+energy-weighted aggregate and stereo bearing. Geometry remains at tile/assembly resolution;
+full diffraction, reflections, air absorption and measured propagation are not resolved.
+The output deliberately compresses source energy into gentle listening levels with 0.8-second
+parameter smoothing, softened transients, a 45 Hz highpass, a 4.2 kHz lowpass and gentle
+compression. This is not calibrated sound pressure and cannot establish physical accuracy
+or how loud a particular headphone will be. Volume and timbre still need human listening
+judgement. The models connect sounds causally to the world; they are not fully accurate
+real-world acoustic predictions.
+
+Sound stays off until a gesture, fades on/off, suspends processing after muting or hiding
+the page, and resumes the remembered preference when returning. Startup/processor errors
+leave a working retry button. Only one context/worklet is used while toggling normally.
+There are no downloads for audio. Browsers must support AudioWorklet in a secure context.
+
+`node test/sound.test.js` checks source absence, rainfall SI units, pressure attenuation,
+snow, finite foliage, supported roof geometry, distance, actual ship signals, read-only
+production saves, stereo placement, bounded finite PCM at 44.1/48 kHz and exact DSP replay
+across block partitions and repeated state updates. Release validation also renders the
+actual worklet in Chromium, checks mute/resume/rapid toggle/remembered gesture behaviour,
+and checks phone-sized UI plus the existing simulation suites. This does not establish
+native iPhone Safari performance or subjective listening quality.
+
+Equation references: [NOAA linear wave dispersion](https://polar.ncep.noaa.gov/waves/wavewatch/manual.v5.16.pdf)
+and [experimental work on entrained-bubble sound](https://pmc.ncbi.nlm.nih.gov/articles/PMC6014985/).
+Web Audio lifecycle follows the [AudioContext suspend/resume API](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/suspend).
