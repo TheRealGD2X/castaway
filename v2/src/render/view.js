@@ -119,7 +119,7 @@ export function createView(cv, world, terr) {
     if (M) { const p = V.manPos(now); focus.push({ y: p.y, sx: Math.round(p.x * TS) - sx, sy: Math.round(p.y * TS) - sy }); }
     for (const a of world.animals || []) if (a.sp === "dog" && !a.adrift && !a.dead) focus.push({ y: a.y, sx: Math.round(a.x * TS) - sx, sy: Math.round(a.y * TS) - sy });
     // things on the ground, back to front
-    const windStrength = Math.min(1.4, Math.max(0, world.wx.wind / 20));
+    const windStrength = Math.min(2.4, Math.sqrt(Math.max(0, world.wx.wind) / 4));
     for (let i = firstRow(sy / TS - 1); i < ents.length; i++) {
       const e = ents[i]; if (e.y * TS - 60 > sy + ah) break;
       while (di < dyn.length && dyn[di].y < e.y) dyn[di++].f();
@@ -131,7 +131,7 @@ export function createView(cv, world, terr) {
         g.drawImage(s.trunk, px - Math.round(s.cx), py - s.trunk.height + 1);
         if (s.crown) {
           const phase = hash3(e.id, 0, 9) * Math.PI * 2, stiffness = e.k === "pine" ? .35 : e.k === "birch" ? 1.1 : .8;
-          const sway = (Math.sin(now / (3300 + phase * 160) + phase) + Math.sin(now / 1900 + phase * 1.7) * .2) * (.08 + windStrength * .65) * stiffness;
+          const sway = (Math.sin(now / (1500 + phase * 90) + phase) + Math.sin(now / 2300 + phase * 1.7) * .18) * windStrength * 1.8 * stiffness;
           const cx0 = px - Math.round(s.cx), cy0 = py - s.trunk.height - s.crown.height + 6;
           // a crown standing in front of Tomas (or the dog) turns see-through, so you never lose him in the woods
           const hide = focus.some(q => q.y < e.y && q.sx > cx0 - 2 && q.sx < cx0 + s.crown.width + 2 && q.sy > cy0 - 2 && q.sy - 14 < cy0 + s.crown.height);
