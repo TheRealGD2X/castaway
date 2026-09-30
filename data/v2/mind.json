@@ -458,5 +458,33 @@
    }
   ],
   "id": "m6760"
+ },
+ {
+  "applyAt": 7300,
+  "thought": "Hungry again this morning, same as always, but I've worked out what's wanting — not more traps, but somewhere to keep what they give me. A drying rack, a proper store. Stop eating everything the day it's caught.",
+  "diary": "Sixth day. Hungry again at first light, and I've finally seen the shape of the trouble: I catch or gather enough some days and go without on others, and nothing I've built holds it over from the good days to the bad. A food store and a drying rack would see to that — smoke or dry what I don't need today so it's there when the trap comes up empty. Feels like a proper turn, thinking past the next meal for once instead of just chasing it. Not ill any more, not cold, and Nell's about somewhere close, which counts for a great deal these days. Today's for the rack, if my hands and my stomach will let me.",
+  "intents": [
+   {
+    "k": "build:dryingRack",
+    "w": 20,
+    "hours": 50
+   },
+   {
+    "k": "build:foodStore",
+    "w": 18,
+    "hours": 60
+   },
+   {
+    "k": "food",
+    "w": 20,
+    "hours": 20
+   },
+   {
+    "k": "boil",
+    "w": 10,
+    "hours": 30
+   }
+  ],
+  "id": "m7300"
  }
 ]

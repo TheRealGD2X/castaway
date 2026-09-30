@@ -1,32 +1,33 @@
 {
- "day": 5,
- "t": 6759,
- "when": "Tue 29/9 22:39 (UK time)",
+ "day": 6,
+ "t": 7299,
+ "when": "Wed 30/9 07:39 (UK time)",
  "alive": true,
  "weather": {
-  "temp": 13,
+  "temp": 12,
   "wind": "6 mph from the SE",
   "rain": "none",
   "fog": false,
-  "light": "night",
-  "tide": "high"
+  "light": "twilight",
+  "tide": "falling/low-ish"
  },
  "body": {
-  "hungry": "very",
-  "thirsty": "not",
+  "hungry": "desperately",
+  "thirsty": "somewhat",
   "cold": "not",
   "tired": "not",
   "weary": "not",
   "wet": "not",
-  "ill": "a little",
+  "ill": "not",
   "hurt": "no",
-  "coreC": 37.1,
+  "coreC": 36.8,
   "lonely": "not"
  },
- "doing": "Sleeping",
- "why": "Worn out; time to sleep",
+ "doing": "Eating",
+ "why": "Weak with hunger",
  "said": "Coals still alive under the ash. Tinder on them, blow, and it takes.",
  "has": {
+  "food": 141.3,
   "stones": 2,
   "bracken": 1,
   "flake": 1,
@@ -34,6 +35,12 @@
   "withies": 1,
   "pot": 1,
   "clean": 2.2
+ },
+ "ground": {
+  "surfaceC": 7.7,
+  "snowMm": 0,
+  "frost": false,
+  "iceMm": 0
  },
  "skills": {
   "drill": 0.96,
@@ -44,42 +51,71 @@
  "built": [
   {
    "what": "lean-to",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "fire ring",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "signal fire",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "fish trap",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "snare",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "snare",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "snare",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "debris hut",
+   "condition": "sound",
    "stage": "finished"
   },
   {
    "what": "woodpile",
+   "condition": "sound",
    "stage": "finished"
   }
  ],
  "canBuild": [
+  {
+   "k": "build:workbench",
+   "what": "workbench",
+   "able": true
+  },
+  {
+   "k": "build:dryingRack",
+   "what": "drying rack",
+   "able": true
+  },
+  {
+   "k": "build:foodStore",
+   "what": "food store",
+   "able": true
+  },
+  {
+   "k": "build:bedding",
+   "what": "raised bed",
+   "able": true
+  },
   {
    "k": "build:leanto",
    "what": "lean-to",
@@ -157,8 +193,7 @@
    "cockles": 9,
    "fire": 1,
    "ship": 1,
-   "dog": 1,
-   "scraps": 1
+   "dog": 1
   },
   "islandSeen": "48%"
  },
@@ -224,26 +259,31 @@
   {
    "k": "boil",
    "w": 12,
-   "hoursLeft": 36
-  },
-  {
-   "k": "food",
-   "w": 15,
-   "hoursLeft": 16
-  },
-  {
-   "k": "explore",
-   "w": 15,
-   "hoursLeft": 31
+   "hoursLeft": 27
   },
   {
    "k": "build:reflector",
    "w": 10,
-   "hoursLeft": 26
+   "hoursLeft": 17
   },
   {
    "k": "dog",
    "w": 10,
+   "hoursLeft": 12
+  },
+  {
+   "k": "food",
+   "w": 25,
+   "hoursLeft": 15
+  },
+  {
+   "k": "fire",
+   "w": 12,
+   "hoursLeft": 11
+  },
+  {
+   "k": "explore",
+   "w": 15,
    "hoursLeft": 21
   }
  ],
@@ -273,5 +313,5 @@
    "text": "Fifth day, and I've been properly ill overnight — cramping, sweating, up more than once. I keep turning it over: was it the berries, the stream water, or that marsh water I had a bad feeling about even as I drank it? Can't say for certain, and that not-knowing is its own kind of misery. What I do know is I've been careless about water since I got here, telling myself a sailor's stomach can take anything, and a sailor's stomach very much cannot. From now on it's boiled water only, whatever the bother of it. Weak and hungry again this morning too — desperately so — which doesn't help me tell illness from hunger. Very low today, if I'm honest with this page. Nell came close enough to nose at my hand while I lay there, which I won't forget in a hurry."
   }
  ],
- "lastThought": "Sitting up over the sea with clean water cooling in the pot and Nell curled by my feet, watching for a sail that isn't there yet. Signal's ready if one comes. Quieter kind of hope tonight, not the desperate sort — I can wait."
+ "lastThought": "Hungry again, proper hungry, same as every night this week near enough. Three snares and a trap and it's still not steady. Maybe what I need isn't more of the same but new ground — further along the coast, past what I've already picked clean."
 }
