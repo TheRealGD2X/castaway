@@ -1,47 +1,27 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Castaway</title>
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-title" content="Castaway">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#174b66">
-<style>
-:root{color-scheme:dark}
-html,body{margin:0;height:100%;background:#174b66;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
-#c{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
-#hud{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;padding:7px 12px;border-radius:12px;background:rgba(43,29,22,.72);color:#f6e4b0;font:600 13px ui-rounded,system-ui,sans-serif;letter-spacing:.02em;border:2px solid #2b1d16;box-shadow:0 2px 0 rgba(0,0,0,.25)}
-#act{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));max-width:84vw;padding:8px 14px;border-radius:14px;background:rgba(43,29,22,.74);color:#f6e4b0;font:600 14px ui-rounded,system-ui,sans-serif;border:2px solid #2b1d16;text-align:center;cursor:pointer}
-#why{display:none;margin-top:5px;font-weight:500;font-size:12.5px;color:#e8d6aa;white-space:pre-line;line-height:1.35}
-#follow{display:none;position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:40px;height:40px;border-radius:20px;background:rgba(43,29,22,.74);border:2px solid #2b1d16;color:#f6e4b0;font:700 18px system-ui;cursor:pointer}
-#snd{position:fixed;right:10px;top:calc(10px + env(safe-area-inset-top,0px));width:38px;height:38px;border-radius:19px;background:rgba(43,29,22,.72);border:2px solid #2b1d16;color:#f6e4b0;font:700 17px system-ui;opacity:.6;cursor:pointer}
-#jbtn{position:fixed;right:54px;top:calc(10px + env(safe-area-inset-top,0px));width:38px;height:38px;border-radius:19px;background:rgba(43,29,22,.72);border:2px solid #2b1d16;color:#f6e4b0;font:700 17px system-ui;cursor:pointer}
-#journal{display:none;position:fixed;left:12px;right:12px;top:calc(60px + env(safe-area-inset-top,0px));bottom:calc(70px + env(safe-area-inset-bottom,0px));overflow:auto;padding:14px 16px;border-radius:14px;background:rgba(246,228,176,.96);color:#2b1d16;font:15px/1.5 Georgia,serif;border:2px solid #2b1d16;-webkit-overflow-scrolling:touch}
-#journal h3{margin:0 0 8px;font:700 16px ui-rounded,system-ui}#journal p{margin:0 0 12px}
-#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#f6e4b0;font:600 16px ui-rounded,system-ui;background:#174b66}
-
-/* Calm paper journal; broad tap targets and normal finger scrolling on a phone. */
-#journal{color-scheme:light;left:10px;right:10px;top:calc(62px + env(safe-area-inset-top,0px));bottom:calc(72px + env(safe-area-inset-bottom,0px));padding:0;border:1px solid #a69267;border-radius:18px;background:#f4efda;box-shadow:0 12px 40px #27352d66;font:16px/1.55 Georgia,serif;touch-action:pan-y;user-select:text;-webkit-user-select:text;overscroll-behavior:contain}
-.journal-head{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 10px}
-.eyebrow{font:700 10px system-ui;letter-spacing:.18em;color:#827050}
-.journal-head h2{font:500 24px/1.15 Georgia,serif;letter-spacing:-.03em;margin:5px 0;color:#433925}
-.journal-close{width:44px;height:44px;flex-shrink:0;border:0;border-radius:50%;background:#e7dfc5;color:#68553b;font:26px system-ui;cursor:pointer}
-.journal-intro{padding:0 22px 18px;color:#817359;font:13px/1.5 system-ui}
-.journal-tabs{display:flex;padding:0 14px;border-bottom:1px solid #d6cdb0;gap:3px;position:sticky;top:0;background:#f4efda;z-index:1}
-.journal-tabs button{flex:1;min-height:47px;background:none;border:0;border-bottom:3px solid transparent;color:#8a7b5d;font:600 12px system-ui;cursor:pointer}
-.journal-tabs button[aria-pressed=true]{border-bottom-color:#778658;color:#46533a}
-.journal-body{padding:20px 22px 26px}.story-card{display:grid;grid-template-columns:24px 1fr;gap:12px;padding-bottom:23px;position:relative}
-.story-mark{color:#7f8c61;font:21px Georgia}.story-card time,.diary-card time{font:600 11px system-ui;letter-spacing:.04em;color:#978464}
-#journal .story-card p{margin:5px 0 12px;font-size:16px;color:#524632}
-.camp-picture{width:100%;max-width:360px;aspect-ratio:1.8;display:block;image-rendering:pixelated;border-radius:8px;border:1px solid #d2c7a5;margin:8px 0 4px}
-.diary-card{padding:0 0 24px}.diary-card p{white-space:normal;margin-top:9px!important;color:#584b36}
-#journal h3{font:600 13px system-ui;margin:24px 0 12px;color:#6e7852}.home-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #ded6bb;font:13px system-ui}.home-row strong{font-weight:500;text-transform:capitalize}.home-row span{font-size:11px;color:#8b7d61;text-align:right}
-#hud{background:rgba(49,55,43,.88);border:1px solid #b6b18b55;color:#f3ebce;box-shadow:0 2px 12px #24302733;padding:9px 12px;border-radius:13px;font-size:12px}
-#jbtn,#snd,#follow{width:44px;height:44px;border:1px solid #b6b18b55;background:rgba(49,55,43,.88);border-radius:50%;color:#f3ebce}#jbtn{right:61px}#snd{right:10px}
-#act{border:1px solid #b6b18b55;background:rgba(49,55,43,.9);box-shadow:0 3px 12px #24302733;color:#f3ebce;padding:11px 17px;border-radius:16px;font-size:14px}
-#why{color:#ded5b4;line-height:1.5;margin-top:10px}
-
-</style></head>
-<body><canvas id="c"></canvas><div id="load">The tide is bringing you in…</div><div id="hud"><span id="clk">…</span></div>
-<div id="act"><span>…</span><div id="why"></div></div><button id="follow" aria-label="Find Tomas">◎</button><button id="snd" aria-label="Sound">♪̸</button><button id="jbtn" aria-label="Journal">✎</button><div id="journal"></div>
-<script type="module" src="v2/src/main.js"></script>
-</body></html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>The Castaway — a living island for Windows</title>
+ <meta name="description" content="Watch Tomas live on a simulated island in real UK time. The Castaway is now a Windows PC application with physical waves, changing light and a quiet procedural soundscape.">
+ <meta name="theme-color" content="#213e37"><link rel="icon" href="icon-192.png">
+ <style>
+  :root{color-scheme:light;--ink:#213e37;--muted:#65736a;--paper:#f4f1e6;--gold:#c39b58}
+  *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 system-ui,sans-serif}a{color:inherit;text-underline-offset:4px}a:focus-visible{outline:3px solid var(--gold);outline-offset:5px}header,main,footer{width:min(1180px,calc(100% - 64px));margin:auto}
+  header{display:flex;justify-content:space-between;align-items:center;padding:30px 0}.wordmark{font:30px Georgia,serif;letter-spacing:-.035em;text-decoration:none}.wordmark span{color:var(--gold)}header a:last-child{font-size:13px}h1{font:clamp(48px,5.9vw,78px)/1.05 Georgia,serif;letter-spacing:-.05em;margin:18px 0 24px}h2{font:36px/1.15 Georgia,serif;letter-spacing:-.025em;margin:0 0 16px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.19em;color:var(--muted)}.intro{max-width:820px;padding:56px 0 50px}.intro p{max-width:650px;color:var(--muted);font-size:18px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 12px}.button{display:inline-block;padding:13px 22px;border:1px solid var(--ink);border-radius:8px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:600;text-decoration:none}.button.secondary{color:var(--ink);background:transparent}.fine{font-size:12px!important;color:var(--muted);margin:12px 0}.hero{margin:0}.hero img{display:block;width:100%;border-radius:14px;aspect-ratio:16/9;object-fit:cover;border:1px solid #c4cfbe}.hero figcaption{font-size:12px;color:var(--muted);padding:12px 0}
+  .details{display:grid;grid-template-columns:1fr 1fr;gap:64px;margin:72px 0}.details p{color:var(--muted)}.frames{display:grid;grid-template-columns:1fr 1fr;gap:22px}.frames figure{margin:0}.frames img{display:block;width:100%;aspect-ratio:1.65;object-fit:cover;border-radius:10px}.frames figcaption{font-size:13px;color:var(--muted);padding:12px 0}.start{border-top:1px solid #cbd1bf;padding:52px 0 36px;margin-top:48px;max-width:760px}.start p{color:var(--muted)}footer{border-top:1px solid #cbd1bf;display:flex;justify-content:space-between;gap:20px;padding:28px 0 42px;font-size:12px;color:var(--muted)}
+  @media(max-width:740px){header,main,footer{width:calc(100% - 36px)}header{padding:22px 0}.intro{padding:36px 0}.details,.frames{grid-template-columns:1fr;gap:28px}.details{margin:48px 0}footer{flex-direction:column;gap:8px}.hero img{border-radius:8px}}
+ </style>
+</head>
+<body>
+ <header><a class="wordmark" href="./">The Castaway<span>.</span></a><a href="https://github.com/TheRealGD2X/castaway/releases/latest">Release notes ↗</a></header>
+ <main>
+  <section class="intro"><span class="eyebrow">A LIFE ON AN ISLAND · WINDOWS PC</span><h1>A little island.<br>A life of its own.</h1><p>Spend a quiet moment with Tomas. The sea moves, the light changes, and his life unfolds by the real UK clock. Now with a full 3D world built for a powerful PC.</p><div class="actions"><a class="button" href="https://github.com/TheRealGD2X/castaway/releases/latest/download/The-Castaway-Setup.exe">Download for Windows</a><a class="button secondary" href="https://github.com/TheRealGD2X/castaway/releases/latest/download/The-Castaway-Windows-x64.zip">Portable ZIP</a></div><p class="fine">Windows 11 · x64 · dedicated graphics card. Version 1.0.0 is unsigned.</p></section>
+  <figure class="hero"><img src="desktop/media/island.jpg" width="3840" height="2160" alt="The simulated island rendered in the Windows application, with woodland, beaches, shadows and ocean waves"><figcaption>Captured in the application. Every view observes the living simulation.</figcaption></figure>
+  <section class="details"><div><span class="eyebrow">THE SAME LIVING WORLD</span><h2>His days keep unfolding.</h2><p>Tomas plans, builds, eats, rests and learns. Weather moves through the island, water and salt flow through connected systems, and plants and animals live from finite resources. His journal records the things that actually happen.</p><p>The desktop preserves the existing simulator, checkpoints and thought history. It catches up while you have been away and saves locally when you close it.</p></div><div><span class="eyebrow">COME A LITTLE CLOSER</span><h2>Watch the light on the water.</h2><p>The saved wave energy and phase now move a physical mesh. Sun, moon and burning fuel illuminate the world and cast shadows. The procedural soundscape follows the weather, shore and your listening position.</p><p>High and Ultra let you choose how finely to draw the world. The simulation keeps the same equations and physical steps at either setting.</p></div></section>
+  <div class="frames"><figure><img src="desktop/media/ocean.jpg" width="2379" height="1445" loading="lazy" alt="Waves seen close to the sea surface in the desktop renderer"><figcaption>Coastal waves reconstructed from saved directional action and propagation.</figcaption></figure><figure><img src="desktop/media/tomas.jpg" width="2379" height="1445" loading="lazy" alt="Tomas among the island's trees and shore"><figcaption>Move the camera freely, follow Tomas, and inspect his actual surroundings.</figcaption></figure></div>
+  <section class="start"><h2>Make yourself comfortable.</h2><p>Install and open <strong>The Castaway</strong> from the Start menu. Or extract the complete ZIP and run <strong>The Castaway.exe</strong>. Drag to orbit, scroll to zoom, press F to follow Tomas and M for sound. Settings offer full screen, quality, exposure and world export.</p><p><a href="https://github.com/TheRealGD2X/castaway/blob/main/desktop/README.md">Controls, saves and installation</a> · <a href="https://github.com/TheRealGD2X/castaway/blob/main/desktop/RENDERING.md">Model assumptions and verification</a></p></section>
+ </main>
+ <footer><span>The Castaway · GD2X</span><span>A deterministic world, observed in real time. <a href="https://github.com/TheRealGD2X/castaway">Source ↗</a></span></footer>
+</body>
+</html>

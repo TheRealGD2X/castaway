@@ -1,0 +1,24 @@
+{
+  "name": "the-castaway-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Castaway — a living island for Windows PC",
+  "main": "shell/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/model.test.js && node test/runtime.test.js",
+    "test:native": "node test/native.cjs",
+    "test:production": "node test/production.cjs",
+    "package": "node tools/package.js"
+  },
+  "dependencies": {
+    "astronomy-engine": "2.1.19",
+    "electron": "44.5.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "electron-builder": "26.15.3",
+    "playwright": "1.58.2"
+  }
+}

@@ -1,0 +1,358 @@
+{
+  "captures": [
+    {
+      "name": "day",
+      "backend": "WebGPU",
+      "frames": 46,
+      "minute": 480,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 52781.708149911385,
+      "moonLux": 0,
+      "exposure": 0.34236555471704,
+      "drawCalls": 1235,
+      "triangles": 0,
+      "heapMB": 109,
+      "sceneMean": 82.5287027310939,
+      "litFraction": 0.9999737394957983
+    },
+    {
+      "name": "ocean",
+      "backend": "WebGPU",
+      "frames": 76,
+      "minute": 480,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 52781.708149911385,
+      "moonLux": 0,
+      "exposure": 0.34236555471704,
+      "drawCalls": 2015,
+      "triangles": 1503636,
+      "heapMB": 118,
+      "sceneMean": 92.68501400559863,
+      "litFraction": 1
+    },
+    {
+      "name": "tomas",
+      "backend": "WebGPU",
+      "frames": 104,
+      "minute": 480,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 52781.708149911385,
+      "moonLux": 0,
+      "exposure": 0.34236555471704,
+      "drawCalls": 2743,
+      "triangles": 1531638,
+      "heapMB": 96,
+      "sceneMean": 26.355182072828814,
+      "litFraction": 0.9915966386554622
+    },
+    {
+      "name": "ultra",
+      "backend": "WebGPU",
+      "frames": 222,
+      "minute": 480,
+      "quality": "ultra",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 381580,
+      "sunLux": 52781.708149911385,
+      "moonLux": 0,
+      "exposure": 0.34236555471704,
+      "drawCalls": 5836,
+      "triangles": 0,
+      "heapMB": 159,
+      "sceneMean": 79.29460784313666,
+      "litFraction": 0.9966911764705882
+    },
+    {
+      "name": "sunset",
+      "backend": "WebGPU",
+      "frames": 292,
+      "minute": 730,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 13482.36960275257,
+      "moonLux": 0,
+      "exposure": 1.3399531987571234,
+      "drawCalls": 7934,
+      "triangles": 0,
+      "heapMB": 244,
+      "sceneMean": 50.44620098038966,
+      "litFraction": 0.9731617647058823
+    },
+    {
+      "name": "night",
+      "backend": "WebGPU",
+      "frames": 360,
+      "minute": 1000,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 0,
+      "moonLux": 0.062248047168509166,
+      "exposure": 600000,
+      "drawCalls": 10135,
+      "triangles": 3699408,
+      "heapMB": 259,
+      "sceneMean": 49.13405112044675,
+      "litFraction": 1
+    },
+    {
+      "name": "fire-night",
+      "backend": "WebGPU",
+      "frames": 424,
+      "minute": 1200,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 0,
+      "moonLux": 0.13261471300374583,
+      "exposure": 158484.96657195207,
+      "drawCalls": 12208,
+      "triangles": 0,
+      "heapMB": 279,
+      "sceneMean": 59.035547969200316,
+      "litFraction": 0.7951418067226891
+    },
+    {
+      "name": "rain",
+      "backend": "WebGPU",
+      "frames": 481,
+      "minute": 960,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 0,
+      "moonLux": 0.052508144714251144,
+      "exposure": 600000,
+      "drawCalls": 14057,
+      "triangles": 3698658,
+      "heapMB": 285,
+      "sceneMean": 40.65970763305351,
+      "litFraction": 1
+    },
+    {
+      "name": "rough",
+      "backend": "WebGPU",
+      "frames": 542,
+      "minute": 360,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 48998.401529859315,
+      "moonLux": 0,
+      "exposure": 0.3687979772489138,
+      "drawCalls": 15830,
+      "triangles": 1503000,
+      "heapMB": 292,
+      "sceneMean": 85.0789653361383,
+      "litFraction": 1
+    },
+    {
+      "name": "camp",
+      "backend": "WebGPU",
+      "frames": 595,
+      "minute": 7299,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 0,
+      "moonLux": 0.056951033935979396,
+      "exposure": 16698.929432695604,
+      "drawCalls": 17437,
+      "triangles": 3646422,
+      "heapMB": 297,
+      "sceneMean": 19.799396008404816,
+      "litFraction": 0.9160189075630252
+    },
+    {
+      "name": "island",
+      "backend": "WebGPU",
+      "frames": 644,
+      "minute": 480,
+      "quality": "high",
+      "resolution": [
+        2379,
+        1444
+      ],
+      "waterVertices": 245884,
+      "sunLux": 52781.708149911385,
+      "moonLux": 0,
+      "exposure": 0.34236555471704,
+      "drawCalls": 18862,
+      "triangles": 1557256,
+      "heapMB": 319,
+      "sceneMean": 82.3008753501409,
+      "litFraction": 0.9999737394957983
+    },
+    {
+      "name": "desktop-4k",
+      "backend": "WebGPU",
+      "frames": 2350,
+      "minute": 480,
+      "quality": "high",
+      "resolution": [
+        3840,
+        2160
+      ],
+      "waterVertices": 245884,
+      "sunLux": 52781.708149911385,
+      "moonLux": 0,
+      "exposure": 0.34236555471704,
+      "drawCalls": 63218,
+      "triangles": 0,
+      "heapMB": 284,
+      "sceneMean": 81.1222998290193,
+      "litFraction": 0.9997599039615847
+    },
+    {
+      "name": "desktop-ultra-4k",
+      "backend": "WebGPU",
+      "frames": 2880,
+      "minute": 480,
+      "quality": "ultra",
+      "resolution": [
+        3840,
+        2160
+      ],
+      "waterVertices": 381580,
+      "sunLux": 52781.708149911385,
+      "moonLux": 0,
+      "exposure": 0.34236555471704,
+      "drawCalls": 77023,
+      "triangles": 1826824,
+      "heapMB": 332,
+      "sceneMean": 78.56360362326603,
+      "litFraction": 0.9954818290952745
+    }
+  ],
+  "checks": [
+    "GPU geometry and normals agree with double-precision waves, including 100-year clock",
+    "Journal, inspections, sound, settings and camera do not mutate the world",
+    "Native save, export and fullscreen work",
+    "Renderer reload retains original worker state"
+  ],
+  "adapter": {
+    "vendor": "nvidia",
+    "architecture": "blackwell",
+    "device": "",
+    "description": ""
+  },
+  "wave": {
+    "checks": [
+      {
+        "grid": 1,
+        "seconds": 28803.2,
+        "maxHeightError": 0.00020888100238625196,
+        "maxSlopeError": 0.000021180507681357874
+      },
+      {
+        "grid": 1,
+        "seconds": 3153600000.3,
+        "maxHeightError": 0.00017018827922665736,
+        "maxSlopeError": 0.000023034518179997077
+      },
+      {
+        "grid": 2,
+        "seconds": 28803.2,
+        "maxHeightError": 9.906155638006453e-7,
+        "maxSlopeError": 1.0937975430252989e-7
+      },
+      {
+        "grid": 2,
+        "seconds": 3153600000.3,
+        "maxHeightError": 6.512970873728818e-7,
+        "maxSlopeError": 1.0290325749839901e-7
+      }
+    ],
+    "unchanged": true
+  },
+  "visibleBenchmark": true,
+  "performance": {
+    "fps": 119.98080307122255,
+    "backend": "WebGPU",
+    "frames": 1487,
+    "minute": 480,
+    "quality": "high",
+    "resolution": [
+      2379,
+      1444
+    ],
+    "waterVertices": 245884,
+    "sunLux": 52781.708149911385,
+    "moonLux": 0,
+    "exposure": 0.34236555471704,
+    "drawCalls": 40780,
+    "triangles": 1557256
+  },
+  "performance4K": {
+    "fps": 119.56174024255228,
+    "backend": "WebGPU",
+    "frames": 2321,
+    "minute": 480,
+    "quality": "high",
+    "resolution": [
+      3840,
+      2160
+    ],
+    "waterVertices": 245884,
+    "sunLux": 52781.708149911385,
+    "moonLux": 0,
+    "exposure": 0.34236555471704,
+    "drawCalls": 62464,
+    "triangles": 1557256
+  },
+  "performanceUltra4K": {
+    "fps": 66.70128210201194,
+    "backend": "WebGPU",
+    "frames": 2852,
+    "minute": 480,
+    "quality": "ultra",
+    "resolution": [
+      3840,
+      2160
+    ],
+    "waterVertices": 381580,
+    "sunLux": 52781.708149911385,
+    "moonLux": 0,
+    "exposure": 0.34236555471704,
+    "drawCalls": 76295,
+    "triangles": 1826824
+  },
+  "errors": []
+}

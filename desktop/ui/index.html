@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'">
+<title>The Castaway</title><link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"/vendor/three/build/three.webgpu.js","three/webgpu":"/vendor/three/build/three.webgpu.js","three/tsl":"/vendor/three/build/three.tsl.js","three/addons/":"/vendor/three/examples/jsm/","astronomy-engine":"/vendor/astronomy-engine/esm/astronomy.js"}}</script>
+</head><body>
+<canvas id="island" aria-label="The living island. Drag to orbit, right drag to pan, scroll to zoom." tabindex="0"></canvas>
+<div id="interface">
+ <header class="masthead"><div class="brand"><span class="eyebrow">A LIFE ON AN ISLAND</span><h1>The Castaway<span class="brand-dot">.</span></h1><p id="calendar">Finding the present…</p></div><div class="weather"><span id="weather-icon">◌</span><div><strong id="weather-text">The island is waking</strong><small id="weather-detail">UK time · a persistent world</small></div></div></header>
+ <nav class="toolbar" aria-label="Island views"><button data-view="island" title="Whole island (1)">Island</button><button data-view="man" title="Follow Tomas (F)">Tomas</button><button data-view="camp" title="Camp (C)">Camp</button><button data-view="ocean" title="Ocean (O)">Ocean</button><span class="divider"></span><button id="journal-button" title="Journal (J)">Journal</button><button id="sound-button" title="Sound (M)" aria-pressed="false">Sound off</button><button id="settings-button" title="Settings" aria-label="Open settings">⚙</button></nav>
+ <section class="presence"><span class="eyebrow">WITH TOMAS</span><button id="man-details" title="Inspect Tomas and his belongings"><strong id="doing">Continuing his day</strong><span class="arrow">↗</span></button><p id="reason"></p><blockquote id="thought" hidden></blockquote><div class="state-line"><span id="body-state"></span><span id="connection">Local simulation</span></div></section>
+ <footer><span class="dot"></span><span id="status">Starting the island</span><span class="controls-hint">Drag to orbit · right drag to pan · scroll to explore · H to hide</span></footer>
+</div>
+<aside id="panel" class="paper" aria-labelledby="panel-title" hidden><header><div><span class="eyebrow" id="panel-kicker">THE CASTAWAY</span><h2 id="panel-title"></h2></div><button id="panel-close" aria-label="Close panel">×</button></header><nav id="panel-tabs" hidden></nav><div id="panel-content" class="paper-content"></div></aside>
+<section id="loading" role="status"><span class="eyebrow">THE CASTAWAY</span><h2>A little island.<br>A whole living world.</h2><p id="loading-text">Bringing the island up to the current UK minute…</p><progress id="progress"></progress></section>
+<section id="failure" role="alert" hidden><h2>The view needs to restart</h2><p id="failure-text"></p><p>The island continues in its simulation worker.</p><button id="retry">Restart the view</button><button id="save-failure">Save the world</button></section>
+<div id="toast" role="status" hidden></div><script type="module" src="app.js"></script>
+</body></html>

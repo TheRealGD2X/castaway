@@ -1,55 +1,19 @@
 # The Castaway
 
-A deterministic island simulation that runs in real time (Europe/London). Open the site and watch Tomas live his life.
+A deterministic island simulation that runs in real time (Europe/London), now delivered as a **Windows PC application**. Watch Tomas live in a full 3D island with displaced ocean geometry, sun and moon shadows, weather, firelight and quiet procedural sound.
 
-- `index.html` runs the simulation in `v2/` (see `v2/DESIGN.md`); the original game is kept at `v1.html`.
-- `data/v2/` holds the world checkpoint and Tomas's thoughts. A scheduled Claude routine (see `v2/MIND.md`) updates these files a few times a day.
+[Download the Windows installer or portable ZIP](https://github.com/TheRealGD2X/castaway/releases/latest). The [project website](https://therealgd2x.github.io/castaway/) is the desktop download page. See [installation, controls and local saves](desktop/README.md) and [the renderer's equations, assumptions and limits](desktop/RENDERING.md). Windows 11 x64 and a dedicated GPU are the desktop target; the release is unsigned.
 
-The island changes as Tomas lives: paths wear, plants regrow, weather strains his buildings, and he can make
-tools, clothing, pottery and a furnished home. The phone journal collects his real milestones, diary and camp
-illustrations. See `v2/DESIGN.md` for the physical models and verification commands.
+`desktop/` contains the isolated simulation worker, native Electron shell and Three.js WebGPU observer. The original simulator in `v2/src/` retains its physical minute, seeded randomness, conservation ledgers, planning and thought APIs. Rendering, quality and audio cannot change the authoritative world. The original game remains archived at `v1.html`; the previous browser observer remains in `v2/` for reference and regression work.
 
-Rain now feeds soil, puddles, groundwater, lake and stream. Tomas can plan rain collection and drainage;
-water supplies are finite, and freshwater conditions affect fish. The viewport water renderer shows changing
-shallows, wave wash, currents, reflections, drifting litter, rain rings and lake ice.
+`data/v2/` holds the canonical checkpoint and Tomas's thoughts. The existing scheduled mind routine still updates these files a few times a day through the same [tools and brief interface](v2/MIND.md). The desktop checks that feed, catches up every original physical step and saves locally. It can continue offline with the last available thoughts.
 
-Camp objects now share a construction grammar: actual supports, bindings, surfaces, covers and hollow basins
-determine their usefulness and their drawings. Tomas can consider combined designs, learn from visible strain,
-replace damaged components and recover some materials. Containers, working surfaces and racks are the first
-families using this model. Shelters and bedding also use installed geometry; axe and fishing-line
-performance follows their working parts, force, wetness and wear. Earthworks move finite water and
-sediment, with excavated soil retained as spoil. Tomas compares known materials and observed loads.
+The island changes as Tomas lives: paths wear, plants regrow, weather strains installed buildings, and finite materials become tools, clothing, pottery and a furnished home. The journal shows real milestones, words and camp state. Construction geometry, supports, bindings, surfaces, covers and paid progress determine both usefulness and the desktop reconstruction. No rescue or scripted story has been added.
 
-On a phone, tap Tomas, an animal or a construction to inspect it. The journal's **His home** tab also opens
-**Inspect camp & belongings**. Materials, damage, water, tools and design estimates come from the
-current simulated state. Models are simplified and use documented assumptions; they are not
-calibrated predictions of real-world structures or survival.
+Rain feeds soil, puddles, groundwater, lake and stream. Vegetation consumes finite reserves, sunlight, water and nutrients. Shelter retains heat and moisture; meals have mass, temperature, age and preparation progress. Loads and hills affect effort; flowing water erodes and deposits soil. The connected food web, animal digestion, thermal budgets, sight, scent, hearing and memories retain their original coupling. Mechanical contacts still drive progress, tool wear, poses and work sounds. See [the simulation equations and conservation tests](v2/SIMULATION.md) and [design principles](v2/DESIGN.md).
 
-Vegetation now grows from finite reserves, sunlight, soil water and nutrients. Shelters
-retain heat and moisture; meals keep their own weight, temperature, age and preparation
-progress. Loads and hills affect effort, flowing water erodes and deposits actual soil,
-and Tomas adjusts his estimates after completed work. Tap him to see separate meals and
-carrying weight, or tap his shelter to see its inside conditions. See the six process models
-and their conservation tests in `v2/DESIGN.md`.
+The ocean stores water, salt, heat, nutrients, oxygen, marine populations and sediment across offshore, shelf and coastal grids. Currents, tides, rivers, spray and drifting wood connect it to shore. Its saved directional wave action and phase drive vertex displacement, normals, floating-object poses and surf sound. Click the sea to inspect its actual salt inventory, depth, current, temperature, waves and dissipated energy. See [the ocean model, resolution and limits](v2/OCEAN.md).
 
-Tap the sound button for a softer, continuous island soundscape: surf, wind through remaining
-foliage, liquid rain on installed coverings, flowing streams and burning fuel. Sound is generated
-from the current world and camera position, with no recordings or repeating sound clips.
-The acoustic models and listening levels are approximations, documented in `v2/DESIGN.md`.
+The soundscape remains generated from the world and listener position, with no recorded repeating ambience. The physical and graphical models are deterministic reduced approximations with documented assumptions. Compatibility and conservation tests establish numerical consistency; they do not establish complete real-world accuracy or resolve missing CFD, spectral light transport, biomechanics or acoustics.
 
-The world now also has a connected food web, animal digestion and thermal budgets, sight
-occlusion, wind-carried scent, uncertain memories and directional hearing. Mechanical
-contacts drive work progress, tool wear, motion and quiet work sounds; animal calls come
-from their simulated behaviour. A numerical regional atmosphere transports heat and
-moisture into a local island mesh. Its precipitation supplies the same finite surface
-water that draws puddles and blocks flooded paths. See [the model equations, boundaries
-and tests](v2/SIMULATION.md). These are deterministic reduced models with explicit
-assumptions; conservation tests establish numerical consistency, not complete accuracy
-against real weather, animal physiology or measured sound.
-
-The ocean now stores water and salt across an offshore region, shelf and island mesh.
-Currents transport heat, nutrients, oxygen, marine populations and sediment; tides,
-river discharge, spray and drifting wood connect it to life on shore. Waves have saved
-directional energy and propagation phase. The water, floating objects and surf sounds
-read those fields. Tap the sea to inspect salt content, depth, current, temperature
-and waves. See [the ocean equations, resolution and limits](v2/OCEAN.md).
+For development and Windows packaging, follow [desktop/README.md](desktop/README.md). Before release, run the original `v2` checks, desktop golden/replay tests, actual native WebGPU QA, and production clock/save/restart QA. The packaged build manifest records the commit, original simulation fingerprint and application tree hash. Desktop test fixtures do not change the live worker's world.
