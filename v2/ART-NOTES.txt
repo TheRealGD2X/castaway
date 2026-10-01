@@ -1,0 +1,76 @@
+THE CASTAWAY — PC REFERENCE ART AND LIVING MOTION
+1 October 2026. Base commit e3496b112bd2e6b00a569cc1fc9cc02f59f9f8d0.
+
+RUN
+From the unpacked bundle, run node serve.cjs and open
+http://127.0.0.1:4173/v2/art-review.html
+Set PORT to another port if 4173 is already in use.
+
+REVIEW
+art-review.html offers Camp, Rocky clearing, Shoreline and three lighting
+studies. It loads an unchanged saved Day 7 island; the clock is frozen for
+repeatable visual comparison while rendering animates. Drag to pan and use
+the wheel to zoom. The journal supports camp-object inspection.
+art-variants.html presents labelled material, plant, object and character states.
+animation-study.html shows Tomas's action vocabulary with independent breathing,
+blink, gaze, fatigue, shivering, wet clothing, load and sleep examples.
+The examples do not change his live state. Live island runs the normal simulation.
+
+SHARED STYLE
+The attached forest concept is the common target: fine clustered pixels,
+warm ochre earth, olive/sage foliage, copper/gold leaves, blue-teal water,
+subdued outlines and upper-left light. The actual island map, object positions,
+installed construction geometry and finite inventories are retained.
+
+FAMILIES AND TRANSITIONS
+50 PNG files under v2/assets/ground, people, woodland and water.
+- Ground: healthy, dry, damp and worn grass/soil copies, blended using finite
+  grass, soil moisture and path wear; spatial interpolation avoids tile squares.
+- Rocky ground: neutral, damp, mossy and dry textures. ROCK is the flat patch
+  in the supplied screenshot. Embedded cobbles are terrain material; boulders,
+  gathered stones and flint remain separate simulated objects.
+- Trees: summer/autumn copies, 64 colour stages, finer growth increments,
+  finite clustered leaf loss and snow. Stable twig positions become visible
+  as deciduous leaves fall. Trunks have finer bark grain and birch markings.
+- Fern, bramble, gorse: four growth/season/flower/fruit/dormant copies.
+- Reeds: short, green, seed-head and autumn copies, blended from plant state.
+- Tomas: neutral, down-looking, closed-eye and tired head copies. His original
+  jointed skeleton handles action, tool, contact, stance and carrying geometry.
+  Independent physiological clocks produce varied combinations over his actions;
+  fatigue/pain affect posture and stride, cold drives shivering, clothing wetness
+  changes fabric, and even sleeping Tomas breathes. No finite animation bank is
+  needed. Held work endpoints and planted feet survive secondary body motion.
+- Driftwood: dry, wet, weathered and snow copies. The live scene uses moisture
+  and snow; the weathered copy is available when a caller supplies a decay state.
+- Rocks: identity shading, gradual wetness and snow presentation.
+- Wildlife: fine jointed dog, smoother fine gull/rabbit motion, hatch-cover raft.
+- Camp: fine installed-part timber/thatch, grain, binding, construction progress,
+  condition, household objects, material piles, snares, food remains and pots.
+- Water: authored fine texture with actual depth/wind/ice/rain/foam presentation;
+  reflections of nearby trees, reeds and rocks; finite marine driftwood and stream
+  leaf debris; exposed mussel/cockle beds; distant vessels. Submerged stones are
+  bed texture. The renderer spawns no physical decorative inventory.
+
+VALIDATION
+Construction, work-pose, inspection, sound, ocean and living-motion suites passed.
+The living-motion checks cover independent combinations, deterministic display,
+sleep breath, real physiological variation, fixed feet and held work contact.
+Syntax checks passed for 104 JavaScript files; git diff --check passed.
+Browser checks passed for distinct seasonal endpoints, small neighbouring stages,
+and read-only full-scene drawing at camp, rocky ground, lake and outside coast.
+Water checks passed seven position/weather cases, with authored artwork and with
+the procedural missing-art fallback. The gallery also preserves saved state.
+Scene, shoreline, lighting, inspection and animation pages were visually checked.
+Initial asset preparation costs more than steady drawing; viewport and hardware
+affect performance. Ground rendering uses a margin cache for camera motion.
+
+ASSET PROVENANCE AND FINAL PROMPTS
+The bitmap artwork used the built-in image_gen.imagegen tool.
+New scene prompts: v2/assets/scene-generation-prompts.json
+Original woodland prompts: v2/assets/woodland/generation-notes.txt
+Water prompt: v2/assets/water/generation-notes.txt
+Atlas cropping and nearest-neighbour sizing used sharp with RGBA preserved.
+Dynamic anatomical motion, small props and material shading are renderer code.
+
+PC-first scope. Phone work is deferred. No sim/build/mind source was edited.
+Nothing has been published or pushed to GitHub.

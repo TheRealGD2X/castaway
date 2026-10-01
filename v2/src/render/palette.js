@@ -1,20 +1,20 @@
 // A warm, cozy palette. Every material is a short ramp from shadow to highlight; outlines are a warm near-black.
 // (No purple anywhere: house rule.)
-export const OUT = "#4c3c2b";          // warm one-pixel outline
-export const OUT2 = "#68553b";         // softer inner outline
+export const OUT = "#403f30";          // soft warm silhouette
+export const OUT2 = "#686b4e";         // turf and inner material edges
 export const R = {
-  grass: ["#4c6840", "#64814d", "#7c965b", "#9bb474", "#bdcc8d"],
-  meadow: ["#6c7e46", "#869758", "#a5b36c", "#c0c783", "#d4d5a0"],
-  wood: ["#42543b", "#536846", "#6a7d53", "#829369", "#a0ad7f"],   // woodland floor, shadier
-  dirt: ["#6b4526", "#86592f", "#a3713c", "#bf8a4c", "#d6a462"],
-  sand: ["#b08c52", "#c9a664", "#dcbd7b", "#ebd294", "#f6e4b0"],
-  shingle: ["#847d6a", "#99917d", "#ada68f", "#c2bba4", "#d5cfb9"],
-  rock: ["#4f5157", "#686b71", "#83868b", "#a1a3a6", "#c2c3c3"],
-  water: ["#365e6b", "#427785", "#5697a2", "#7cb8b7", "#a5d2c8"],
-  deep: ["#294f60", "#315e6d", "#3a6e79"],
-  foam: ["#d9f3ef", "#f4fffb"],
-  marsh: ["#4c6b33", "#5d7e3a", "#6f9142"],
-  bark: ["#3a2418", "#553523", "#6f472d", "#8a5c3a", "#a4744b"],
+  grass: ["#4d6446", "#69805a", "#8b9d70", "#a7b689", "#c7d2a5"],
+  meadow: ["#687748", "#879562", "#a5b37c", "#c2cb99", "#dce0b7"],
+  wood: ["#354d3e", "#50664b", "#70805b", "#8f9a72", "#aeb793"],   // woodland floor, shadier
+  dirt: ["#5b503d", "#7f6e50", "#a48d63", "#c2ab7c", "#ddc99b"],
+  sand: ["#aa956c", "#c8b58b", "#decfa6", "#ece0bb", "#f6efda"],
+  shingle: ["#727c73", "#90978a", "#abb0a0", "#c6cabc", "#e0dfcf"],
+  rock: ["#424f50", "#626f6c", "#83908a", "#a8b2a7", "#d0d4c5"],
+  water: ["#254f63", "#367781", "#569b9d", "#89c1b4", "#bee0cb"],
+  deep: ["#193849", "#245365", "#34717d"],
+  foam: ["#e0edda", "#f5f5e5"],
+  marsh: ["#45624a", "#607751", "#809366"],
+  bark: ["#393428", "#584330", "#805c3c", "#ac8556", "#d2b680"],
   birch: ["#8d8a80", "#bdb9ac", "#e2ded2", "#f6f3ea"],
   oak: ["#1f4a27", "#2b5f2e", "#3a7a35", "#4f9640", "#6cb04c", "#8ccc5e"],
   oakAut: ["#6b3a18", "#8d4d1c", "#b3651f", "#d18426", "#e6a43a", "#f2c45a"],

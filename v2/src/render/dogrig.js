@@ -1,7 +1,7 @@
 // A jointed collie: four two-bone legs, spine, neck, ears and tail, shaded in warm pixels.
 import { detailSprite, motionFrames, frameCache } from './motion.js';
 const cached = frameCache(192);
-const C = { dark:'#755032', coat:'#b78150', light:'#d9ae78', white:'#f3ecda', shade:'#d0c6ae', nose:'#37281d', rope:'#baa16b' };
+const C = { dark:'#624b35', coat:'#b68656', light:'#e0bb87', white:'#f6f0d9', shade:'#c5c5a5', nose:'#302f25', rope:'#baa16b' };
 function limb(P,a,b,r,c) {
   const grid=P.grid||1, n=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])*grid*2)||1;
   for(let k=0;k<=n;k++){const x=a[0]+(b[0]-a[0])*k/n,y=a[1]+(b[1]-a[1])*k/n;
@@ -26,6 +26,7 @@ export function jointedDog(a,t) {
     for(const q of joints.filter(q=>q.near)){const swing=moving?Math.sin(p+(q.x<15?0:Math.PI))*3:0,foot=sit&&q.x<15?[7,22]:[q.x+swing,22-Math.max(0,moving?Math.cos(p+(q.x<15?0:Math.PI))*2:0)];limb(P,[q.x,q.x<15?hip[1]:shoulder[1]+2],[q.x+swing*.6,18],1,C.coat);limb(P,[q.x+swing*.6,18],foot,1,C.white);P.set(foot[0]+1,foot[1],C.shade);}
     const neck=[24,low?14:7];limb(P,shoulder,neck,2,C.white);ellipse(P,25,low?15:7,4,3,C.light,C.coat);
     const hy=low?15:7;limb(P,[27,hy+1],[30,hy+1],1,C.white);P.set(31,hy+1,C.nose);P.set(26,hy-1,C.nose);P.set(25,hy-2,C.light);
+    limb(P,[24,hy-2],[27,hy-2],.4,C.white);limb(P,[18,shoulder[1]],[20,shoulder[1]-2],.4,C.light);
     limb(P,[23,hy-3],[a.ears==='alert'?22:21,hy+(a.ears==='back'?1:-1)],1,C.dark);
     limb(P,[22,hy+3],[20,hy+5],.8,C.rope);P.set(19,hy+6,C.rope);
     const wag=a.tail==='wag'?Math.sin(p)*2:0,tailY=a.tail==='low'?18:9+wag;

@@ -4,6 +4,7 @@
 import {workPose} from './workpose.js';
 import { rigSprite } from "./rig.js";
 import { motionFrames } from "./motion.js";
+import {lifeMotion} from './life-motion.js';
 
 export const ANIM = {
   stand:     { stance: "stand", work: [4, -12], motion: "rest", lean: 0 },
@@ -46,7 +47,9 @@ for (const k in ANIM) {
 export function manSprite(pose, t, M, W, position) {
   const mood = M?.B.ill > .2 ? 'ill' : M?.B.fatigue > .7 || M?.B.sleepP > .8 ? 'tired' : 'calm';
   const spec={...(ANIM[pose]||ANIM.stand),...workPose(W,M,position),mood};
-  if(M?.workContact?.t===W?.t&&M.workContact.pose===pose&&M.workContact.frequency>0){spec.period=1000/M.workContact.frequency;spec.frames=motionFrames(spec.period);}
+  spec.wet=Math.round((M?.B.wet||0)*32)/32;
+  spec.life=lifeMotion(M?.B,spec,t,M?.id||W?.seed||1);
+  if(M?.workContact&&M.workContact.t===W?.t&&M.workContact.pose===pose&&M.workContact.frequency>0){spec.period=1000/M.workContact.frequency;spec.frames=motionFrames(spec.period);}
   spec.key=pose+JSON.stringify([spec.work?.map(n=>Math.round(n*3)/3),spec.stance,spec.tool,spec.two,Math.round((spec.toolLength||0)*100),Math.round((spec.loadKg||0)*2)/2,spec.carry,spec.lineEnd?.map(n=>Math.round(n)),spec.workpiece?.kind,Math.floor((spec.workpiece?.progress||0)*12),Math.round(spec.period/100)]);
   return rigSprite(spec,t);
 }

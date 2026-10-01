@@ -10,21 +10,39 @@
 // point x motion x tool is a new animation, so he can be given one for anything he does.
 import { R } from "./palette.js";
 import { detailSprite, frameCache } from "./motion.js";
+import {paintAuthoredHead} from './scene-art.js';
 
 const W = 40, H = 42, FX = 17, FY = 38;
-const COL = { skin: ["#ad6848", "#cf8a64", "#eab08a"], shirt: ["#365b59", "#527d75", "#83a193"], trou: ["#3f372e", "#51463b", "#75644b"], boot: "#2f241c", hair: "#4a2e1c", hair2: "#6b4428", beard: "#5e3c24", eye: "#1b120c" };
-const HEAD = [                                  // 8 x 8, facing right, looking ahead / looking down
-  ["..HHHH..", ".HHHHHH.", "HHhhHHHH", "HHSSSSS.", "HHSSSeSS", "HSSSSSSs", ".BBSSSS.", "..BBBB.."],
-  ["........", "..HHHH..", ".HHhhHH.", "HHHHSSS.", "HHSSSSSS", "HBSSSeSs", ".BBSSSS.", "..BBBB.."],
-];
-const HC = { H: COL.hair, h: COL.hair2, S: COL.skin[2], s: COL.skin[1], B: COL.beard, e: COL.eye };
+const COL = { skin: ["#ac7253", "#d7a178", "#f0c69a"], shirt: ["#32646a", "#4e8b89", "#85b3a4"], trou: ["#3f3c31", "#625a44", "#8f8060"], boot: "#3b3329", hair: "#473829", hair2: "#806043", beard: "#624831", eye: "#292f28" };
+// A finer hand-authored face fits the original eight-pixel head footprint.
+// The rig still chooses its gaze, blink and tired/ill expression.
+function head(P, x0, y0, down, mood, blink) {
+  if(paintAuthoredHead(P,x0,y0,down,mood,blink))return;
+  const n=P.grid||1, size=8*n, dot=P.dot||P.set;
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
+    const u=x/size,v=y/size,dx=(u-.47)/.44,dy=(v-.5)/.49;
+    const nose=u>.85&&u<.98&&v>.44&&v<.61;
+    if(dx*dx+dy*dy>1&&!nose)continue;
+    let c=u>.65?COL.skin[2]:u<.35?COL.skin[0]:COL.skin[1];
+    const fringe=.29+Math.sin(u*17)*.035+(down?.08:0);
+    if(v<fringe||(u<.25&&v<.72))c=v<.16&&u<.6?COL.hair2:COL.hair;
+    if(v>.72&&u>.23)c=v>.86||u<.45?COL.beard:COL.hair2;
+    if(u>.62&&u<.83&&v>.38&&v<.42)c=COL.hair;
+    const eyeY=down?.52:.47;
+    if(u>.73&&u<.82&&Math.abs(v-eyeY)<.035)c=blink||mood==='tired'?COL.skin[0]:COL.eye;
+    if(u>.87&&v>.52&&v<.56)c=COL.skin[1];
+    if(u>.68&&u<.81&&v>.67&&v<.69)c=COL.skin[0];
+    if(mood==='ill'&&c===COL.skin[2])c='#d3c3a0';
+    dot(x0+x/n,y0+y/n,c);
+  }
+}
 // ---------------------------------------------------------------- stances: hips, feet, knees (relative to the feet centre)
 const STANCE = {
   stand: { hip: [0, -13], spine: 9, feet: [[-1.5, 0], [2, 0]], knee: 1 },
   kneel: { hip: [-1, -7], spine: 8, feet: [[-7, 0], [4, 0]], knees: [[-3, -1], [4, -6]] },         // back knee on the ground
   kneelUp: { hip: [-1, -8], spine: 8, feet: [[-7, 0], [-6, 0]], knees: [[3, -1], [4, -1]] },       // both knees down, sitting up
   squat: { hip: [-2, -6], spine: 8, feet: [[0, 0], [2, 0]], knees: [[4, -7], [5, -7]] },
-  sit: { hip: [-3, -2], spine: 8, feet: [[6, 0], [7, 0]], knees: [[3, -6], [4, -6]] },
+  sit: { hip: [-3, -2], spine: 8, feet: [[8, 0], [9, 0]], knees: [[4, -7.5], [4.7, -8.1]] },
 };
 // ---------------------------------------------------------------- geometry
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -90,25 +108,35 @@ function prop(P, tool, hx, hy, ex, ey, p, spec={}) {
 }
 // ---------------------------------------------------------------- pose and draw one frame
 export function drawRig(P, spec, p) {
+  const life=spec.life||{},breath=life.breath||0,tremor=life.tremor||0;
   const st = STANCE[spec.stance === "walk" ? "stand" : spec.stance] || STANCE.stand, walking = spec.stance === "walk";
   // Solid pixel shapes on a finer motion grid; the head and clothing retain their art-pixel blocks.
   const ox = FX, oy = FY;
   // walking: a gait cycle moves the feet (the far foot half a cycle behind) and bobs the hips
   let feet = st.feet.map(f => [f[0], f[1]]), bob = Math.sin(p * 6.2832) * .12;
-  if (walking) { for (let i = 0; i < 2; i++) { const q = p + i * .5, s = Math.sin(q * 6.2832), c = Math.cos(q * 6.2832); feet[i] = [.5 + s * 3.2, -Math.max(0, c) * 2.2]; } bob = -Math.abs(Math.sin(p * 12.566)) * 1; }
+  if (walking) { for (let i = 0; i < 2; i++) { const q = p + i * .5, s = Math.sin(q * 6.2832), c = Math.cos(q * 6.2832); feet[i] = [.5 + s * 3.2*(life.stride??1), -Math.max(0, c) * 2.2]; } bob = -Math.abs(Math.sin(p * 12.566)) * 1; }
   const hipX = ox + st.hip[0]-(spec.loadKg||0)/(75+(spec.loadKg||0))*6, hipY = oy + st.hip[1] + bob;
   // the spine leans toward the work: the lower and further the work point, the more he bends
   const wx = ox + (spec.work ? spec.work[0] : 5), wy = oy + (spec.work ? spec.work[1] : -9);
   const lean = walking ? .06+Math.min(.3,(spec.loadKg||0)*.012) : spec.lean ?? Math.max(0, Math.min(1.1, (wy - hipY + 2) / 12 + Math.max(0, (spec.work ? spec.work[0] : 0) - 8) * .05));   // only work below the hips bends him
   const effort = spec.motion === "strike" ? Math.sin(p * 6.2832) * .06 : spec.motion === "pull" ? -Math.sin(p * 3.1416) * .08 : 0;
-  const a = lean + effort, nX = hipX + Math.sin(a) * st.spine, nY = hipY - Math.cos(a) * st.spine;
+  const a = lean + effort+(life.slump||0)*.12, nX = hipX + Math.sin(a) * st.spine+(life.settle||0)+tremor, nY = hipY - Math.cos(a) * st.spine-breath;
   // shoulders a pixel either side along the chest; head above the neck, looking down if the work is low
   const sh = [[nX - 1.5, nY + 1], [nX + 1.2, nY + 1.2]];
   const hs = hands(spec.motion || "hold", wx, wy, p, spec.two, [nX + 3, nY - 2]);
   if (walking) { const s = Math.sin(p * 6.2832); hs[0] = [nX + 1 + s * 2.5, nY + 9]; hs[1] = [nX - 1 - s * 2.5, nY + 9]; if (spec.tool === "pole") { hs[0] = [nX + 3, nY + 3]; } else if (spec.tool === "stone") { hs[1] = [nX + 6, nY + 5]; } }
   if(walking&&spec.carry){hs[0]=[nX+4,nY+5];hs[1]=[nX+6,nY+6];}
   const armL = [5.8, 5.8], legL = [6.2, 6.4];
-  const arm = i => { const [ex, ey, hx, hy] = ik(sh[i][0], sh[i][1], hs[i][0], hs[i][1], armL[0], armL[1], i ? 1 : 1); return { ex, ey, hx, hy }; };
+  const arm = i => {
+    let tx=hs[i][0],ty=hs[i][1],scale=1;
+    if(spec.life&&!walking&&spec.motion!=='mouth'&&spec.motion!=='wave'){
+      // Keep the original work endpoint even when breathing shifts the chest.
+      // The elbow re-solves around it; a tiny extension handles a fully straight arm.
+      const baseX=hipX+Math.sin(lean+effort)*st.spine+(i?1.2:-1.5),baseY=hipY-Math.cos(lean+effort)*st.spine+(i?1.2:1);
+      const anchor=ik(baseX,baseY,tx,ty,armL[0],armL[1],1);tx=anchor[2];ty=anchor[3];scale=Math.max(1,(Math.hypot(tx-sh[i][0],ty-sh[i][1])+.06)/(armL[0]+armL[1]));
+    }
+    const [ex,ey,hx,hy]=ik(sh[i][0],sh[i][1],tx,ty,armL[0]*scale,armL[1]*scale,1);return {ex,ey,hx,hy};
+  };
   const leg = i => {
     const hx = hipX + (i ? .8 : -.8), fx = ox + feet[i][0], fy = oy + feet[i][1] - 1;
     if (st.knees && !walking) return { kx: ox + st.knees[i][0], ky: oy + st.knees[i][1], fx, fy, hx };
@@ -120,7 +148,7 @@ export function drawRig(P, spec, p) {
   // back to front: far arm, far leg, torso, near leg, head, tool, near arm
   drawArm(A[0], true);
   drawLeg(L[0], true);
-  brush(P, hipX, hipY - 1, nX, nY + 1, 2.7, COL.shirt);                                   // the body in his shirt
+  brush(P, hipX, hipY - 1, nX, nY + 1, 2.7+(life.chest||0)*.18, COL.shirt);              // the body in his shirt
   brush(P, hipX - .5, hipY, hipX + .5, hipY, 2.2, COL.trou);                             // belt line / hips
   drawLeg(L[1], false);
   // Shirt placket, collar, cuff and leather belt catch the light without noisy texture.
@@ -129,10 +157,7 @@ export function drawRig(P, spec, p) {
   brush(P, hipX - 2, hipY - .5, hipX + 2, hipY - .5, .5, ['#4a3628','#4a3628','#73533a']); put(P, hipX+1, hipY, '#c5ad73');
   put(P, nX, nY-1, COL.skin[1]);
   const grid = P.grid || 1, look = wy > nY + 4 ? 1 : 0, hx0 = Math.round((nX - 3 + a * 2) * grid) / grid, hy0 = Math.round((nY - 9 + look) * grid) / grid;
-  HEAD[look].forEach((row, y) => { for (let x = 0; x < row.length; x++) { let c = HC[row[x]];
-    if (row[x] === 'e' && (spec.mood === 'tired' || p > .96)) c = COL.skin[1];
-    if (row[x] === 'S' && spec.mood === 'ill') c = '#d4b287';
-    if (c) P.set(hx0 + x, hy0 + y, c); } });
+  head(P,hx0+(life.gaze||0),hy0,look,spec.mood,life.blink??(p>.96));
   if(spec.workpiece){const q=spec.workpiece,px=wx,py=wy+2,n=Math.max(1,Math.ceil(q.progress*5));
     if(q.kind==='greenPot'){for(let y=0;y<n;y++)for(let x=-3;x<=3;x++)put(P,px+x,py-y,(x+y)%3?'#bb8053':'#d09b66');}
     else if(q.kind==='basket'||q.kind==='wrap'){for(let y=0;y<n;y++)for(let x=-4;x<=4;x++)put(P,px+x,py-y,(x+y)%2?'#c2a36c':'#8f744b');}
@@ -141,9 +166,10 @@ export function drawRig(P, spec, p) {
   if (spec.tool === "pole" && walking) brush(P, nX - 8, nY + 4, nX + 9, nY + 2, .6, [R.bark[1], R.bark[2], R.bark[3]]);
   drawArm(A[1], false);
   if (spec.extra) spec.extra(P, { ox, oy, p, hands: A });
+  return {hands:A,feet:L};
 }
 // ---------------------------------------------------------------- lying down (a rig on its side would be overkill)
-function sleeping(P) {
+function sleeping(P,life={}) {
   // on his side, knees drawn up, head pillowed on his arm, one hand tucked under his cheek
   const rows = [
     "...HHHH.................",
@@ -157,12 +183,20 @@ function sleeping(P) {
   ];
   const cc = { H: COL.hair, h: COL.hair2, S: COL.skin[2], s: COL.skin[1], e: COL.eye, B: COL.beard, W: COL.shirt[2], w: COL.shirt[1], v: COL.shirt[0], T: COL.trou[2], K: COL.boot };
   rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) { const c = cc[r[x]]; if (c) P.set(x + 1, y + FY - 7, c); } });
+  paintAuthoredHead(P,1,FY-8,false,'tired',true);
+  // A small expansion of the shirt gives sleeping Tomas an independent breath.
+  if(life.chest>.25)for(let x=12;x<18;x+=1/3)P.dot(x,FY-6-(life.chest>.75?2/3:1/3),COL.shirt[1]);
+}
+function wetClothes(img,wet){
+  if(!wet)return img;const g=img.getContext('2d'),im=g.getImageData(0,0,img.width,img.height),d=im.data,cloth=new Set([...COL.shirt,...COL.trou].map(c=>parseInt(c.slice(1),16)));
+  for(let i=0;i<d.length;i+=4)if(cloth.has((d[i]<<16)|(d[i+1]<<8)|d[i+2]))for(let k=0;k<3;k++)d[i+k]*=1-wet*.18;g.putImageData(im,0,0);return img;
 }
 const cached = frameCache(384);
 // a frame of an animation: spec + phase, quantised to `frames` steps per cycle and cached
 export function rigSprite(spec, t) {
-  if (spec.stance === "lie") return { img: cached('lie', () => detailSprite(W, H, sleeping)), ox: FX, oy: FY, w: W, h: H };
-  const period = spec.period || 1000, n = spec.frames || 8, f = Math.floor(((t % period) + period) % period / period * n), key = spec.key + ":" + f + ":" + (spec.mood || "calm");
-  const s = cached(key, () => detailSprite(W, H, P => drawRig(P, spec, f / n)));
+  const bioKey=JSON.stringify(spec.life||{});
+  if (spec.stance === "lie") return { img: cached('lie:'+spec.wet+':'+bioKey, () => wetClothes(detailSprite(W, H,P=>sleeping(P,spec.life)),spec.wet)), ox: FX, oy: FY, w: W, h: H };
+  const period = spec.period || 1000, n = spec.frames || 8, f = Math.floor(((t % period) + period) % period / period * n), key = spec.key + ":" + f + ":" + (spec.mood || "calm")+':'+spec.wet+':'+bioKey;
+  const s = cached(key, () => wetClothes(detailSprite(W, H, P => drawRig(P, spec, f / n)),spec.wet));
   return { img: s, ox: FX, oy: FY, w: W, h: H };
 }

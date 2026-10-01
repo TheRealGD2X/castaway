@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>Scene art checks</title><style>body{background:#23372f;color:#e4e4cb;font:14px system-ui;margin:24px}pre{white-space:pre-wrap}canvas{width:360px;height:220px;image-rendering:pixelated;margin:8px}</style><h1>Scene art checks</h1><pre id="status">Running…</pre><div id="frames"></div>
+<script type="module">
+import {load,save} from '../src/sim/world.js';import {paintTerrain} from '../src/render/terrain.js';import {createView} from '../src/render/view.js';import {loadWoodlandArt,authoredCanopy} from '../src/render/woodland-art.js';import {loadSceneArt} from '../src/render/scene-art.js';import {loadWaterArt} from '../src/render/water.js';import {T} from '../src/world/gen.js';
+const status=document.querySelector('#status'),check=(ok,msg)=>{if(!ok)throw new Error(msg);};
+try{
+  await Promise.all([loadWoodlandArt(),loadSceneArt(),loadWaterArt()]);
+  const cp=await fetch('../assets/preview/camp.json').then(r=>r.json()),W=load(cp.blob),terr=paintTerrain(W),report=[];
+  // Nearby states must remain close; endpoint copies must actually differ.
+  const data=(a,f)=>authoredCanopy('oak',38,31,71,a,f,0).getContext('2d').getImageData(0,0,114,93).data;
+  const diff=(a,b)=>a.reduce((sum,v,i)=>sum+Math.abs(v-b[i]),0)/a.length;
+  const summer=data(0,0),autumn=data(1,0),half=data(.5,.5),next=data(.5+1/64,.5+1/64);
+  check(diff(summer,autumn)>3,'Seasonal copies did not change');check(diff(half,next)<8,'Neighbouring seasonal states jump too sharply');report.push('PASS: distinct seasonal endpoints and gradual neighbouring stages.');
+  const positions=[['camp',[W.man.x*16,W.man.y*16]],['rocky ground',(()=>{const i=W.ter.findIndex(t=>t===T.ROCK);return[(i%W.MW+.5)*16,(Math.floor(i/W.MW)+.5)*16];})()],['lake',(()=>{const i=W.ter.findIndex(t=>t===T.LAKE);return[(i%W.MW+.5)*16,(Math.floor(i/W.MW)+.5)*16];})()],['outside coast',[-80,-80]]];
+  for(const [name,cam] of positions){const before=save(W),cv=document.createElement('canvas');document.querySelector('#frames').append(cv);const V=createView(cv,W,terr);V.aw=360;V.ah=220;V.raster=3;cv.width=1080;cv.height=660;cv.getContext('2d').setTransform(3,0,0,3,0,0);V.cam={x:cam[0],y:cam[1]};V.reviewLight='day';V.groundSeason=32;V.plantFall=0;V.flower=.5;
+    V.draw(1000);V.draw(1166);check(save(W)===before,name+' mutated the world');const d=cv.getContext('2d').getImageData(0,0,1080,660).data;check(d.some((v,i)=>i%4!==3&&v>0),name+' was blank');report.push('PASS: '+name+' · full scene drawn; finite simulation unchanged.');await new Promise(requestAnimationFrame);
+  }
+  status.dataset.result='passed';status.textContent=report.join('\n');
+}catch(e){status.dataset.result='failed';status.textContent='FAIL: '+e.stack;}
+</script>

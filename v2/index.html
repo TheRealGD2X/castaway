@@ -39,6 +39,17 @@ html,body{margin:0;height:100%;background:#174b66;overflow:hidden;touch-action:n
 #act{border:1px solid #b6b18b55;background:rgba(49,55,43,.9);box-shadow:0 3px 12px #24302733;color:#f3ebce;padding:11px 17px;border-radius:16px;font-size:14px}
 #why{color:#ded5b4;line-height:1.5;margin-top:10px}
 
+/* PC presentation: generous scenery with quiet, readable paper-and-ink controls. */
+@media(min-width:900px){
+  #hud{top:20px;left:24px;padding:12px 17px;border-radius:9px;background:rgba(35,49,42,.88);border-color:#d7d3af55;backdrop-filter:blur(8px);font-size:13px}
+  #jbtn,#snd{top:18px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:rgba(35,49,42,.88);border-color:#d7d3af66;box-shadow:0 3px 15px #142f2b33}
+  #snd{right:24px}#jbtn{right:80px}
+  #act{bottom:24px;padding:12px 22px;border-radius:10px;background:rgba(35,49,42,.92);font:17px/1.4 Georgia,serif;max-width:440px}
+  #why{font:13px/1.6 system-ui;margin-top:12px}
+  #journal{left:auto;right:24px;top:82px;bottom:24px;width:460px;border-radius:12px;box-shadow:0 20px 70px #102e2955}
+  #follow{right:24px;bottom:24px}
+  #jbtn:hover,#snd:hover,#follow:hover{background:#425746;border-color:#e4d9a2}
+}
 </style></head>
 <body><canvas id="c"></canvas><div id="load">The tide is bringing you in…</div><div id="hud"><span id="clk">…</span></div>
 <div id="act"><span>…</span><div id="why"></div></div><button id="follow" aria-label="Find Tomas">◎</button><button id="snd" aria-label="Sound">♪̸</button><button id="jbtn" aria-label="Journal">✎</button><div id="journal"></div>

@@ -1,11 +1,12 @@
 import {sprite} from './pix.js';
+import {detailSprite} from './motion.js';
 import {OUT} from './palette.js';
 import {waterProps} from '../build/waterworks.js';
 const cache=new Map();
 export function waterworkSprite(s){
   const p=waterProps(s),key=JSON.stringify([s.dir,p.excavatedM3,p.crest,p.infiltration,Math.floor((s.waterL||0)/4),Math.floor((s.depositedKg||0)*10),s.flow>0]);
   if(cache.has(key))return cache.get(key);const e=s.earthwork,ox=25,oy=23;
-  const result={ox,oy,img:sprite(50,32,P=>{
+  const result={ox,oy,w:50,h:32,img:detailSprite(50,32,P=>{
     const pit=p.retention>0,wet=(s.waterL||0)>.2,depth=p.channelDepth;
     if(depth>0)for(let y=0;y<(pit?8:3);y++)for(let x=0;x<(pit?14:30);x++){
       const X=ox+x-(pit?7:15),Y=oy+y-4+Math.floor((x-(pit?7:15))*.16);

@@ -2,6 +2,7 @@
 // Integer art zoom stays crisp; a finer presentation grid allows gentle motion between art-pixel positions.
 import { jointedDog } from "./dogrig.js";
 import { drawGroundLife } from "./groundlife.js";
+import {createGroundArt} from './scene-art.js';
 import { createWaterRenderer } from './water.js';
 import { TS } from "./terrain.js";
 import { tree, shrub, rock, shadow, branch } from "./sprites.js";
@@ -14,14 +15,15 @@ import { oceanSurface,surfaceAt } from './ocean-surface.js';
 import { displaySeconds } from './simulation-clock.js';
 import { visibility } from "../sim/ships.js";
 import { sprite } from "./pix.js";
+import {detailSprite} from './motion.js';
 import { dogSprite, raftSprite, gullSprite, rabbitSprite, snareSprite, scrapsSprite } from "./beasts.js";
 import { structSprite, snowOnRoof, pileSprite, drawFire, bedSprite, drawPot } from "./structs.js";
 
 const TREES = new Set(["oak", "birch", "pine", "rowan", "hazel"]), SHRUBS = new Set(["bramble", "gorse", "fern", "reeds"]);
 const shipCache = {};
 function shipSprite(k) {
-  return shipCache[k] || (shipCache[k] = sprite(16, 11, P => {
-    for (let x = 2; x < 14; x++) { P.set(x, 8, "#3a3530"); if (x > 2 && x < 13) P.set(x, 9, "#2a2622"); }
+  return shipCache[k] || (shipCache[k] = detailSprite(16, 11, P => {
+    for(let y=23;y<30;y++)for(let x=6;x<43;x++){const u=(x-24)/20,v=(y-24)/8;if(Math.abs(u)+v*.6<1)P.dot(x/3,y/3,y<25?'#a58b60':y<28?'#5b5a48':'#374a43');}
     if (k === "yacht") { for (let y = 1; y < 8; y++) for (let x = 8 - Math.floor(y * .7); x <= 8; x++) P.set(x, y, "#e8e4da"); P.set(9, 7, "#e8e4da"); }
     else { for (let x = 9; x < 13; x++) for (let y = 5; y < 8; y++) P.set(x, y, k === "coaster" ? "#b8b0a0" : "#c9c2b4"); P.set(10, 3, "#3a3530"); P.set(10, 4, "#3a3530"); if (k === "coaster") { P.set(11, 3, "#8a3a2a"); P.set(11, 4, "#8a3a2a"); } }
   }));
@@ -32,9 +34,12 @@ export function createView(cv, world, terr) {
   let lastDraw = null;
   const canopyAlpha = new Map();
   const waterRenderer = createWaterRenderer(terr,world);
+  const groundArt=createGroundArt(terr);
   V.resize = () => {
     const dpr = window.devicePixelRatio || 1;
     if (!V.k) V.k = Math.max(3, Math.round(dpr * 3));
+    else if(V.dpr&&V.dpr!==dpr)V.k=Math.max(3,Math.round(V.k*dpr/V.dpr));
+    V.dpr=dpr;
     const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
     V.aw = Math.ceil(W / V.k); V.ah = Math.ceil(H / V.k);
     V.raster = Math.min(3, V.k);
@@ -62,22 +67,23 @@ export function createView(cv, world, terr) {
     g.fillStyle = R.deep[0]; g.fillRect(0, 0, aw, ah);
     const x0 = Math.max(0, sx), y0 = Math.max(0, sy), x1 = Math.min(terr.PW, sx + aw), y1 = Math.min(terr.PH, sy + ah);
     if (x1 > x0 && y1 > y0) g.drawImage(terr.cv, x0, y0, x1 - x0, y1 - y0, x0 - sx, y0 - sy, x1 - x0, y1 - y0);
+    groundArt.draw(g,V,world,sx,sy);
     drawGroundLife(g, V, world, sx, sy, terr);
     waterRenderer.draw(g,V,world,now,sx,sy);
     // Marine packets retain their simulated positions and ride the same surface.
     for(const q of world.ocean?.drifters || []) {
       const px=q.x*TS-sx,py=q.y*TS-sy;if(px<-30||px>aw+30||py<-30||py>ah+30)continue;
       const lift=surfaceAt(oceanSurface(world,displaySeconds(world,now)),q.x*2,q.y*2,{}).height*8,b=branch(q.len||1,q.id,1);
-      g.drawImage(b.img,px-(b.img.width>>1),py-lift-b.img.height+b.ay);
+      g.drawImage(b.img,px-(b.w||b.img.width)/2,py-lift-(b.h||b.img.height)+b.ay,b.w||b.img.width,b.h||b.img.height);
     }
     // things lying on the ground (branches the wind brought down)
-    for (const it of world.items) { const px = Math.round(it.x * TS) - sx, py = Math.round(it.y * TS) - sy; if (px < -30 || py < -10 || px > aw + 30 || py > ah + 10) continue; if (it.k === "branch") { const b = branch(it.len || (it.kg > 1.2 ? 2 : 1), it.id, it.moist); g.drawImage(b.img, px - (b.img.width >> 1), py - b.img.height + b.ay); } }
+    for (const it of world.items) { const px = Math.round(it.x * TS) - sx, py = Math.round(it.y * TS) - sy; if (px < -30 || py < -10 || px > aw + 30 || py > ah + 10) continue; if (it.k === "branch") { const b = branch(it.len || (it.kg > 1.2 ? 2 : 1), it.id, it.moist,{snow:world.surface?.snow});g.drawImage(b.img,px-(b.w||b.img.width)/2,py-(b.h||b.img.height)+b.ay,b.w||b.img.width,b.h||b.img.height); } }
     // what he has made and the man himself, merged into the back-to-front order of trees and plants
     const dyn = [], M = world.man, windX = (world.wx.windDir >= 3 && world.wx.windDir <= 5 ? -1 : world.wx.windDir === 2 || world.wx.windDir === 6 ? 0 : 1) * world.wx.wind * .35;
     for (const s of world.structs) {
       const visible = { ...s, open: !!world.man && Math.abs(s.x - world.man.x) < .7 && Math.abs(s.y - world.man.y) < .7 };
-      const sp = s.k === "snare" ? snareSprite(s.stage > 0 ? 1 : 0, s.caught ? 1 : 0) : snowOnRoof(structSprite(visible), visible, world.surface?.snow || 0); if (sp) dyn.push({ y: s.y + (s.k === "fireRing" ? -.05 : .3), f: () => g.drawImage(sp.img, Math.round(s.x * TS) - sx - sp.ox, Math.round(s.y * TS) - sy + 5 - sp.oy) });
-      let k = 0; for (const m in s.onsite || {}) if (s.onsite[m] > 0) { const pl = pileSprite(m, s.onsite[m]), ox = (k++ - .5) * 9; dyn.push({ y: s.y + .45, f: () => g.drawImage(pl.img, Math.round(s.x * TS + ox - 10) - sx - pl.ox, Math.round(s.y * TS) - sy + 6 - pl.oy) }); }
+      const sp = s.k === "snare" ? snareSprite(s.stage > 0 ? 1 : 0, s.caught ? 1 : 0) : snowOnRoof(structSprite(visible), visible, world.surface?.snow || 0); if (sp) dyn.push({ y: s.y + (s.k === "fireRing" ? -.05 : .3), f: () => g.drawImage(sp.img, Math.round(s.x * TS) - sx - sp.ox, Math.round(s.y * TS) - sy + 5 - sp.oy, sp.w || sp.img.width, sp.h || sp.img.height) });
+      let k = 0; for (const m in s.onsite || {}) if (s.onsite[m] > 0) { const pl = pileSprite(m, s.onsite[m]), ox = (k++ - .5) * 9; dyn.push({ y: s.y + .45, f: () => g.drawImage(pl.img, Math.round(s.x * TS + ox - 10) - sx - pl.ox, Math.round(s.y * TS) - sy + 6 - pl.oy,pl.w||pl.img.width,pl.h||pl.img.height) }); }
     }
     // Roof drips emerge only where an installed roof is actually shedding rain.
     if (world.wx.rain > .15 && world.wx.temp > 1) for (const s of world.structs) if (s.props?.rain > .4) {
@@ -105,10 +111,10 @@ export function createView(cv, world, terr) {
         g.save();g.translate(px,py-lift);g.scale((face<0?-1:1)*size,size);g.drawImage(sp.img,-sp.ox,-sp.oy,sp.w||sp.img.width,sp.h||sp.img.height);g.restore();
       } });
     }
-    for (const it of world.items) if (it.k === "scraps" || it.k === "quarry") { const sp = scrapsSprite(); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy) }); }
+    for (const it of world.items) if (it.k === "scraps" || it.k === "quarry") { const sp = scrapsSprite(it); dyn.push({ y: it.y - .1, f: () => g.drawImage(sp.img, Math.round(it.x * TS) - sx - sp.ox, Math.round(it.y * TS) - sy + 4 - sp.oy,sp.w||sp.img.width,sp.h||sp.img.height) }); }
     for (const F of world.fires) dyn.push({ y: F.y, f: () => { const fx = Math.round(F.x * TS) - sx, fy = Math.round(F.y * TS) - sy + 3; drawFire(g, F, fx, fy, now, windX); if (M && M.boiling && world.t - M.boiling < 2) drawPot(g, fx + 5, fy + 1, now, true); } });
     // the shore at low water: beds the tide has uncovered
-    for (const b of world.shore) if (seaLevel(world,b.x,b.y) < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - seaLevel(world,b.x,b.y)) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy); g.globalAlpha = 1; }
+    for (const b of world.shore) if (seaLevel(world,b.x,b.y) < -b.depth + .15 && b.kg > .3) { const bs = bedSprite(b.k, b.kg, b.id), bx = Math.round(b.x * TS) - sx, by = Math.round(b.y * TS) - sy; if (bx < -20 || by < -20 || bx > aw + 20 || by > ah + 20) continue; g.globalAlpha = Math.min(1, (-b.depth + .15 - seaLevel(world,b.x,b.y)) * 4); g.drawImage(bs.img, bx - bs.ox, by - bs.oy,bs.w||bs.img.width,bs.h||bs.img.height); g.globalAlpha = 1; }
     if (M) {
       const p = V.manPos(now), pose = M.pose === "walk" && (M.inv.stones || 0) > 0 ? "stonewalk" : M.pose === "walk" && ((M.inv.poles || 0) > 0 || (M.inv.fuel || 0) > 2) ? "carrywalk" : M.pose || "stand", ms = manSprite(pose, now, M, world, p);
       const inside = world.structs.find(q => (q.k === "leanto" || q.k === "debrisHut" || q.k === "roundhouse") && q.stage > 0 && Math.abs(q.x - p.x) < .6 && Math.abs(q.y - p.y) < .6);
@@ -133,32 +139,36 @@ export function createView(cv, world, terr) {
         const s = tree(e.k, e.size, e.id, { autumn: e.aut || 0, fall: Math.max(e.fall||0,e.leafKg!=null?1-e.leafKg/Math.max(.01,(e.k==='hazel'?1:5)*e.size):0), snow: world.surface?.snow || 0 }), sh = shadow(s.shadowW * 2, 7);
         const shadowLen = Math.round(5 + Math.max(0, .6 - world.wx.elev) * 12), shadowDx = Math.round(Math.sin(world.t / 1440 * Math.PI * 2) * shadowLen);
         g.globalAlpha = .19; g.drawImage(sh, px - (sh.width >> 1) + shadowDx, py - 3, sh.width, shadowLen); g.globalAlpha = 1;
-        g.drawImage(s.trunk, px - Math.round(s.cx), py - s.trunk.height + 1);
+        g.drawImage(s.trunk, px - Math.round(s.cx), py - (s.trunkH||s.trunk.height) + 1,s.trunkW||s.trunk.width,s.trunkH||s.trunk.height);
         if (s.crown) {
+          const scale = s.crownScale || 1, cw = s.crown.width / scale, ch = s.crown.height / scale;
           const phase = hash3(e.id, 0, 9) * Math.PI * 2, stiffness = e.k === "pine" ? .35 : e.k === "birch" ? 1.1 : .8;
           const sway = (Math.sin(now / (1500 + phase * 90) + phase) + Math.sin(now / 2300 + phase * 1.7) * .18) * windStrength * 1.8 * stiffness;
-          const cx0 = px - Math.round(s.cx), cy0 = py - s.trunk.height - s.crown.height + 6;
+          const cx0 = px - Math.round(s.cx), cy0 = py - (s.trunkH||s.trunk.height) - ch + 6;
           // a crown standing in front of Tomas (or the dog) turns see-through, so you never lose him in the woods
-          const hide = focus.some(q => q.y < e.y && q.sx > cx0 - 2 && q.sx < cx0 + s.crown.width + 2 && q.sy > cy0 - 2 && q.sy - 14 < cy0 + s.crown.height);
+          const hide = focus.some(q => q.y < e.y && q.sx > cx0 - 2 && q.sx < cx0 + cw + 2 && q.sy > cy0 - 2 && q.sy - 14 < cy0 + ch);
           const target = hide ? .23 : 1, previous = canopyAlpha.get(e.id) ?? target, alpha = previous + (target - previous) * fade;
           canopyAlpha.set(e.id, alpha); g.globalAlpha = alpha;
           // The branch attachment stays still; flexible upper foliage moves more than the bottom.
-          const band = Math.ceil(s.crown.height / 5);
-          for (let y = 0; y < s.crown.height; y += band) {
-            const h = Math.min(band, s.crown.height - y), bend = 1 - (y + h / 2) / s.crown.height;
-            g.drawImage(s.crown, 0, y, s.crown.width, h, cx0 + snap(sway * bend * bend), cy0 + y, s.crown.width, h);
+          const band = Math.ceil(ch / 5);
+          for (let y = 0; y < ch; y += band) {
+            const h = Math.min(band, ch - y), bend = 1 - (y + h / 2) / ch;
+            g.drawImage(s.crown, 0, y * scale, s.crown.width, h * scale, cx0 + snap(sway * bend * bend), cy0 + y, cw, h);
           }
           g.globalAlpha = 1;
         }
       } else if (SHRUBS.has(e.k)) {
         if (e.n != null && e.n <= 0) continue;
-        const s = shrub(e.k, e.size * (e.n != null ? Math.min(1, .45 + e.n * .15) : 1), e.id, { autumn: e.aut || 0, fruit: e.fruit || 0, flower: V.flower });
-        if (e.k !== "fern" && e.k !== "reeds") { const sh = shadow(s.img.width * .9, 5); g.globalAlpha = .28; g.drawImage(sh, px - (sh.width >> 1), py - 3); g.globalAlpha = 1; }
-        g.drawImage(s.img, px - (s.img.width >> 1), py - s.img.height + s.ay);
+        const s = shrub(e.k, e.size * (e.n != null ? Math.min(1, .45 + e.n * .15) : 1), e.id, { autumn: e.aut || 0, fruit: e.fruit || 0, flower: V.flower,fall:V.plantFall });
+        const scale=s.scale||1,w=s.img.width/scale,h=s.img.height/scale;
+        if (e.k !== "fern" && e.k !== "reeds") { const sh = shadow(w * .9, 5); g.globalAlpha = .20; g.drawImage(sh, px - (sh.width >> 1), py - 3); g.globalAlpha = 1; }
+        g.drawImage(s.img, px - Math.floor(w/2), py - h + s.ay, w, h);
       } else {
-        const s = rock(e.k, e.size, e.id);
-        if (e.k === "boulder") { const sh = shadow(s.img.width * .95, 5); g.globalAlpha = .3; g.drawImage(sh, px - (sh.width >> 1), py - 3); g.globalAlpha = 1; }
-        g.drawImage(s.img, px - (s.img.width >> 1), py - s.img.height + s.ay);
+        const tile=Math.max(0,Math.min(world.ter.length-1,Math.floor(e.y)*world.MW+Math.floor(e.x)));
+        const s = rock(e.k, e.size, e.id,{wet:Math.min(1,(world.hydro?.soil[tile]||0)*2),snow:Math.min(1,(world.surface?.snow||0)/4)});
+        const scale=s.scale||1,w=s.img.width/scale,h=s.img.height/scale;
+        if (e.k === "boulder") { const sh = shadow(w * .95, 5); g.globalAlpha = .22; g.drawImage(sh, px - (sh.width >> 1), py - 3); g.globalAlpha = 1; }
+        g.drawImage(s.img, px - Math.floor(w/2), py - h + s.ay, w, h);
       }
     }
     while (di < dyn.length) dyn[di++].f();
@@ -169,12 +179,12 @@ export function createView(cv, world, terr) {
       const tx = sh.side === 1 ? world.MW - 3 + far * 2 : sh.side === 3 ? 2 - far * 2 : world.MW / 2 + along * world.MW * .6;
       const ty = sh.side === 0 ? 2 - far * 2 : sh.side === 2 ? world.MH - 3 + far * 2 : world.MH / 2 + along * world.MH * .6;
       const px = Math.round(tx * TS) - sx, py = Math.round(ty * TS) - sy; if (px < -20 || py < -20 || px > aw + 20 || py > ah + 20) continue;
-      g.globalAlpha = Math.max(.15, 1 - sh.dist / vis); g.drawImage(shipSprite(sh.k), px - 8, py - 8); g.globalAlpha = 1;
+      g.globalAlpha = Math.max(.15, 1 - sh.dist / vis); g.drawImage(shipSprite(sh.k), px - 8, py - 8,16,11); g.globalAlpha = 1;
     }
     if (V.xray) V.xray();
     drawWeather(g, V, world, now, sx, sy);
     // firelight: warm light pooling round the hearth, strong at night, flickering
-    const dark = Math.max(0, Math.min(1, (.12 - world.wx.elev) / .3));
+    const dark = V.reviewLight==='night'?1:V.reviewLight==='dusk'?.55:V.reviewLight==='day'?0:Math.max(0, Math.min(1, (.12 - world.wx.elev) / .3));
     if (dark > .05) for (const F of world.fires) {
       const glow = Math.min(1, F.heat / 6000) + Math.min(.35, F.embers * 2); if (glow < .03) continue;
       const px = Math.round(F.x * TS) - sx, py = Math.round(F.y * TS) - sy, r = 34 + glow * 30 + Math.sin(now / 120) * 1.5;

@@ -31,8 +31,8 @@ export function skyTint(x) {
   if (e > .25) c = "#ffffff";
   else if (e > .05) c = mix("#ffd9a8", "#ffffff", (e - .05) / .2);
   else if (e > -.05) c = mix("#c29a76", "#ffd9a8", (e + .05) / .1);
-  else if (e > -.2) c = mix("#617e88", "#c29a76", (e + .2) / .15);
-  else c = "#526e7c";
+  else if (e > -.2) c = mix("#708b97", "#c29a76", (e + .2) / .15);
+  else c = "#688492";
   if (cl > .5) c = mix(c, mix(c, "#b4bcc4", .5), Math.min(1, (cl - .5) * 1.6));   // overcast: greyer, flatter light
   if (x.rain > 0) c = mix(c, "#8e98a6", Math.min(.55, x.rain * .22));             // rain: gloomier still
   return c;
@@ -76,6 +76,6 @@ export function drawWeather(g, V, W, now, sx, sy) {
     g.globalAlpha = 1;
   }
   // the light of the sun, or the night
-  const tint = skyTint(x);
+  const tint = V.reviewLight==='day'?'#ffffff':V.reviewLight==='dusk'?'#edc69b':V.reviewLight==='night'?'#688492':skyTint(x);
   if (tint !== "#ffffff") { g.globalCompositeOperation = "multiply"; g.fillStyle = tint; g.fillRect(0, 0, aw, ah); g.globalCompositeOperation = "source-over"; }
 }

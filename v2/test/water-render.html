@@ -1,0 +1,43 @@
+<!doctype html><meta charset="utf-8"><title>Water renderer checks</title>
+<style>body{background:#203930;color:#eee7cb;font:14px system-ui;margin:24px}canvas{width:360px;height:220px;image-rendering:pixelated;border:1px solid #799286;margin:4px}#status{white-space:pre-wrap}</style>
+<h1>Water renderer checks</h1><pre id="status">Running…</pre><div id="frames"></div>
+<script type="module">
+import {load,save} from '../src/sim/world.js';
+import {paintTerrain} from '../src/render/terrain.js';
+import {createWaterRenderer,poolAt,loadWaterArt} from '../src/render/water.js';
+import {T} from '../src/world/gen.js';
+import {loadWoodlandArt} from '../src/render/woodland-art.js';
+const status=document.querySelector('#status');
+const check=(ok,message)=>{if(!ok)throw new Error(message);};
+try{
+  const values=new Float64Array(9);values[4]=4;const original=values.slice();
+  check(poolAt(values,3,3,1.5,1.5)===1,'Puddle centre must retain its sampled depth');
+  check(Math.abs(poolAt(values,3,3,1-1e-7,1.5)-poolAt(values,3,3,1+1e-7,1.5))<1e-6,'Puddle coverage jumps at a tile boundary');
+  for(let y=0;y<3;y+=.1)for(let x=0;x<3;x+=.1)check(poolAt(values,3,3,x,y)>=0&&poolAt(values,3,3,x,y)<=1,'Interpolated puddle depth outside input bounds');
+  check(values.every((v,i)=>v===original[i]),'Sampling mutated finite puddle volumes');
+  check(poolAt(values,3,3,-1,0)===0&&poolAt(null,3,3,1,1)===0,'Missing or outside pools must be dry');
+  const cp=await fetch('../assets/preview/camp.json').then(r=>r.json()),W=load(cp.blob);
+  await Promise.all([loadWoodlandArt(),new URLSearchParams(location.search).has('noArt')?Promise.resolve():loadWaterArt()]);const terrain=paintTerrain(W),renderer=createWaterRenderer(terrain,W);
+  const lake=W.ter.findIndex(m=>m===T.LAKE),stream=W.ter.findIndex(m=>m===T.STREAM);
+  const place=i=>[(i%W.MW+.5)*16-180,(Math.floor(i/W.MW)+.5)*16-110];
+  const cases=[['camp',[W.man.x*16-180,W.man.y*16-110]],['lake',place(lake)],['stream',place(stream)],['outside coast',[-250,-200]],['island boundary',[-40,terrain.PH-90]],['rain',[W.man.x*16-180,W.man.y*16-110]],['ice',place(lake)]];
+  const report=['PASS: continuous puddle coverage; finite volumes untouched.'];
+  for(const [name,[sx,sy]] of cases){
+    const testWorld=name==='rain'||name==='ice'?load(cp.blob):W;
+    if(name==='rain'){testWorld.atmosphere=null;testWorld.wx.rain=2;testWorld.wx.temp=12;}
+    if(name==='ice')testWorld.hydro.freshIce=(testWorld.hydroMap.lake.length||1)*4*.015;
+    const before=save(testWorld),cv=document.createElement('canvas');cv.width=1080;cv.height=660;cv.title=name;document.querySelector('#frames').append(cv);
+    const g=cv.getContext('2d');g.setTransform(3,0,0,3,0,0);g.imageSmoothingEnabled=false;
+    const V={aw:360,ah:220,raster:3,cam:{x:sx+180,y:sy+110}};
+    const start=performance.now();renderer.draw(g,V,testWorld,1000,sx,sy);renderer.draw(g,V,testWorld,1600,sx,sy);
+    const elapsed=performance.now()-start;
+    check(save(testWorld)===before,name+': drawing changed the world');
+    const pixels=g.getImageData(0,0,1080,660).data;let visible=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i])visible++;
+    check(visible>0,name+': no water drawn');
+    if(name==='outside coast')check(visible===1080*660,name+': gaps in offshore coverage');
+    report.push('PASS: '+name+' — rendered water, no state mutation ('+elapsed.toFixed(1)+' ms / two draws)');
+    await new Promise(requestAnimationFrame);
+  }
+  status.dataset.result='passed';status.textContent=report.join('\n');
+}catch(e){status.dataset.result='failed';status.textContent='FAIL: '+e.stack;}
+</script>

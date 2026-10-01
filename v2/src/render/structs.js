@@ -6,7 +6,8 @@ import {waterworkSprite} from './waterworks.js';
 import { R, OUT } from "./palette.js";
 import { sprite, canvas } from "./pix.js";
 import { hash3 } from "../core/rng.js";
-import { assemblySprite, snowOnAssembly } from './assembly.js';
+import { assemblySprite, snowOnAssembly, assemblyMaterials } from './assembly.js';
+import {detailSprite} from './motion.js';
 
 const cache = new Map();
 const memo = (k, f) => { let v = cache.get(k); if (!v) { v = f(); cache.set(k, v); } return v; };
@@ -146,21 +147,20 @@ function fishTrap(s) {
 }
 // shellfish uncovered by the tide: mussel clumps on wet stones, cockles in the sand
 export function bedSprite(k, kg, v) {
-  const n = Math.max(1, Math.min(9, Math.round(kg / 1.2)));
-  return memo(`bed:${k}:${n}:${v & 3}`, () => ({ img: sprite(16, 10, P => {
-    for (let y = 1; y < 9; y++) for (let x = 1; x < 15; x++) { const dx = (x - 8) / 7, dy = (y - 5) / 4; if (dx * dx + dy * dy < 1) P.set(x, y, k === "mussels" ? (hash3(x, y, v) > .5 ? R.shingle[1] : R.shingle[0]) : (hash3(x, y, v) > .5 ? R.sand[1] : R.sand[0])); }
-    for (let i = 0; i < n; i++) { const x = 3 + ((hash3(i, v, 1) * 10) | 0), y = 3 + ((hash3(i, v, 2) * 4) | 0);
-      if (k === "mussels") { P.set(x, y, "#1e2230"); P.set(x + 1, y, "#2c3346"); P.set(x, y + 1, "#2c3346"); P.set(x + 1, y + 1, "#46506a"); }
-      else { P.set(x, y, "#e9dcc0"); P.set(x + 1, y, "#cbb994"); } }
-  }, { outline: false }), ox: 8, oy: 5 }));
+  const stock=Math.round(Math.max(0,Math.min(9,kg/1.2))*16)/16;
+  return memo(`fine-bed:${k}:${stock}:${v&3}`,()=>({img:detailSprite(16,10,P=>{
+    for(let y=5;y<27;y++)for(let x=4;x<45;x++){const dx=(x-24)/21,dy=(y-15)/11;if(dx*dx+dy*dy<1)P.dot(x/3,y/3,k==='mussels'?(dy>.25?'#566557':'#899683'):(dy>.3?'#a79874':'#c6b88d'));}
+    for(let j=0;j<Math.ceil(stock);j++){const cx=8+hash3(j,v,1)*29,cy=10+hash3(j,v,2)*10,rx=k==='mussels'?3:2.8,ry=k==='mussels'?1.8:2.3,coverage=Math.min(1,stock-j);
+      for(let y=-3;y<=3;y++)for(let x=-4;x<=4;x++){if((x/rx)**2+(y/ry)**2>coverage)continue;const ridge=(x+j)%2===0;P.dot((cx+x)/3,(cy+y)/3,k==='mussels'?(y<0?(ridge?'#74918c':'#3e5857'):'#293d3c'):(y<0?(ridge?'#f0e3b5':'#ccb88d'):'#a28e65'));}
+    }
+  }),ox:8,oy:5,w:16,h:10}));
 }
 // the bark pot on the coals, steaming while it boils
 export function drawPot(g, px, py, now, boiling) {
-  g.fillStyle = "#2b1d16"; g.fillRect(px - 3, py - 4, 7, 4); g.fillStyle = R.birch[2]; g.fillRect(px - 2, py - 4, 5, 3); g.fillStyle = R.birch[1]; g.fillRect(px - 2, py - 2, 5, 1);
-  g.fillStyle = R.water[3]; g.fillRect(px - 1, py - 4, 3, 1);
+  const pot=memo('fine-pot',()=>detailSprite(8,6,P=>{for(let y=4;y<16;y++)for(let x=3;x<21;x++){const u=(x-12)/10;if(u*u+((y-9)/8)**2>1)continue;P.dot(x/3,y/3,x%5===0?'#806242':x<9?'#d0bf90':x>17?'#7e7250':'#ac9d73');}for(let x=4;x<21;x++){P.dot(x/3,1,'#d4c69b');P.dot(x/3,4/3,x<7||x>18?'#a3956b':'#456f69');}}));g.drawImage(pot,px-4,py-5,8,6);
   if (boiling) for (let i = 0; i < 3; i++) { const l = ((now / 900 + i / 3) % 1); g.fillStyle = `rgba(240,240,236,${(1 - l) * .6})`; g.fillRect(px - 1 + Math.round(Math.sin(now / 400 + i) * 1.5), py - 6 - Math.round(l * 10), 2, 2); }
 }
-export function structSprite(s) {
+function baseStructSprite(s) {
   if(s.earthwork)return waterworkSprite(s);
   if(s.assembly)return assemblySprite(s);
   if (["workbench", "dryingRack", "foodStore", "bedding", "rainCollector", "drainage"].includes(s.k)) return household(s);
@@ -176,6 +176,31 @@ export function structSprite(s) {
   return null;
 }
 
+// Preserve every installed part and construction stage while finishing its
+// material on the same finer display grid as foliage and animated bodies.
+const finished = new WeakMap();
+const materialColours = new Map();
+for(const [kind,cols] of [['wood',R.bark],['stone',R.rock],['straw',COVERC.bracken],['straw',R.reed],['straw',COVERC.debris]])
+  for(const c of cols)materialColours.set(parseInt(c.slice(1),16),kind);
+for(const [material,cols] of Object.entries(assemblyMaterials)){
+  const kind=['poles','withies'].includes(material)?'wood':['reeds','bracken','debris'].includes(material)?'straw':material==='stones'?'stone':null;
+  if(kind)for(const c of cols)materialColours.set(parseInt(c.slice(1),16),kind);
+}
+export function structSprite(s) {
+  const sp=baseStructSprite(s);if(!sp)return null;
+  const cached=finished.get(sp.img);if(cached)return {...sp,...cached};
+  const n=3,w=sp.w||sp.img.width,h=sp.h||sp.img.height,cv=canvas(w*n,h*n),g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(sp.img,0,0,cv.width,cv.height);
+  const im=g.getImageData(0,0,cv.width,cv.height),d=im.data;
+  for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){
+    const i=(y*cv.width+x)*4;if(!d[i+3])continue;
+    const material=materialColours.get((d[i]<<16)|(d[i+1]<<8)|d[i+2]);if(!material)continue;
+    const grain=hash3(Math.floor(x/2),Math.floor(y/2),43),strand=(x+y*2+Math.floor(y/6))%9;
+    const delta=material==='straw'?(strand<2?10:strand===7?-7:0):material==='wood'?((x%7===2&&grain>.35)?-8:(x%7===1?6:0)):(grain>.82?6:grain<.1?-4:0);
+    for(let c=0;c<3;c++)d[i+c]=Math.max(0,Math.min(255,d[i+c]+delta));
+  }
+  g.putImageData(im,0,0);const art={img:cv,w,h};finished.set(sp.img,art);return {...sp,...art};
+}
+
 export function snowOnRoof(sp, s, snow) {
   if(s.assembly)return snowOnAssembly(sp,s,snow);
   const n=Math.min(3,Math.floor(snow/2));
@@ -187,7 +212,7 @@ export function snowOnRoof(sp, s, snow) {
     for(let y=1;y<cv.height*.68;y++)for(let x=1;x<cv.width-1;x++){
       const o=(y*cv.width+x)*4,up=o-cv.width*4;
       if(!d[o+3]||d[up+3]||((x+y)%4)>=n)continue;
-      for(let j=0;j<n;j++){const p=o+j*cv.width*4;if(d[p+3]){d[p]=j?210:238;d[p+1]=j?225:239;d[p+2]=j?215:224;}}
+      for(let j=0;j<n*(sp.img.width/(sp.w||sp.img.width));j++){const p=o+j*cv.width*4;if(d[p+3]){d[p]=j?210:238;d[p+1]=j?225:239;d[p+2]=j?215:224;}}
     }g.putImageData(im,0,0);return{...sp,img:cv};
   });
 }
@@ -228,14 +253,14 @@ function household(s) {
 }
 // ------------------------------------------------------------ piles of materials waiting on a site
 export function pileSprite(m, n) {
-  n = Math.min(12, Math.round(n));
-  return memo(`pile:${m}:${n}`, () => ({ img: sprite(14, 8, P => {
+  n = Math.min(12, Math.round(n*4)/4);
+  return memo(`fine-pile:${m}:${n}`, () => ({ img: detailSprite(14, 8, P => {
     for (let k = 0; k < n; k++) {
-      if (m === "poles") line(P, 1, 6 - (k % 4), 12, 5 - (k % 4), R.bark[2 + (k & 1)]);
+      if (m === "poles") {const y=6-(k%4),f=Math.min(1,n-k);for(let x=3;x<3+33*f;x++){P.dot(x/3,y-(x/33),R.bark[3]);P.dot(x/3,y-(x/33)+1/3,R.bark[2]);P.dot(x/3,y-(x/33)+2/3,R.bark[1]);}}
       else if (m === "stones") { const x = 2 + (k * 3) % 10, y = 5 - ((k / 4) | 0); P.set(x, y, R.rock[3]); P.set(x + 1, y, R.rock[2]); P.set(x, y + 1, R.rock[1]); P.set(x + 1, y + 1, R.rock[1]); }
       else { const c = COVERC[m] || R.fern; for (let i = 0; i < 4; i++) P.set(2 + (k * 2) % 9 + i, 6 - (k / 5 | 0) - (i & 1), c[1 + ((k + i) & 1)]); }
     }
-  }), ox: 7, oy: 6 }));
+  }), ox: 7, oy: 6,w:14,h:8 }));
 }
 // ------------------------------------------------------------ fire: the hearth, its wood, flames, embers, smoke
 export function drawFire(g, F, px, py, now, wind) {

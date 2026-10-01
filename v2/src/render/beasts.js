@@ -1,92 +1,55 @@
 // Animals as pixel art, painted from their pose and an animation frame: the ship's dog (a rough-coated collie cross,
 // tan and white, with the frayed rope still round its neck), gulls, rabbits.
 import { R } from "./palette.js";
-import { sprite } from "./pix.js";
+import { sprite,canvas } from "./pix.js";
+import {detailSprite,motionFrames} from './motion.js';
+import {jointedDog} from './dogrig.js';
 
 const cache = new Map();
-const memo = (k, f) => { let v = cache.get(k); if (!v) { v = f(); cache.set(k, v); } return v; };
+const memo = (k, f) => { let v = cache.get(k); if (!v) { v = f(); cache.set(k, v); if(cache.size>512)cache.delete(cache.keys().next().value); } return v; };
 const TAN = ["#7a4a24", "#9c6232", "#bd7f43", "#d9a466"], WHITE = ["#bdb4a4", "#e2dccf", "#f6f2e8"], ROPE = "#c9b27a", NOSE = "#241812";
 const rect = (P, x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) P.set(x + i, y + j, typeof c === "function" ? c(i, j) : c); };
 
 // ---------------- the dog (faces right; feet at (8, 11))
-function dogPaint(P, pose, f) {
-  const legs = (xs, lift) => { for (let k = 0; k < xs.length; k++) { const up = lift[k] || 0; rect(P, xs[k], 9 - up, 1, 3 - (up ? 1 : 0), k % 2 ? TAN[1] : TAN[0]); } };
-  if (pose === "sleep" || pose === "lie" || pose === "curl") {
-    // curled nose to tail
-    for (let y = 6; y <= 11; y++) for (let x = 2; x <= 13; x++) { const dx = (x - 7.5) / 6, dy = (y - 9) / 3; if (dx * dx + dy * dy < 1) P.set(x, y, dy < -.3 ? TAN[3] : dx > .4 ? WHITE[1] : TAN[2]); }
-    rect(P, 11, 7, 3, 3, (i, j) => j === 0 ? TAN[3] : TAN[2]); P.set(13, 8, NOSE);
-    if (pose === "lie") { P.set(12, 6, TAN[1]); P.set(12, 8, "#1b120c"); }
-    P.set(10, 8, ROPE); P.set(10, 9, ROPE);
-    if (pose !== "sleep") return; P.set(12, 8, TAN[1]); return;
-  }
-  const sit = pose === "sit" || pose === "beg", low = pose === "drink" || pose === "eat";
-  const run = pose === "run", trot = pose === "trot" || pose === "walk";
-  // body
-  const by = sit ? 6 : run ? 5 + (f & 1) : 5;
-  rect(P, 3, by, 9, 4, (i, j) => j === 0 ? TAN[3] : j === 3 ? WHITE[1] : i > 6 ? WHITE[2] : TAN[2]);
-  if (sit) rect(P, 3, by + 2, 3, 4, TAN[1]);
-  // legs
-  if (!sit) {
-    if (run) legs([4, 5, 10, 11], f & 1 ? [2, 0, 0, 2] : [0, 2, 2, 0]);
-    else if (trot) legs([4, 6, 9, 11], [(f & 1) * 1, 0, 0, (f & 1) * 1]);
-    else legs([4, 6, 9, 11], []);
-  } else { rect(P, 9, 9, 1, 3, WHITE[1]); rect(P, 11, 9, 1, 3, WHITE[1]); rect(P, 3, 10, 3, 2, TAN[1]); }
-  // tail: up and waving when happy, low when wary
-  const wag = (f & 1) ? -1 : 1;
-  P.set(2, by + (pose === "shy" ? 2 : -1), TAN[2]); P.set(1, by + (pose === "shy" ? 3 : -2 + wag), TAN[3]);
-  // head
-  const hx = 11, hy = low ? by + 2 : sit ? by - 4 : by - 3;
-  rect(P, hx, hy, 4, 4, (i, j) => j === 0 ? TAN[3] : i === 3 && j > 1 ? WHITE[2] : TAN[2]);
-  P.set(hx + 4, hy + 2, TAN[2]); P.set(hx + 5, hy + 2, NOSE);                           // muzzle and nose
-  P.set(hx, hy - 1, TAN[1]); P.set(hx + 1, hy - 1, TAN[0]);                               // ear
-  P.set(hx + 2, hy + 1, "#1b120c");                                                       // eye
-  P.set(hx, hy + 3, ROPE); P.set(hx - 1, hy + 4, ROPE); P.set(hx - 1, hy + 5, "#a8905c");  // the frayed rope
-  if (pose === "drink") P.set(hx + 5, hy + 4, R.water[3]);
-}
+
 const DOGF = { run: 2, trot: 2, walk: 2, sit: 2, stand: 2, beg: 2, shake: 2, eat: 2, drink: 2 };
 export function dogSprite(pose, t) {
-  const n = DOGF[pose] || 1, f = n > 1 ? Math.floor(t / (pose === "run" ? 90 : pose === "trot" ? 150 : 400)) % n : 0;
-  return memo(`dog:${pose}:${f}`, () => ({ img: sprite(17, 13, P => dogPaint(P, pose, f)), ox: 8, oy: 11 }));
+  return jointedDog({act:pose,tail:pose==='run'?'wag':'low',ears:'back'},t);
 }
 // the dog adrift on the hatch cover, riding the swell
 export function raftSprite(t) {
-  const f = 0; // vertical displacement is supplied by the shared ocean surface
-  return memo(`raft:${f}`, () => ({ img: sprite(18, 12, P => {
-    rect(P, 1, 8 + f, 16, 3, (i, j) => j === 0 ? R.bark[3] : R.bark[1 + (i % 4 === 0 ? 1 : 0)]);
-    const q = { set: (x, y, c) => P.set(x + 1, y - 3 + f, c) }; dogPaint(q, "lie", 0);
-  }), ox: 9, oy: 10 }));
+  return memo('raft-fine',()=>{const cv=canvas(54,36),g=cv.getContext('2d');g.imageSmoothingEnabled=false;
+    for(let y=24;y<33;y++)for(let x=3;x<51;x++){g.fillStyle=y===24?'#c3a36d':x%12<2?'#493e2d':y%3===0?'#987648':'#765a36';g.fillRect(x,y,1,1);}
+    const dog=jointedDog({act:'lie',tail:'low',ears:'back'},0);g.drawImage(dog.img,0,0,51,36);return {img:cv,ox:9,oy:10,w:18,h:12};});
 }
+
 // ---------------- gulls: white and grey, yellow bill, flapping when flying
 export function gullSprite(pose, t, id) {
-  const f = pose === "fly" ? Math.floor(t / 160 + id) % 2 : pose === "peck" ? Math.floor(t / 500 + id) % 2 : 0;
-  return memo(`gull:${pose}:${f}`, () => ({ img: sprite(11, 8, P => {
-    if (pose === "fly") {
-      rect(P, 3, 4, 5, 2, (i, j) => j ? WHITE[1] : WHITE[2]); P.set(8, 4, WHITE[2]); P.set(9, 4, "#e8b84a");
-      const wy = f ? 1 : 5; for (let k = 0; k < 4; k++) { P.set(4 - k, wy + (f ? k * .5 : -k * .3), "#9aa3a8"); P.set(6 + k, wy + (f ? k * .5 : -k * .3), "#9aa3a8"); }
-      return;
-    }
-    const low = pose === "peck" && f;
-    rect(P, 2, 3, 6, 3, (i, j) => j === 0 ? "#9aa3a8" : WHITE[2]); P.set(1, 3, "#3a3f44"); P.set(1, 4, "#3a3f44");
-    P.set(8, low ? 4 : 2, WHITE[2]); P.set(8, low ? 5 : 3, WHITE[2]); P.set(9, low ? 5 : 3, "#e8b84a"); P.set(8, low ? 4 : 2, "#1b120c");
-    if (pose !== "swim") { P.set(4, 6, "#d98b5a"); P.set(6, 6, "#d98b5a"); P.set(4, 7, "#d98b5a"); P.set(6, 7, "#d98b5a"); }
-  }), ox: 5, oy: 7 }));
+  const period=pose==='fly'?900:1800,n=motionFrames(period),f=Math.floor((t/period+(id||0))%1*n),p=f/n*Math.PI*2;
+  return memo(`fine-gull:${pose}:${f}`,()=>({img:detailSprite(11,8,P=>{
+    oval(P,5,4.7,2.7,1.3,['#849c97','#d6ddd0','#f3efdb']);
+    if(pose==='fly'){const wing=Math.sin(p)*2.4;fineLine(P,4.5,4,1,3-wing,'#98aaa5',.4);fineLine(P,6,4,9.8,3-wing,'#d8e1d2',.4);fineLine(P,1,3-wing,.3,3.4-wing,'#465d5b',.35);}
+    else{fineLine(P,2,4,1,4.5,'#44564f',.45);if(pose!=='swim'){fineLine(P,4,5.5,3.6,7,'#b99957',.17);fineLine(P,6,5.5,6.4,7,'#b99957',.17);}}
+    const hy=pose==='peck'?3.5+Math.sin(p)*1.1:pose==='fly'?3.8:2.4;oval(P,7.6,hy,1.2,1.1,['#a6bdb1','#e6e8d5','#faf2d9']);fineLine(P,8.5,hy+.4,9.8,hy+.7,'#d4af54',.27);P.dot(8,hy-.1,'#354c44');
+  }),ox:5,oy:7,w:11,h:8}));
 }
+
 // ---------------- rabbits: brown-grey, white scut
 export function rabbitSprite(pose, t, id) {
-  const f = pose === "hop" || pose === "bolt" ? Math.floor(t / 140 + id) % 2 : pose === "graze" ? Math.floor(t / 900 + id) % 2 : 0;
-  return memo(`rab:${pose}:${f}`, () => ({ img: sprite(9, 8, P => {
-    const up = (pose === "hop" || pose === "bolt") && f ? 1 : 0, low = pose === "graze" && f;
-    rect(P, 1, 3 - up, 5, 3, (i, j) => j === 0 ? "#9a8266" : "#7d6750"); P.set(0, 3 - up, "#f2eee6");
-    const hx = 5, hy = low ? 3 : 1 - up; rect(P, hx, hy, 3, 3, "#8c7458"); P.set(hx + 2, hy + 1, "#1b120c");
-    P.set(hx, hy - 1, "#8c7458"); P.set(hx, hy - 2, "#8c7458"); P.set(hx + 1, hy - 1, "#b89c80");
-    P.set(2, 6 - up, "#6b5842"); P.set(5, 6 - up, "#6b5842");
-  }), ox: 4, oy: 6 }));
+  const moving=pose==='hop'||pose==='bolt',period=moving?650:1800,n=motionFrames(period),f=Math.floor((t/period+(id||0))%1*n),p=f/n*Math.PI*2;
+  return memo(`fine-rabbit:${pose}:${f}`,()=>({img:detailSprite(9,8,P=>{
+    const lift=moving?Math.max(0,Math.sin(p))*1.1:0,hy=pose==='graze'?3+Math.sin(p)*.35:2.1-lift;
+    oval(P,3.4,4.3-lift,2.7,1.7,['#645c48','#8d8062','#b6a57c']);oval(P,1,4-lift,.7,.8,['#b9bb9d','#e5e4c5','#f3edd2']);
+    fineLine(P,2,5.4-lift,1.6+(moving?Math.cos(p)*.8:0),6.4,'#70664f',.4);fineLine(P,5.3,5.2-lift,6.1+(moving?Math.cos(p)*.8:0),6.5,'#978464',.3);
+    oval(P,6,hy+1.1,1.5,1.2,['#6e624c','#a08e6b','#baa67d']);fineLine(P,5.5,hy+.5,5.2,hy-1.4,'#887957',.3);fineLine(P,6.3,hy+.3,6.5,hy-1.3,'#b8a281',.3);P.dot(6.8,hy+.7,'#364536');P.dot(7.5,hy+1.3,'#5e5142');
+    fineLine(P,6.7,hy+1.5,7.7,hy+1.6,'#c4b392',.1);
+  }),ox:4,oy:6,w:9,h:8}));
 }
+
 // ---------------- a snare on its peg; a caught rabbit; scraps
 export function snareSprite(set, caught) {
-  return memo(`snare:${set}:${caught}`, () => ({ img: sprite(9, 9, P => {
-    if (set) { rect(P, 4, 2, 1, 6, R.bark[3]); for (let k = 0; k < 6; k++) P.set(2 + Math.round(Math.cos(k) * 1.5) + 2, 4 + Math.round(Math.sin(k) * 1.5), "#a8905c"); }
-    if (caught) rect(P, 1, 6, 6, 2, "#7d6750");
-  }), ox: 4, oy: 7 }));
+  return memo(`fine-snare:${set}:${caught}`,()=>({img:detailSprite(9,9,P=>{if(set){fineLine(P,4,2,4,7,'#ab8b59',.4);for(let k=0;k<32;k++)P.dot(4+Math.cos(k/32*Math.PI*2)*1.7,4+Math.sin(k/32*Math.PI*2)*1.6,'#c6b580');}if(caught)oval(P,4,6,3,1.2,['#675e47','#928161','#b9a27b']);}),ox:4,oy:7,w:9,h:9}));
 }
-export function scrapsSprite() { return memo("scraps", () => ({ img: sprite(6, 4, P => { P.set(1, 2, "#c9a0a0"); P.set(2, 2, "#b87a6a"); P.set(3, 1, "#d8cfc0"); P.set(4, 2, "#b87a6a"); }), ox: 3, oy: 3 })); }
+export function scrapsSprite(item={}) {const quarry=item.k==='quarry',amount=Math.round(Math.min(1,(item.kcal??200)/400)*16)/16;return memo('fine-scraps:'+quarry+':'+amount,()=>({img:detailSprite(8,5,P=>{if(quarry){oval(P,4,3,2.8,1.2,['#6c624c','#948365','#b3a07a']);P.dot(1,2.7,'#ded7b5');}else{oval(P,3,3,1.8*Math.max(.25,amount),.9,['#85614b','#b18b69','#ceab85']);fineLine(P,4,2.3,6,2.8,'#d8cdb0',.2);}}),ox:4,oy:4,w:8,h:5}));}
+function oval(P,cx,cy,rx,ry,cols){for(let y=Math.floor((cy-ry)*3);y<=(cy+ry)*3;y++)for(let x=Math.floor((cx-rx)*3);x<=(cx+rx)*3;x++){const dx=(x/3-cx)/rx,dy=(y/3-cy)/ry;if(dx*dx+dy*dy<=1)P.dot(x/3,y/3,cols[-dx*.5-dy*.8>.4?2:dy>.5?0:1]);}}
+function fineLine(P,x0,y0,x1,y1,c,r){const n=Math.ceil(Math.hypot(x1-x0,y1-y0)*6)||1;for(let k=0;k<=n;k++)for(let y=-r;y<=r;y+=1/3)for(let x=-r;x<=r;x+=1/3)if(x*x+y*y<=r*r+.03)P.dot(x0+(x1-x0)*k/n+x,y0+(y1-y0)*k/n+y,c);}

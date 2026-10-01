@@ -15,7 +15,7 @@ export function detailSprite(w, h, paint) {
       },
     };
     paint(P);
-  }, { outlineWidth: n });
+  }, { outlineWidth: 1 });
 }
 export function frameCache(limit) {
   const entries = new Map();

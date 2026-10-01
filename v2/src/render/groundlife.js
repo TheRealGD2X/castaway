@@ -22,7 +22,9 @@ export function drawGroundLife(g,V,W,sx,sy,terr) {
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
     const i=y*W.MW+x,t=W.ter[i],q=W.traces?.[i],px=x*TS-sx,py=y*TS-sy,h=hash3(x,y,W.seed);
     if(t<=1||t===T.LAKE||t===T.STREAM)continue;
-    if(W.foodweb&&(t===T.GRASS||t===T.MEADOW)){const bare=1-Math.min(1,W.foodweb.grass[i]/.16);if(bare>.05){g.globalAlpha=bare*.55;g.fillStyle='#a99b72';g.fillRect(px,py,TS,TS);g.fillStyle='#8d8461';for(let k=0;k<8;k++)if(hash3(i,k,W.seed)<bare)g.fillRect(px+2+(k*5)%12,py+2+(k*7)%12,2,1);g.globalAlpha=1;}}
+    // Grass loss is blended spatially into the authored ground material. A
+    // fallback keeps depleted patches organic when the art cannot load.
+    if(W.foodweb&&(t===T.GRASS||t===T.MEADOW)){const bare=1-Math.min(1,W.foodweb.grass[i]/.16);if(bare>.05){g.globalAlpha=bare*.12;g.fillStyle='#b39b6b';for(let k=0;k<8;k++)g.fillRect(px+2+(k*5)%12,py+2+(k*7)%12,2,1);g.globalAlpha=1;}}
     const relief=W.relief?.[i]||0;
     if(Math.abs(relief)>.002){g.globalAlpha=Math.min(.65,Math.abs(relief)*12);g.fillStyle=relief<0?'#79694e':'#b5a27d';g.fillRect(px+3,py+8,10,3);g.fillStyle=relief<0?'#b1a27b':'#d0bb91';g.fillRect(px+4,py+7,8,1);g.globalAlpha=1;}
     if(q?.wear>.5){const a=Math.min(.65,q.wear*.045),r=Math.min(4,1+q.wear*.13);g.globalAlpha=a;g.fillStyle=t===T.SAND?'#bfa884':'#a89870';

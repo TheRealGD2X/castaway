@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Castaway · PC art preview</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#203930;color:#eee7cb;font:14px system-ui,sans-serif}body{display:flex;flex-direction:column}
+header{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 28px;border-bottom:1px solid #c9c19a33;background:#23372f;flex-shrink:0}header>div{flex-shrink:0}
+.title{font:26px Georgia,serif;letter-spacing:-.025em}.note{margin-top:4px;color:#a8b5a3;font-size:11px;letter-spacing:.03em}
+nav{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}button,a,select{font:12px system-ui;cursor:pointer;border:1px solid #b4bba23a;border-radius:7px;background:#23372f;color:#d4dfc9;padding:10px 12px;text-decoration:none;white-space:nowrap}button[aria-pressed=true]{background:#d8d0a7;color:#263c2d;border-color:#d8d0a7}button:hover,a:hover{border-color:#d8d0a7}
+iframe{display:block;width:100%;flex:1;min-height:0;border:0;background:#174b66}
+@media(max-width:1000px){header{flex-wrap:wrap;padding:12px 20px;gap:10px}nav{justify-content:flex-start}.note{font-size:11px}}
+</style></head><body>
+<header><div><div class="title">The Castaway</div><div class="note">PC art preview · Explore the island and its changing artwork</div></div><nav aria-label="Lighting study"><select aria-label="Area" id="area"><option value="camp">Camp</option><option value="rock">Rocky clearing</option><option value="shore">Shoreline</option></select><button data-light="day" aria-pressed="true">Daylight</button><button data-light="dusk" aria-pressed="false">Dusk</button><button data-light="night" aria-pressed="false">Night</button><a href="./art-variants.html">Art variations</a><a href="./animation-study.html">Living Tomas</a><a href="./">Live island →</a></nav></header>
+<iframe title="Castaway camp art preview" src="./?review=camp&light=day"></iframe>
+<script>
+const frame=document.querySelector('iframe'),area=document.querySelector('#area');let light='day';
+const show=()=>frame.src='./?review=camp&light='+light+'&area='+area.value;
+area.addEventListener('change',show);
+for(const button of document.querySelectorAll('[data-light]'))button.addEventListener('click',()=>{for(const b of document.querySelectorAll('[data-light]'))b.setAttribute('aria-pressed',String(b===button));light=button.dataset.light;show();});
+</script></body></html>

@@ -25,7 +25,7 @@ export function paintCamp(cv,structures) {
   g.fillStyle='#c8ceab';g.fillRect(0,0,180,100);g.fillStyle='#b3bd94';g.fillRect(0,73,180,27);
   g.fillStyle='#b6a884';g.beginPath();g.ellipse(90,66,50,20,0,0,Math.PI*2);g.fill();
   const ordered=structures.slice().sort((a,b)=>a.y-b.y);
-  for(const s of ordered){const sp=structSprite(s);if(!sp)continue;const px=90+s.x*10,py=57+s.y*8;g.drawImage(sp.img,Math.round(px-sp.ox),Math.round(py-sp.oy));}
+  for(const s of ordered){const sp=structSprite(s);if(!sp)continue;const px=90+s.x*10,py=57+s.y*8;g.drawImage(sp.img,Math.round(px-sp.ox),Math.round(py-sp.oy),sp.w||sp.img.width,sp.h||sp.img.height);}
   g.fillStyle='#f4efda';g.fillRect(0,0,180,5);g.fillRect(0,95,180,5);
 }
 export function setupJournal(button,panel,getWorld,openInspection) {

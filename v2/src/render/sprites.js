@@ -3,9 +3,10 @@
 import { R, OUT, mix } from "./palette.js";
 import { sprite, shadeIdx, canvas } from "./pix.js";
 import { hash3 } from "../core/rng.js";
+import { authoredCanopy, authoredProp, FOLIAGE_GRID } from './woodland-art.js';
 
 const cache = new Map();
-const memo = (key, f) => { let v = cache.get(key); if (!v) { v = f(); cache.set(key, v); } return v; };
+const memo = (key, f) => { let v = cache.get(key); if (!v) { v = f(); cache.set(key, v); if(cache.size>1024)cache.delete(cache.keys().next().value); } return v; };
 const q3 = s => s < .62 ? 0 : s < .82 ? 1 : 2;
 
 // ---------- crowns: clumps of leaves lit from the upper left, dark crescents under each clump
@@ -21,7 +22,7 @@ function crown(P, blobs, ramps, opt) {
     let i = shadeIdx(nx, ny, n, b1.lift || 0);
     if (k2 > 0 && k1 < .2 && ny > .1) i = Math.max(0, i - 2);                      // shadow under the clump in front
     // Leaves form readable groups; a few deliberate two-pixel glints follow the clump's light.
-    if ((x + y * 2 + seed) % 11 < 2 && ny < -.15 && k1 > .22 && i < n - 1) i++;
+    if (hash3(Math.floor(x / 2), Math.floor(y / 2), seed + 18) > .84 && ny < -.15 && k1 > .22 && i < n - 1) i++;
     if (ny > .42 && k1 < .3 && i > 0) i--;     // a little leaf texture
     P.set(x, y, (b1.ramp || ramps[0])[i]);
   }
@@ -51,10 +52,10 @@ function branches(P, x, y, ang, len, w, ramp, depth, seed) {         // bare win
 }
 
 // season: 0 = leaf, 1 = full autumn colour; fall: fraction of leaves gone
-export function tree(sp, size, v, season) {
-  const sc = q3(size), aut = Math.round((season.autumn || 0) * 4) / 4, fall = Math.round((season.fall || 0) * 4) / 4, snow = Math.min(3, Math.floor((season.snow || 0) / 2));
+function treeBase(sp, size, v, season) {
+  const sc = Math.round(Math.max(.3,Math.min(1,size))*64)/64, aut = Math.round((season.autumn || 0) * 64) / 64, fall = Math.round((season.fall || 0) * 64) / 64, snow = Math.min(3, Math.round((season.snow || 0) * 8) / 16);
   return memo(`t:${sp}:${sc}:${v & 7}:${aut}:${fall}:${snow}`, () => {
-    const S = [.72, .86, 1][sc], seed = v * 17 + sc;
+    const S = sc, seed = v * 17;
     if (sp === "pine") {
       const w = Math.round(30 * S) | 1, h = Math.round(46 * S), cx = w >> 1;
       const cr = sprite(w + 2, h, P => {
@@ -66,7 +67,8 @@ export function tree(sp, size, v, season) {
         if (snow > 0) for(let y=1;y<P.h-1;y++)for(let x=1;x<P.w-1;x++)if(P.has(x,y)&&!P.has(x,y-1)&&(x+seed)%4<snow){P.set(x,y,'#e6ead9');if(snow>1&&P.has(x,y+1))P.set(x,y+1,'#cdded3');}
       });
       const tr = sprite(w + 2, 10, P => trunk(P, cx, 0, 8, 3, R.bark));
-      return { crown: cr, trunk: tr, cx: cx + 1, crownY: h - 4, trunkY: 10, shadowW: w * .5 };
+      const art = authoredCanopy(sp, w + 2, h, v, aut, fall, snow);
+      return { crown: art || cr, crownScale: art ? FOLIAGE_GRID : 1, trunk: tr, cx: cx + 1, crownY: h - 4, trunkY: 10, shadowW: w * .5 };
     }
     const kind = { oak: [R.oak, R.oakAut, 34, 40, 5], birch: [R.birchL, R.birchAut, 24, 42, 3], rowan: [R.rowan, R.oakAut, 24, 32, 3], hazel: [R.hazel, R.birchAut, 26, 22, 0] }[sp] || [R.oak, R.oakAut, 30, 36, 4];
     const [sum, autR, W0, H0, tw] = kind;
@@ -79,10 +81,11 @@ export function tree(sp, size, v, season) {
       blobs.push({ x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d * .8 - r * .12, r: r * (sp === "birch" ? .42 : .52) * (.85 + hash3(k, v, 13) * .3) });
     }
     // each tree turns at its own pace, the whole crown together, a few clumps ahead of the rest
-    const turn = Math.max(0, Math.min(1, aut + (hash3(v, 3, 77) - .5) * .7)), tq = Math.round(turn * 4) / 4;
+    const turn = Math.max(0, Math.min(1, aut + (hash3(v, 3, 77) - .5) * .7)), tq = Math.round(turn * 64) / 64;
     const own = sum.map((c0, i) => mix(c0, autR[i], tq));
     for (const b of blobs) { b.ramp = own; if (tq > 0 && tq < 1 && hash3(b.x | 0, b.y | 0, v + 21) < .25) b.ramp = sum.map((c0, i) => mix(c0, autR[i], Math.min(1, tq + .35))); }
-    const bare = fall >= 1;
+    const art = authoredCanopy(sp, w, ch + 2, v, aut, fall, snow);
+    const bare = fall >= 1&&!art;
     const cr = bare ? null : sprite(w, ch + 2, P => {
       crown(P, blobs, [sum], { fall: fall * .8, seed });
       if (snow > 0) for(let y=1;y<P.h-1;y++)for(let x=1;x<P.w-1;x++)if(P.has(x,y)&&!P.has(x,y-1)&&(x+seed)%4<snow){P.set(x,y,'#e6ead9');if(snow>1&&P.has(x,y+1))P.set(x,y+1,'#cdded3');}
@@ -96,12 +99,25 @@ export function tree(sp, size, v, season) {
         trunk(P, x0, 0, trH, Math.max(2, Math.round(tw * S)), sp === "birch" ? R.birch : R.bark, { birch: sp === "birch" });
         if (bare) { branches(P, cx, trH * .55, 1.1, trH * .35, 2, sp === "birch" ? R.birch : R.bark, 3, v); branches(P, cx, trH * .45, 2.0, trH * .32, 2, sp === "birch" ? R.birch : R.bark, 3, v + 5); }
       });
-    return { crown: cr, trunk: tr, cx, crownY: ch - Math.round(r * .15), trunkY: trH, shadowW: w * .42 };
+    return { crown: art || cr, crownScale: art ? FOLIAGE_GRID : 1, trunk: tr, cx, crownY: ch - Math.round(r * .15), trunkY: trH, shadowW: w * .42 };
   });
+}
+
+const trunkArt=new WeakMap();
+export function tree(sp,size,v,season){
+  const s=treeBase(sp,size,v,season);let art=trunkArt.get(s.trunk);
+  if(!art){const cv=canvas(s.trunk.width*3,s.trunk.height*3),g=cv.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(s.trunk,0,0,cv.width,cv.height);const im=g.getImageData(0,0,cv.width,cv.height),d=im.data;
+    for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){const i=(y*cv.width+x)*4;if(!d[i+3])continue;const h=hash3(Math.floor(x/2),Math.floor(y/7),v+989),delta=sp==='birch'?(h>.88&&y%9<2?-28:x%8===2?8:0):(h>.6&&x%7<2?-12:x%7===2?9:0);for(let k=0;k<3;k++)d[i+k]=Math.max(0,Math.min(255,d[i+k]+delta));}
+    g.putImageData(im,0,0);art=cv;trunkArt.set(s.trunk,art);
+  }
+  return {...s,trunk:art,trunkScale:3,trunkW:s.trunk.width,trunkH:s.trunk.height};
 }
 
 export function shrub(k, size, v, season) {
   const sc = q3(size), aut = Math.round((season.autumn || 0) * 4) / 4, fr = season.fruit || 0;
+  const scale=Math.round(Math.max(.25,Math.min(1,size))*64)/64,width=Math.round((k==='fern'?18:k==='reeds'?14:k==='gorse'?20:22)*scale),height=Math.round((k==='fern'?12:k==='reeds'?22:k==='gorse'?14:13)*scale);
+  const art=authoredProp(k,width,height,v,season);
+  if(art)return {img:art,scale:FOLIAGE_GRID,ay:k==='fern'||k==='reeds'?1:2};
   return memo(`s:${k}:${sc}:${v & 3}:${aut}:${fr > .5 ? 1 : 0}:${season.flower ? 1 : 0}`, () => {
     const S = [.75, .88, 1][sc];
     if (k === "fern") return { img: sprite(Math.round(18 * S), Math.round(12 * S), P => { const cx = P.w / 2, by = P.h - 1; for (let f = 0; f < 5; f++) { const a = 2.6 - f * .5; for (let s = 0; s < P.h * .95; s++) { const x = cx + Math.cos(a) * s * (f === 2 ? .2 : .75), y = by - Math.sin(a) * s * .9 - (s * s) * .0; P.set(x, y, R.fern[s < 3 ? 1 : 2]); if (s % 2 === 0) { P.set(x + 1, y, R.fern[3]); P.set(x - 1, y + 1, R.fern[1]); } } } }), ay: 1 };
@@ -128,8 +144,11 @@ export function shrub(k, size, v, season) {
   });
 }
 
-export function rock(k, size, v) {
+export function rock(k, size, v,season={}) {
   const sc = q3(size);
+  const scale=[.7,.85,1][sc],small=k==='stones',width=small?14:Math.round(22*scale),height=small?8:Math.round(16*scale)+1;
+  const art=k==='flint'?null:authoredProp(small?'pebbles':'boulder',width,height,v,season);
+  if(art)return {img:art,scale:FOLIAGE_GRID,ay:small?1:2};
   return memo(`r:${k}:${sc}:${v & 3}`, () => {
     if (k === "flint" || k === "stones") {
       const img = sprite(14, 8, P => {
@@ -156,7 +175,10 @@ export function shadow(w, h) {
   return memo(`sh:${w}:${h}`, () => sprite(w, h, P => { for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const dx = (x + .5 - w / 2) / (w / 2), dy = (y + .5 - h / 2) / (h / 2); if (dx * dx + dy * dy <= 1) P.set(x, y, "#1d2a14"); } }, { outline: false }));
 }
 // a fallen branch: a crooked limb with a few twigs; darker when soaked
-export function branch(len, v, wet) {
+export function branch(len, v, wet,season={}) {
+  const width=Math.round(Math.max(12,Math.min(28,12+(len||1)*6))*3)/3;
+  const art=authoredProp('driftwood',width,8,v,{wet,age:season.age,snow:Math.min(1,(season.snow||0)/4)});
+  if(art)return {img:art,w:width,h:8,ay:2};
   const w8 = wet > .35 ? 1 : 0;
   return memo(`b:${len}:${v & 3}:${w8}`, () => {
     const L = len > 1 ? 24 : 15, bark = w8 ? R.bark.map(c => mix(c, "#1e1410", .3)) : R.bark;
