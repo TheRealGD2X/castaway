@@ -486,5 +486,33 @@
    }
   ],
   "id": "m7300"
+ },
+ {
+  "applyAt": 10840,
+  "thought": "Wind's got up something fierce off the sea tonight, picking berries with my eyes half shut against it. Food shelf's nearly roofed. Looking round at what my hands have made these past days, I reckon it's time I thought about a proper round house, not just huts and lean-tos.",
+  "diary": "Lost track of the days a little, between the fishing and the building, but looking back I can hardly credit what's gone up: a covered shelf to keep food dry, a settling pool for the water, a raised bed off the cold ground, even a stone axe and a length of cordage I'm rather proud of. Caught fish properly for the first time too. Nell still trusts me — came right up without a flinch — but she's gone thin again, wandering further than I'd like. I mean to feed her better and keep her close. With the camp this far along, I've started thinking past huts altogether: a roundhouse, walls and a proper roof, something that'd see out a whole winter rather than just a night. Big thing to want. I'll want a great deal more wood and a great deal more patience before it's anything but a thought.",
+  "intents": [
+   {
+    "k": "build:roundhouse",
+    "w": 22,
+    "hours": 240
+   },
+   {
+    "k": "build:foodStore",
+    "w": 15,
+    "hours": 12
+   },
+   {
+    "k": "dog",
+    "w": 18,
+    "hours": 40
+   },
+   {
+    "k": "food",
+    "w": 15,
+    "hours": 24
+   }
+  ],
+  "id": "m10840"
  }
 ]

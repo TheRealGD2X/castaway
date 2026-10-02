@@ -1,56 +1,155 @@
 {
- "day": 6,
- "t": 7299,
- "when": "Wed 30/9 07:39 (UK time)",
+ "day": 8,
+ "t": 10839,
+ "when": "Fri 2/10 18:39 (UK time)",
  "alive": true,
  "weather": {
   "temp": 12,
-  "wind": "6 mph from the SE",
+  "wind": "23 mph from the SW",
   "rain": "none",
   "fog": false,
   "light": "twilight",
   "tide": "falling/low-ish"
  },
  "body": {
-  "hungry": "desperately",
-  "thirsty": "somewhat",
+  "hungry": "somewhat",
+  "thirsty": "a little",
   "cold": "not",
-  "tired": "not",
+  "tired": "somewhat",
   "weary": "not",
   "wet": "not",
-  "ill": "not",
+  "ill": "no",
   "hurt": "no",
-  "coreC": 36.8,
+  "coreC": 37.6,
   "lonely": "not"
  },
- "doing": "Eating",
- "why": "Weak with hunger",
- "said": "Coals still alive under the ash. Tinder on them, blow, and it takes.",
+ "doing": "Picking berries",
+ "why": "Hungry",
+ "said": "A woven bed raised clear of the cold earth.",
+ "heard": [],
  "has": {
-  "food": 141.3,
-  "stones": 2,
-  "bracken": 1,
+  "poles": 2.5,
+  "food": 83.8,
+  "stones": 4,
+  "bracken": 2,
   "flake": 1,
   "drill": 1,
+  "boughs": 6,
   "withies": 1,
   "pot": 1,
-  "clean": 2.2
+  "clean": 1.5,
+  "reeds": 12,
+  "cord": 4,
+  "wrap": 1,
+  "line": 1,
+  "axe": 1
  },
  "ground": {
-  "surfaceC": 7.7,
+  "surfaceC": 10.3,
   "snowMm": 0,
   "frost": false,
   "iceMm": 0
  },
+ "freshWater": {
+  "stream": "flowing gently",
+  "collectedLitres": 83.5
+ },
+ "meals": [
+  {
+   "what": "hazelnuts",
+   "uncooked": false,
+   "kcal": 84,
+   "ageHours": 0,
+   "appearance": "no obvious decay"
+  }
+ ],
+ "shelterAir": [],
+ "workExperience": {
+  "takeWood": {
+   "completed": 4,
+   "lastExpectedMinutes": 3,
+   "lastActualMinutes": 4
+  },
+  "gatherTinder": {
+   "completed": 4,
+   "lastExpectedMinutes": 13,
+   "lastActualMinutes": 14
+  },
+  "layFire": {
+   "completed": 4,
+   "lastExpectedMinutes": 8,
+   "lastActualMinutes": 8
+  },
+  "checkTrap": {
+   "completed": 2,
+   "lastExpectedMinutes": 10,
+   "lastActualMinutes": 12
+  },
+  "eat": {
+   "completed": 7,
+   "lastExpectedMinutes": 10,
+   "lastActualMinutes": 10
+  },
+  "drinkBoiled": {
+   "completed": 4,
+   "lastExpectedMinutes": 3,
+   "lastActualMinutes": 3
+  },
+  "boilWater": {
+   "completed": 3,
+   "lastExpectedMinutes": 24,
+   "lastActualMinutes": 23
+  },
+  "get_poles": {
+   "completed": 10,
+   "lastExpectedMinutes": 13,
+   "lastActualMinutes": 13
+  },
+  "get_withies": {
+   "completed": 4,
+   "lastExpectedMinutes": 22,
+   "lastActualMinutes": 23
+  },
+  "build_foodStore": {
+   "completed": 3,
+   "lastExpectedMinutes": 36,
+   "lastActualMinutes": 12
+  },
+  "forage": {
+   "completed": 5,
+   "lastExpectedMinutes": 24,
+   "lastActualMinutes": 29
+  },
+  "drinkCollected": {
+   "completed": 5,
+   "lastExpectedMinutes": 8,
+   "lastActualMinutes": 3
+  },
+  "get_bracken": {
+   "completed": 2,
+   "lastExpectedMinutes": 15,
+   "lastActualMinutes": 18
+  },
+  "get_reeds": {
+   "completed": 4,
+   "lastExpectedMinutes": 21,
+   "lastActualMinutes": 23
+  },
+  "get_boughs": {
+   "completed": 2,
+   "lastExpectedMinutes": 16,
+   "lastActualMinutes": 18
+  }
+ },
  "skills": {
-  "drill": 0.96,
+  "drill": 1.12,
   "knap": 0.1,
-  "build": 0.99,
+  "build": 1.54,
   "forage": 0
  },
  "built": [
   {
-   "what": "lean-to",
+   "what": "forked timber lean-to",
    "condition": "sound",
    "stage": "finished"
   },
@@ -85,7 +184,7 @@
    "stage": "finished"
   },
   {
-   "what": "debris hut",
+   "what": "leaf-covered sleeping hut",
    "condition": "sound",
    "stage": "finished"
   },
@@ -93,9 +192,58 @@
    "what": "woodpile",
    "condition": "sound",
    "stage": "finished"
+  },
+  {
+   "what": "settling pool",
+   "condition": "sound",
+   "stage": "lining next (1/2 stages done)"
+  },
+  {
+   "what": "covered food shelf",
+   "condition": "sound",
+   "stage": "finished"
+  },
+  {
+   "what": "lashed raised bed",
+   "condition": "sound",
+   "stage": "mattress next (1/2 stages done)"
+  }
+ ],
+ "constructionExperience": {},
+ "designComparisons": [
+  {
+   "what": "covered food shelf",
+   "alternativesConsidered": 48,
+   "estimatedWorkMinutes": 196,
+   "loadMarginKg": 12
   }
  ],
  "canBuild": [
+  {
+   "k": "build:invention",
+   "what": "camp invention",
+   "able": true
+  },
+  {
+   "k": "build:rainCollector",
+   "what": "rain collector",
+   "able": true
+  },
+  {
+   "k": "build:weir",
+   "what": "stone water barrier",
+   "able": true
+  },
+  {
+   "k": "build:settlingPool",
+   "what": "settling pool",
+   "able": true
+  },
+  {
+   "k": "build:drainage",
+   "what": "camp drain",
+   "able": true
+  },
   {
    "k": "build:workbench",
    "what": "workbench",
@@ -159,11 +307,11 @@
   {
    "k": "build:roundhouse",
    "what": "roundhouse",
-   "able": false
+   "able": true
   }
  ],
  "fire": [
-  "cold"
+  "burning"
  ],
  "beliefs": {
   "berries": 0.35,
@@ -172,8 +320,9 @@
  },
  "dog": {
   "name": "Nell",
-  "trust": "trusts him",
-  "thin": false
+  "trust": "seemed to trust him completely",
+  "thin": true,
+  "lastSeenMinutesAgo": 90
  },
  "knowsOf": {
   "places": {
@@ -193,105 +342,98 @@
    "cockles": 9,
    "fire": 1,
    "ship": 1,
-   "dog": 1
+   "dog": 1,
+   "branch": 67,
+   "gorse": 5
   },
-  "islandSeen": "48%"
+  "islandSeen": "49%"
  },
  "shipsSeen": 1,
  "lately": [
   {
-   "day": 3,
-   "time": "10:34",
-   "what": "built debrisHut ribs"
+   "day": 6,
+   "time": "08:50",
+   "what": "fish 4"
   },
   {
-   "day": 3,
-   "time": "14:06",
-   "what": "built debrisHut pile"
+   "day": 6,
+   "time": "17:38",
+   "what": "built foodStore supports"
   },
   {
-   "day": 3,
-   "time": "14:51",
-   "what": "built debrisHut bed"
-  },
-  {
-   "day": 3,
-   "time": "18:03",
-   "what": "fire 3"
-  },
-  {
-   "day": 4,
-   "time": "08:00",
+   "day": 6,
+   "time": "19:37",
    "what": "fed dog"
   },
   {
-   "day": 4,
-   "time": "08:37",
+   "day": 6,
+   "time": "23:21",
+   "what": "recovered"
+  },
+  {
+   "day": 7,
+   "time": "09:52",
+   "what": "built foodStore surface"
+  },
+  {
+   "day": 7,
+   "time": "10:57",
+   "what": "crafted bark cordage"
+  },
+  {
+   "day": 7,
+   "time": "13:18",
+   "what": "built settlingPool excavate"
+  },
+  {
+   "day": 7,
+   "time": "16:41",
+   "what": "fire 2"
+  },
+  {
+   "day": 8,
+   "time": "08:21",
    "what": "fed dog"
   },
   {
-   "day": 4,
-   "time": "13:24",
-   "what": "fed dog"
+   "day": 8,
+   "time": "08:34",
+   "what": "built foodStore cover"
   },
   {
-   "day": 4,
-   "time": "14:00",
-   "what": "built woodpile cover"
+   "day": 8,
+   "time": "10:52",
+   "what": "crafted woven reed cape"
   },
   {
-   "day": 4,
-   "time": "14:25",
-   "what": "built snare noose"
+   "day": 8,
+   "time": "11:43",
+   "what": "crafted fishing line"
   },
   {
-   "day": 4,
-   "time": "01:38",
-   "what": "ill water:marsh"
+   "day": 8,
+   "time": "12:52",
+   "what": "crafted bark cordage"
   },
   {
-   "day": 5,
-   "time": "08:03",
-   "what": "fed dog"
+   "day": 8,
+   "time": "14:10",
+   "what": "crafted stone axe"
+  },
+  {
+   "day": 8,
+   "time": "17:25",
+   "what": "built bedding base"
   }
  ],
  "intentions": [
   {
-   "k": "boil",
-   "w": 12,
-   "hoursLeft": 27
-  },
-  {
-   "k": "build:reflector",
-   "w": 10,
-   "hoursLeft": 17
-  },
-  {
-   "k": "dog",
-   "w": 10,
-   "hoursLeft": 12
-  },
-  {
-   "k": "food",
-   "w": 25,
-   "hoursLeft": 15
-  },
-  {
-   "k": "fire",
-   "w": 12,
-   "hoursLeft": 11
-  },
-  {
-   "k": "explore",
-   "w": 15,
-   "hoursLeft": 21
+   "k": "build:foodStore",
+   "w": 18,
+   "hoursLeft": 1
   }
  ],
  "journal": [
-  {
-   "day": 2,
-   "text": "A day's proper work behind me and my arms know it. Fish trap's in the water, two snares laid along the warren path, wood stacking up on the rack before the weather turns. Best of it though: I set scraps out for the dog and backed off, and she came and ate them, watching me the whole time like I might change my mind about being harmless. Didn't try to touch her — that's a day for another time. Still just the two of us out here, but it feels a little less like just the one."
-  },
   {
    "day": 3,
    "text": "Third day, and I made it through a hungry night without it turning into anything worse. Whatever I managed between the trap, the snares and what's left in my hands has quieted my stomach, if not answered every question about tomorrow. Fire's out again — that's twice now, and I'm getting tired of relighting it from scratch each morning. Fog's thick enough I can't see the shore from the lean-to. Feeling the quiet of this place more today than I have — no one to grumble to about any of it but myself, and Nell, who isn't much for conversation yet. Fire first, then the woodpile cover, then I'll see what the fog gives up."
@@ -311,7 +453,11 @@
   {
    "day": 5,
    "text": "Fifth day, and I've been properly ill overnight — cramping, sweating, up more than once. I keep turning it over: was it the berries, the stream water, or that marsh water I had a bad feeling about even as I drank it? Can't say for certain, and that not-knowing is its own kind of misery. What I do know is I've been careless about water since I got here, telling myself a sailor's stomach can take anything, and a sailor's stomach very much cannot. From now on it's boiled water only, whatever the bother of it. Weak and hungry again this morning too — desperately so — which doesn't help me tell illness from hunger. Very low today, if I'm honest with this page. Nell came close enough to nose at my hand while I lay there, which I won't forget in a hurry."
+  },
+  {
+   "day": 6,
+   "text": "Sixth day. Hungry again at first light, and I've finally seen the shape of the trouble: I catch or gather enough some days and go without on others, and nothing I've built holds it over from the good days to the bad. A food store and a drying rack would see to that — smoke or dry what I don't need today so it's there when the trap comes up empty. Feels like a proper turn, thinking past the next meal for once instead of just chasing it. Not ill any more, not cold, and Nell's about somewhere close, which counts for a great deal these days. Today's for the rack, if my hands and my stomach will let me."
   }
  ],
- "lastThought": "Hungry again, proper hungry, same as every night this week near enough. Three snares and a trap and it's still not steady. Maybe what I need isn't more of the same but new ground — further along the coast, past what I've already picked clean."
+ "lastThought": "Hungry again this morning, same as always, but I've worked out what's wanting — not more traps, but somewhere to keep what they give me. A drying rack, a proper store. Stop eating everything the day it's caught."
 }
